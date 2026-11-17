@@ -1,0 +1,3 @@
+[submodule "calcpad"]
+	path = calcpad
+	url = https://codeberg.org/Proektsoft/Calcpad.git

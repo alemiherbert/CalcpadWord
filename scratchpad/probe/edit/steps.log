@@ -1,0 +1,24 @@
+﻿controls: 23
+[ 1] inline hidden=0   paraText=[Dimensions of loaded area - 𝑎=2 m, 𝑏=3] src=[a = 2m] -> ok
+[ 2] inline hidden=0   paraText=[Dimensions of loaded area - 𝑎=2 m, 𝑏=3] src=[b = 3m] -> ok
+[ 3] inline hidden=0   paraText=[Surface load - 𝑝\r𝑥;𝑦\r=100 kPa·\r1+\] src=[p(x; y) = 100kPa*(1 + (x/a))] -> ok
+[ 4] inline hidden=0   paraText=[Elastic modulus - \r𝐸\r0\r=20 MPa\r] src=[E_0 = 20MPa] -> ok
+[ 5] inline hidden=0   paraText=[Poisson ratio - 𝜈=0.3\r] src=[ν = 0.3] -> ok
+[ 6] inline hidden=0   paraText=[𝑅\r𝑥;𝑦;𝑧\r=\r\r\r𝑥\r2\r+\r𝑦\r2\r+\] src=[R(x; y; z) = sqrt(x^2 + y^2 + z^2)] -> ok
+[ 7] inline hidden=0   paraText=[Vertical - \r𝜎\r𝑧\r\r𝑥;𝑦;𝑧\r=\r3\r2] src=[σ_z(x; y; z) = 3/(2*π)*$Integral{$Integral{p(x_p; ...] -> ok
+[ 8] inline hidden=0   paraText=[Shear - \r𝜏\r𝑥𝑧\r\r𝑥;𝑦;𝑧\r=\r3\r2·] src=[τ_xz(x; y; z) = 3/(2*π)*$Integral{$Integral{p(x_p;...] -> ok
+[ 9] inline hidden=0   paraText=[Shear - \r𝜏\r𝑦𝑧\r\r𝑥;𝑦;𝑧\r=\r3\r2·] src=[τ_yz(x; y; z) = 3/(2*π)*$Integral{$Integral{p(x_p;...] -> ok
+[10] inline hidden=0   paraText=[𝑑\r𝑥;𝑦\r=\r1−\r𝜈\r2\r\r\r𝐸\r0\r\r·\] src=[d(x; y) = (1 - ν^2)/E_0*$Integral{σ_z(x; y; z) @ z...] -> ok
+[11] inline hidden=0   paraText=[Maximum depth - 𝐻=6 m\r] src=[H = 6m] -> ok
+[12] inline hidden=-1  paraText=[Plot for plane at 𝑦=0 m\r] src=[#hide Precision = 2*10^-4] -> ok
+[13] inline hidden=-1  paraText=[Plot for plane at 𝑦=0 m\r] src=[#hide PlotStep = 5] -> ok
+[14] inline hidden=-1  paraText=[Plot for plane at 𝑦=0 m\r] src=[#hide H_0 = 0.01*H] -> ok
+[15] inline hidden=-1  paraText=[Plot for plane at 𝑦=0 m\r] src=[#hide k = 1.5] -> ok
+[16] inline hidden=0   paraText=[Plot for plane at 𝑦=0 m\r] src=[y = 0m] -> ok
+[17] inline hidden=-1  paraText=[/\r] src=[#hide PlotWidth = 300] -> ok
+[18] inline hidden=-1  paraText=[/\r] src=[#hide PlotHeight = 60] -> ok
+[19] block  hidden=0   paraText=[/\r] src=[$Plot{p(x; y)*(abs(x) < a/2) @ x = -k*a : k*a}\n'<...] -> ok
+[20] inline hidden=-1  paraText=[/\r] src=[#hide PlotWidth = 300] -> ok
+[21] inline hidden=-1  paraText=[/\r] src=[#hide PlotHeight = 60] -> ok
+[22] block  hidden=0   paraText=[/\r] src=[$Plot{-d(x; y) & 0mm @ x = -k*a : k*a}] -> ok
+[23] inline hidden=0   paraText=[The map reaches 3 m either side of the c] src=[#val k*a] -> ok

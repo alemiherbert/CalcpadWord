@@ -1,0 +1,2 @@
+﻿Process 16416 (WINWORD), main thread 46508
+MAIN thread 46508 [Running/]: -> Thread(pid 16416, tid 46508, Running, wait 21327111 ms)

@@ -1,0 +1,12 @@
+﻿Evaluate -> Calcpad: 2 items, 0 errors
+simple conversion : 4 paragraphs
+  [ 1] outline=1  cc=-              [Title\r]
+  [ 2] outline=10 cc=-              [Text 𝑥=2\r]
+  [ 3] outline=10 cc=-              [𝑥·3=2·3=6\r]
+  [ 4] outline=10 cc=-              [After.\r]
+Evaluate -> Calcpad: 2 items, 0 errors
+conversion ending in a block : 4 paragraphs
+  [ 1] outline=10 cc=-              [Text 𝑥=2\r]
+  [ 2] outline=10 cc=-              [/\r]
+  [ 3] outline=10 cc=calcpad-block: [ \r]
+  [ 4] outline=10 cc=-              [After.\r]

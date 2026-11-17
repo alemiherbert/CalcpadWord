@@ -1,0 +1,80 @@
+﻿Loading the add-in
+  PASS  add-in is connected and exposes its API
+  version 0.5.0
+  PASS  ribbon XML is well-formed and has the Calcpad tab
+  PASS  every ribbon icon exists in this Word 
+  PASS  right-click menus: equation menu has Edit Source, Evaluate and Block to Text, all ids unique
+  PASS  every context menu id exists in this Word 
+  PASS  ribbon callbacks are callable through IDispatch
+  PASS  Calcpad warms up in the background at start-up
+Step 1: select the three formula lines, press Evaluate
+  -> Calcpad: 11 items, 1 error. First error: y = nothing*2: Undefined variable or units: "nothing".  (Ctrl+Alt+F8 goes to it)
+    [ 1] r maths=1 locked=True  src=[L = 6m] text=[𝐿=6 m] title=[Calcpad: L = 6m]
+    [ 2] r maths=1 locked=True  src=[q = 12kN/m] text=[𝑞=12 \rkN\rm\r] title=[Calcpad: q = 12kN/m]
+    [ 3] r maths=1 locked=True  src=[M = q*L^2/8] text=[𝑀=\r𝑞·\r𝐿\r2\r\r8\r=\r12 kN∕m·\r\r6 m\r\r2\r\r8\r=54 kNm] title=[Calcpad: M = q*L^2/8]
+    [ 4] r maths=1 locked=True  src=[#val L] text=[6 m] title=[Calcpad: #val L]
+    [ 5] r maths=1 locked=True  src=[#val M|kNm] text=[54 kNm] title=[Calcpad: #val M|kNm]
+    [ 6] r maths=1 locked=True  src=[R = q*L/2] text=[𝑅=\r𝑞·𝐿\r2\r=\r12 kN∕m·6 m\r2\r=36 kN] title=[Calcpad: R = q*L/2]
+    [ 7] r maths=0 locked=True  src=[#hide k = 2] text=[] title=[Calcpad (hidden): #hide k = 2]
+    [ 8] r maths=1 locked=True  src=[#nosub σ = M/(0.2m*(0.3m)^2/6)|MPa] text=[𝜎=\r𝑀\r\r0.2 m·\r\r0.3 m\r\r2\r\r6\r\r=18 MPa] title=[Calcpad: #nosub σ = M/(0.2m*(0.3m)^2/6)|MPa]
+    [ 9] r maths=1 locked=True  src=[x_r = $Root{x^2 - 2 @ x = 0 : 2}] text=[\r𝑥\r𝑟\r=$Root\r\r𝑥\r2\r−2=0;𝑥∈\r0;2\r\r=1.41] title=[Calcpad: x_r = $Root{x^2 - 2 @ x = 0 : 2}]
+    [10] x maths=0 locked=False src=[y = nothing*2] text=[y = nothing*2] title=[Error: Undefined variable or units: "nothing".]
+    [11] r maths=1 locked=True  src=[#val k*3] text=[6] title=[Calcpad: #val k*3]
+  PASS  3 selected lines + 8 {= } expressions became controls
+  PASS  no paragraphs were added or removed
+  PASS  M is a locked Word equation
+  PASS  #val M|kNm shows 54 kNm
+  PASS  hidden k = 2 is usable later (k*3 = 6)
+  PASS  #hide expression is hidden text
+  PASS  error stays editable, message as its title
+  PASS  Calcpad source is excluded from spell checking
+  picture: C:\Users\dell alienware\Desktop\Alemi Herbert\Plugin\out\e2e\e2e-1-calcpad-style.png
+Step 1b: what the right-click menu offers
+  PASS  inside an equation: Edit Calcpad Source
+  PASS  inside failed source: Evaluate Calcpad
+  PASS  in ordinary text: no Calcpad items
+Step 2: errors list and Next Error
+  PASS  one error is listed
+  -> Calcpad error 1 of 1: Undefined variable or units: "nothing".
+  PASS  Next Error puts the cursor in the failed expression
+Step 3: Edit Source on L, change it to 8m, then click elsewhere (no Evaluate)
+  -> Editing the Calcpad source. Enter or click outside to evaluate; Shift+Enter adds another expression.
+  PASS  Edit Source shows plain source text
+  PASS  leaving the source evaluates it
+  PASS  and everything after it follows (M = 96 kNm)
+Step 4: fix the error in place, then click elsewhere
+  PASS  the fixed expression renders after leaving it
+  PASS  no errors left
+Step 5: expressions in a header, a footer and a text box
+  -> Calcpad: 14 items, 0 errors
+  PASS  all 14 expressions evaluate
+  PASS  header shows M (96 kNm)
+  PASS  footer shows R (48 kN)
+  PASS  text box shows 2R (96 kN)
+Step 6: settings -> plain style, 3 decimals
+  PASS  Calcpad style colours variables
+  -> Calcpad: 14 items, 0 errors
+  PASS  plain style removes the colour
+  PASS  settings are stored in the document
+Step 7: copy the reaction expression to the end of the document
+  -> Calcpad: 15 items, 0 errors
+  PASS  pasted copy keeps its source and evaluates
+Step 8: save, close, reopen, recalculate
+  -> Calcpad: 15 items, 0 errors
+  PASS  sources survive save and reopen
+  PASS  settings survive save and reopen
+    [ 1] r maths=1 locked=True  src=[L = 8m] text=[𝐿=8 m] title=[Calcpad: L = 8m]
+    [ 2] r maths=1 locked=True  src=[q = 12kN/m] text=[𝑞=12 \rkN\rm\r] title=[Calcpad: q = 12kN/m]
+    [ 3] r maths=1 locked=True  src=[M = q*L^2/8] text=[𝑀=\r𝑞·\r𝐿\r2\r\r8\r=\r12 kN∕m·\r\r8 m\r\r2\r\r8\r=96 kNm] title=[Calcpad: M = q*L^2/8]
+    [ 4] r maths=1 locked=True  src=[#val L] text=[8 m] title=[Calcpad: #val L]
+    [ 5] r maths=1 locked=True  src=[#val M|kNm] text=[96 kNm] title=[Calcpad: #val M|kNm]
+    [ 6] r maths=1 locked=True  src=[R = q*L/2] text=[𝑅=\r𝑞·𝐿\r2\r=\r12 kN∕m·8 m\r2\r=48 kN] title=[Calcpad: R = q*L/2]
+    [ 7] r maths=0 locked=True  src=[#hide k = 2] text=[] title=[Calcpad (hidden): #hide k = 2]
+    [ 8] r maths=1 locked=True  src=[#nosub σ = M/(0.2m*(0.3m)^2/6)|MPa] text=[𝜎=\r𝑀\r\r0.2 m·\r\r0.3 m\r\r2\r\r6\r\r=32 MPa] title=[Calcpad: #nosub σ = M/(0.2m*(0.3m)^2/6)|MPa]
+    [ 9] r maths=1 locked=True  src=[x_r = $Root{x^2 - 2 @ x = 0 : 2}] text=[\r𝑥\r𝑟\r=$Root\r\r𝑥\r2\r−2=0;𝑥∈\r0;2\r\r=1.414] title=[Calcpad: x_r = $Root{x^2 - 2 @ x = 0 : 2}]
+    [10] r maths=1 locked=True  src=[y = L*2] text=[𝑦=𝐿·2=8 m·2=16 m] title=[Calcpad: y = L*2]
+    [11] r maths=1 locked=True  src=[#val k*3] text=[6] title=[Calcpad: #val k*3]
+    [12] r maths=1 locked=True  src=[R = q*L/2] text=[𝑅=\r𝑞·𝐿\r2\r=\r12 kN∕m·8 m\r2\r=48 kN] title=[Calcpad: R = q*L/2]
+  picture: C:\Users\dell alienware\Desktop\Alemi Herbert\Plugin\out\e2e\e2e-2-plain-style.png
+Step 9: a fenced Calcpad block between inline expressions
+  -> Calcpad: 3 items, 0 errors

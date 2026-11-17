@@ -1,0 +1,30 @@
+﻿13:38:10.249  start
+13:38:10.261  creating Word.Application
+13:38:11.993  created; new Word PIDs: 34296
+13:38:12.001  setting Visible/DisplayAlerts
+13:38:12.067  COM add-ins: 3
+13:38:12.090    OneNote.WordAddinTakeNotesService connected=False
+13:38:12.094    PEOfficeAddIn.PDFelementConnect connected=True
+13:38:12.096    Tedds for Word connected=True
+13:38:12.098  adding document
+13:38:12.319  Body font: Calibri 11pt
+13:38:12.356  Tag   set    64 -> read 64
+13:38:12.359  Tag   set    65 -> read 65
+13:38:12.361  Tag   set   255 -> read 255
+13:38:12.363  Tag   set   256 -> read 256
+13:38:12.364  Tag   set  1000 -> read 1000
+13:38:12.367  Tag   set  5000 -> read 5000
+13:38:12.373  Title set    64 -> read 64
+13:38:12.378  Title set    65 -> read 65
+13:38:12.380  Title set   255 -> read 255
+13:38:12.381  Title set   256 -> read 256
+13:38:12.385  Tag unicode/specials round-trip: True
+13:38:12.386  InsertXML #1
+13:38:12.524  After InsertXML #1: paragraphs=1 ccs=1 omaths=1
+13:38:12.531    doc text: [Before 𝑐=\r𝑎\r2\r=5 								m middle Y after\r]
+13:38:12.546    math font: Cambria Math 11pt
+13:38:12.556  After Range.Text: ccs=1 cc text=[𝑒𝑟𝑟𝑜𝑟 𝑡𝑒𝑥𝑡]
+13:38:12.627  After InsertXML #2: paragraphs=1 ccs=1 omaths=1 doc text=[Before 𝑐=\r𝑎\r2\r=5 								m middle Y after\r]
+13:38:12.727  Two controls: paragraphs=1 ccs=2 omaths=2 doc text=[Before 𝑐=\r𝑎\r2\r=5 								m middle 𝑐=\r𝑎\r2\r=5 								m after\r]
+13:38:12.738    cc starts in collection order: 8, 39
+13:38:12.739  exporting

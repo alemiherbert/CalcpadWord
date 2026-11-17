@@ -1,0 +1,511 @@
+﻿Loading the add-in
+  PASS  add-in is connected and exposes its API
+  version 0.5.0
+  PASS  ribbon XML is well-formed and has the Calcpad tab
+  PASS  every ribbon icon exists in this Word 
+  PASS  right-click menus: equation menu has Edit Source, Evaluate and Block to Text, all ids unique
+  PASS  every context menu id exists in this Word 
+  PASS  ribbon callbacks are callable through IDispatch
+  PASS  Calcpad warms up in the background at start-up
+Step 1: select the three formula lines, press Evaluate
+  -> Calcpad: 11 items, 1 error. First error: y = nothing*2: Undefined variable or units: "nothing".  (Ctrl+Alt+F8 goes to it)
+    [ 1] r maths=1 locked=True  src=[L = 6m] text=[𝐿=6 m] title=[Calcpad: L = 6m]
+    [ 2] r maths=1 locked=True  src=[q = 12kN/m] text=[𝑞=12 \rkN\rm\r] title=[Calcpad: q = 12kN/m]
+    [ 3] r maths=1 locked=True  src=[M = q*L^2/8] text=[𝑀=\r𝑞·\r𝐿\r2\r\r8\r=\r12 kN∕m·\r\r6 m\r\r2\r\r8\r=54 kNm] title=[Calcpad: M = q*L^2/8]
+    [ 4] r maths=1 locked=True  src=[#val L] text=[6 m] title=[Calcpad: #val L]
+    [ 5] r maths=1 locked=True  src=[#val M|kNm] text=[54 kNm] title=[Calcpad: #val M|kNm]
+    [ 6] r maths=1 locked=True  src=[R = q*L/2] text=[𝑅=\r𝑞·𝐿\r2\r=\r12 kN∕m·6 m\r2\r=36 kN] title=[Calcpad: R = q*L/2]
+    [ 7] r maths=0 locked=True  src=[#hide k = 2] text=[] title=[Calcpad (hidden): #hide k = 2]
+    [ 8] r maths=1 locked=True  src=[#nosub σ = M/(0.2m*(0.3m)^2/6)|MPa] text=[𝜎=\r𝑀\r\r0.2 m·\r\r0.3 m\r\r2\r\r6\r\r=18 MPa] title=[Calcpad: #nosub σ = M/(0.2m*(0.3m)^2/6)|MPa]
+    [ 9] r maths=1 locked=True  src=[x_r = $Root{x^2 - 2 @ x = 0 : 2}] text=[\r𝑥\r𝑟\r=$Root\r\r𝑥\r2\r−2=0;𝑥∈\r0;2\r\r=1.41] title=[Calcpad: x_r = $Root{x^2 - 2 @ x = 0 : 2}]
+    [10] x maths=0 locked=False src=[y = nothing*2] text=[y = nothing*2] title=[Error: Undefined variable or units: "nothing".]
+    [11] r maths=1 locked=True  src=[#val k*3] text=[6] title=[Calcpad: #val k*3]
+  PASS  3 selected lines + 8 {= } expressions became controls
+  PASS  no paragraphs were added or removed
+  PASS  M is a locked Word equation
+  PASS  #val M|kNm shows 54 kNm
+  PASS  hidden k = 2 is usable later (k*3 = 6)
+  PASS  #hide expression is hidden text
+  PASS  error stays editable, message as its title
+  PASS  Calcpad source is excluded from spell checking
+  picture: C:\Users\dell alienware\Desktop\Alemi Herbert\Plugin\out\e2e\e2e-1-calcpad-style.png
+Step 1b: what the right-click menu offers
+  PASS  inside an equation: Edit Calcpad Source
+  PASS  inside failed source: Evaluate Calcpad
+  PASS  in ordinary text: no Calcpad items
+Step 2: errors list and Next Error
+  PASS  one error is listed
+  -> Calcpad error 1 of 1: Undefined variable or units: "nothing".
+  PASS  Next Error puts the cursor in the failed expression
+Step 3: Edit Source on L, change it to 8m, then click elsewhere (no Evaluate)
+  -> Editing the Calcpad source. Enter or click outside to evaluate; Shift+Enter adds another expression.
+  PASS  Edit Source shows plain source text
+  PASS  leaving the source evaluates it
+  PASS  and everything after it follows (M = 96 kNm)
+Step 4: fix the error in place, then click elsewhere
+  PASS  the fixed expression renders after leaving it
+  PASS  no errors left
+Step 5: expressions in a header, a footer and a text box
+  -> Calcpad: 14 items, 0 errors
+  PASS  all 14 expressions evaluate
+  PASS  header shows M (96 kNm)
+  PASS  footer shows R (48 kN)
+  PASS  text box shows 2R (96 kN)
+Step 6: settings -> plain style, 3 decimals
+  PASS  Calcpad style colours variables
+  -> Calcpad: 14 items, 0 errors
+  PASS  plain style removes the colour
+  PASS  settings are stored in the document
+Step 7: copy the reaction expression to the end of the document
+  -> Calcpad: 15 items, 0 errors
+  PASS  pasted copy keeps its source and evaluates
+Step 8: save, close, reopen, recalculate
+  -> Calcpad: 15 items, 0 errors
+  PASS  sources survive save and reopen
+  PASS  settings survive save and reopen
+    [ 1] r maths=1 locked=True  src=[L = 8m] text=[𝐿=8 m] title=[Calcpad: L = 8m]
+    [ 2] r maths=1 locked=True  src=[q = 12kN/m] text=[𝑞=12 \rkN\rm\r] title=[Calcpad: q = 12kN/m]
+    [ 3] r maths=1 locked=True  src=[M = q*L^2/8] text=[𝑀=\r𝑞·\r𝐿\r2\r\r8\r=\r12 kN∕m·\r\r8 m\r\r2\r\r8\r=96 kNm] title=[Calcpad: M = q*L^2/8]
+    [ 4] r maths=1 locked=True  src=[#val L] text=[8 m] title=[Calcpad: #val L]
+    [ 5] r maths=1 locked=True  src=[#val M|kNm] text=[96 kNm] title=[Calcpad: #val M|kNm]
+    [ 6] r maths=1 locked=True  src=[R = q*L/2] text=[𝑅=\r𝑞·𝐿\r2\r=\r12 kN∕m·8 m\r2\r=48 kN] title=[Calcpad: R = q*L/2]
+    [ 7] r maths=0 locked=True  src=[#hide k = 2] text=[] title=[Calcpad (hidden): #hide k = 2]
+    [ 8] r maths=1 locked=True  src=[#nosub σ = M/(0.2m*(0.3m)^2/6)|MPa] text=[𝜎=\r𝑀\r\r0.2 m·\r\r0.3 m\r\r2\r\r6\r\r=32 MPa] title=[Calcpad: #nosub σ = M/(0.2m*(0.3m)^2/6)|MPa]
+    [ 9] r maths=1 locked=True  src=[x_r = $Root{x^2 - 2 @ x = 0 : 2}] text=[\r𝑥\r𝑟\r=$Root\r\r𝑥\r2\r−2=0;𝑥∈\r0;2\r\r=1.414] title=[Calcpad: x_r = $Root{x^2 - 2 @ x = 0 : 2}]
+    [10] r maths=1 locked=True  src=[y = L*2] text=[𝑦=𝐿·2=8 m·2=16 m] title=[Calcpad: y = L*2]
+    [11] r maths=1 locked=True  src=[#val k*3] text=[6] title=[Calcpad: #val k*3]
+    [12] r maths=1 locked=True  src=[R = q*L/2] text=[𝑅=\r𝑞·𝐿\r2\r=\r12 kN∕m·8 m\r2\r=48 kN] title=[Calcpad: R = q*L/2]
+  picture: C:\Users\dell alienware\Desktop\Alemi Herbert\Plugin\out\e2e\e2e-2-plain-style.png
+Step 9: a fenced Calcpad block between inline expressions
+  -> Calcpad: 3 items, 0 errors
+  PASS  the fence became a block; 1 block + 2 inline items, no errors
+  PASS  the {= and } fence lines are gone
+  PASS  block output: heading, text, and the #if branch that applies
+  PASS  block output has its equations (M and 3 loop steps): 5
+  PASS  the plot is a picture in the block
+  PASS  an inline expression after the block uses its variable (M = 18 m)
+  PASS  block output is read-only
+  PASS  right-click in a block offers Edit Calcpad Source
+  picture: C:\Users\dell alienware\Desktop\Alemi Herbert\Plugin\out\e2e\e2e-3-block.png
+Step 10: edit the block source, then click outside
+  -> Editing the Calcpad block. Click outside it to evaluate.
+  PASS  Edit Source shows the script, one line per paragraph
+  PASS  leaving the block evaluates it
+  PASS  the other #if branch now applies
+  PASS  and the inline expression after it follows (M = 6 m)
+Step 11: Calcpad Block on an empty line, with an error inside
+  -> Type the Calcpad script in the block, one statement per line. Click outside it to evaluate.
+  PASS  an empty block is ready to type into
+  PASS  leaving it evaluates it
+  PASS  its error is reported in its title
+  PASS  and counted in the error list
+Step 12: Evaluate on lines that read like a script makes a block; an unclosed #if is reported
+  -> Calcpad: 5 items, 2 errors. First error: block: Error in "u = nothing*2": Undefined variable or units: "nothing". (1 error in this block)  (Ctrl+Alt+F8 goes to it)
+  PASS  it became a block that shows its source and the problem
+  PASS  two problems listed
+  PASS  the rest of the document still calculates
+Step 13: blocks survive save and reopen
+  -> Calcpad: 5 items, 2 errors. First error: block: Error in "u = nothing*2": Undefined variable or units: "nothing". (1 error in this block)  (Ctrl+Alt+F8 goes to it)
+  PASS  same items and errors after reopening
+  picture: C:\Users\dell alienware\Desktop\Alemi Herbert\Plugin\out\e2e\e2e-4-blocks-final.png
+Step 14: Shift+Enter adds expressions while editing; Enter finishes
+  PASS  while editing a source, Enter belongs to Calcpad
+  PASS  Shift+Enter adds lines inside the source
+  PASS  Enter leaves the source
+  PASS  and each line becomes its own expression
+  PASS  in the order typed: a = 2 | c = a + 1 | d = c*2 | b = a*3
+  PASS  all four are evaluated equations
+  PASS  d = c*2 = 6
+  PASS  the cursor is in a new, ordinary paragraph below
+  PASS  where Enter is ordinary again
+  PASS  Enter on a (locked) result moves on as well
+  PASS  to a new paragraph after it
+  PASS  in ordinary text Enter is an ordinary Enter
+Step 15: a real worksheet (Calcpad soil stress example) pasted as text, then Evaluate
+  -> Calcpad: calculating in the background…  (0.7 s)
+  PASS  the long calculation runs in the background; Evaluate returned after 0.7 s
+  PASS  Word responds meanwhile: typing took 0.02 s
+  PASS  the results arrive (15.8 s after Evaluate)
+  -> Calcpad: 23 items, 0 errors
+  PASS  and the text typed meanwhile is kept
+  PASS  the pasted script calculates without errors
+  PASS  its title is a Word Heading 1
+  PASS  <h4>Results</h4> is a Word Heading 2
+  PASS  <hr/> is a rule line
+  PASS  text is a Word paragraph with the value inline
+  PASS  only plots and the table stay Calcpad blocks (2)
+  PASS  4 plots and 2 maps are pictures, the results table a Word table (6 pictures)
+  PASS  the sentence after it is untouched and uses k, set inside an HTML comment (k*a = 3 m)
+  picture: C:\Users\dell alienware\Desktop\Alemi Herbert\Plugin\out\e2e\e2e-5-soil-stress.png
+  PASS  Edit Source works on the block holding the table
+  PASS  and leaving it draws the block again
+  PASS  with its table and pictures (5)
+  PASS  recalculating with the blocks unchanged is quick (0.1 s)
+  PASS  and stays quick after saving and reopening (0.1 s)
+Step 15b: Cancel, and results greyed while they may be out of date
+  PASS  while the soil example calculates, Cancel is enabled
+  -> Calcpad: cancelled the calculation. Results that may be out of date stay greyed: Recalculate (Ctrl+Alt+F9) to calculate them.
+  PASS  Cancel stops it (0.2 s) and is disabled again
+  PASS  no results were drawn after cancelling
+  PASS  with nothing running, Cancel does nothing
+  PASS  Recalculate then calculates it (Calcpad: 22 items, 0 errors)
+  PASS  a settings change greys all 22 results while it calculates (22)
+  PASS  greyed: washed-out plots, light grey behind values
+  PASS  greying does not touch the error list
+  PASS  after Cancel they stay greyed, and the status says so
+  PASS  recalculating removes the grey (Calcpad: 22 items, 0 errors)
+  PASS  results that did not change are exactly as before (not redrawn, only ungreyed)
+Step 16: Block to Text on an existing block
+  PASS  a fenced block to start from
+  -> Calcpad: 2 items, 0 errors
+  PASS  the heading is a Word heading
+  PASS  the text line is a Word paragraph with w inline
+  PASS  only the plot and the table are still a block (it had a table: Word refuses to replace those directly)
+  PASS  the text after the block is untouched
+Step 17: math fonts (free ones are downloaded and installed for the current user)
+  PASS  the starters are on offer, Fira Math instead of Minion Math: +Asana Math, +Cambria Math, +Euler Math, +Fira Math, +Latin Modern Math, +Libertinus Math, +Noto Sans Math, +STIX Two Math, +TeX Gyre Pagella Math, +XITS Math
+  PASS  the list is in alphabetical order
+  math fonts found on this computer besides the starters: none
+  PASS  a font that is not on offer is refused
+  PASS  Latin Modern Math: installed and used by every part of the equations (0.8 s; fonts in F = 120kN: Latin Modern Math)
+  picture: C:\Users\dell alienware\Desktop\Alemi Herbert\Plugin\out\e2e\e2e-font-Latin-Modern-Math.png
+  PASS  STIX Two Math: installed and used by every part of the equations (0.7 s; fonts in F = 120kN: STIX Two Math)
+  picture: C:\Users\dell alienware\Desktop\Alemi Herbert\Plugin\out\e2e\e2e-font-STIX-Two-Math.png
+  PASS  Fira Math: installed and used by every part of the equations (0.7 s; fonts in F = 120kN: Fira Math)
+  picture: C:\Users\dell alienware\Desktop\Alemi Herbert\Plugin\out\e2e\e2e-font-Fira-Math.png
+  PASS  Libertinus Math: installed and used by every part of the equations (0.7 s; fonts in F = 120kN: Libertinus Math)
+  picture: C:\Users\dell alienware\Desktop\Alemi Herbert\Plugin\out\e2e\e2e-font-Libertinus-Math.png
+  PASS  XITS Math: installed and used by every part of the equations (0.6 s; fonts in F = 120kN: XITS Math)
+  picture: C:\Users\dell alienware\Desktop\Alemi Herbert\Plugin\out\e2e\e2e-font-XITS-Math.png
+  PASS  TeX Gyre Pagella Math: installed and used by every part of the equations (0.7 s; fonts in F = 120kN: TeX Gyre Pagella Math)
+  picture: C:\Users\dell alienware\Desktop\Alemi Herbert\Plugin\out\e2e\e2e-font-TeX-Gyre-Pagella-Math.png
+  PASS  Asana Math: installed and used by every part of the equations (0.7 s; fonts in F = 120kN: Asana Math)
+  picture: C:\Users\dell alienware\Desktop\Alemi Herbert\Plugin\out\e2e\e2e-font-Asana-Math.png
+  PASS  Noto Sans Math: installed and used by every part of the equations (0.7 s; fonts in F = 120kN: Noto Sans Math)
+  picture: C:\Users\dell alienware\Desktop\Alemi Herbert\Plugin\out\e2e\e2e-font-Noto-Sans-Math.png
+  PASS  Euler Math: installed and used by every part of the equations (0.6 s; fonts in F = 120kN: Euler Math)
+  picture: C:\Users\dell alienware\Desktop\Alemi Herbert\Plugin\out\e2e\e2e-font-Euler-Math.png
+  PASS  Cambria Math: installed and used by every part of the equations (0.7 s; fonts in F = 120kN: Cambria Math)
+  picture: C:\Users\dell alienware\Desktop\Alemi Herbert\Plugin\out\e2e\e2e-font-Cambria-Math.png
+  PASS  all of them are installed now: +Asana Math, +Cambria Math, +Euler Math, +Fira Math, +Latin Modern Math, +Libertinus Math, +Noto Sans Math, +STIX Two Math, +TeX Gyre Pagella Math, +XITS Math
+Step 18: one Undo reverts an Evaluate
+  PASS  single undo step
+Quitting Word
+  PASS  Word exits after Quit (the add-in does not keep it alive)
+--- add-in log (this run)
+  2026-11-17 20:56:28.103 INFO  Connecting (mode ext_cm_Startup), version 0.5.0, .NET 10.0.12
+  2026-11-17 20:56:29.118 INFO  Looked for math fonts in 546 font files (207 ms): Asana Math, Cambria Math, Euler Math, Fira Math, Latin Modern Math, Libertinus Math, Noto Sans Math, STIX Two Math, TeX Gyre Pagella Math, XITS Math
+  2026-11-17 20:56:33.349 TRACE [2] DocumentChange start
+  2026-11-17 20:56:33.353 TRACE [2] DocumentChange end
+  2026-11-17 20:56:33.466 INFO  Calcpad warmed up in 5343 ms
+  2026-11-17 20:56:34.026 TRACE [2] DocumentChange start
+  2026-11-17 20:56:34.113 TRACE [2] DocumentChange end
+  2026-11-17 20:56:34.467 TRACE [2] SelectionChange start
+  2026-11-17 20:56:34.467 TRACE [2] SelectionChange end
+  2026-11-17 20:56:34.480 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:56:35.921 INFO  Recalculated 'Document1': 11 items, 1 with errors, 11 redrawn
+  2026-11-17 20:56:35.922 TRACE [2] UI work end
+  2026-11-17 20:56:37.183 TRACE [2] SelectionChange start
+  2026-11-17 20:56:37.184 TRACE [2] SelectionChange end
+  2026-11-17 20:56:37.213 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:56:37.215 TRACE [2] UI work end
+  2026-11-17 20:56:37.224 TRACE [2] SelectionChange start
+  2026-11-17 20:56:37.225 TRACE [2] SelectionChange end
+  2026-11-17 20:56:37.230 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:56:37.231 TRACE [2] UI work end
+  2026-11-17 20:56:37.238 TRACE [2] SelectionChange start
+  2026-11-17 20:56:37.238 TRACE [2] SelectionChange end
+  2026-11-17 20:56:37.246 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:56:37.247 TRACE [2] UI work end
+  2026-11-17 20:56:37.262 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:56:37.266 TRACE [2] UI work end
+  2026-11-17 20:56:37.280 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:56:37.287 TRACE [2] UI work end
+  2026-11-17 20:56:37.394 TRACE [2] SelectionChange start
+  2026-11-17 20:56:37.395 TRACE [2] SelectionChange end
+  2026-11-17 20:56:37.415 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:56:37.668 TRACE [2] UI work end
+  2026-11-17 20:56:37.687 TRACE [2] SelectionChange start
+  2026-11-17 20:56:37.687 TRACE [2] SelectionChange end
+  2026-11-17 20:56:37.705 TRACE [2] UI work start: <>c__DisplayClass16_0.<Post>b__0
+  2026-11-17 20:56:38.521 INFO  Recalculated 'Document1': 11 items, 1 with errors, 6 redrawn
+  2026-11-17 20:56:38.522 TRACE [2] UI work end
+  2026-11-17 20:56:38.601 TRACE [2] SelectionChange start
+  2026-11-17 20:56:38.602 TRACE [2] SelectionChange end
+  2026-11-17 20:56:38.609 TRACE [2] SelectionChange start
+  2026-11-17 20:56:38.610 TRACE [2] SelectionChange end
+  2026-11-17 20:56:38.621 TRACE [2] UI work start: <>c__DisplayClass16_0.<Post>b__0
+  2026-11-17 20:56:38.788 INFO  Recalculated 'Document1': 11 items, 0 with errors, 1 redrawn
+  2026-11-17 20:56:38.789 TRACE [2] UI work end
+  2026-11-17 20:56:38.845 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:56:38.848 TRACE [2] UI work end
+  2026-11-17 20:56:39.144 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:56:39.963 INFO  Recalculated 'Document1': 14 items, 0 with errors, 3 redrawn
+  2026-11-17 20:56:39.964 TRACE [2] UI work end
+  2026-11-17 20:56:40.139 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:56:41.280 INFO  Recalculated 'Document1': 14 items, 0 with errors, 7 redrawn
+  2026-11-17 20:56:41.280 TRACE [2] UI work end
+  2026-11-17 20:56:41.380 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:56:41.381 TRACE [2] UI work end
+  2026-11-17 20:56:41.538 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:56:41.806 INFO  Recalculated 'Document1': 15 items, 0 with errors, 0 redrawn
+  2026-11-17 20:56:41.807 TRACE [2] UI work end
+  2026-11-17 20:56:42.084 TRACE [2] DocumentChange start
+  2026-11-17 20:56:42.085 TRACE [2] DocumentChange end
+  2026-11-17 20:56:42.318 TRACE [2] DocumentChange start
+  2026-11-17 20:56:42.323 TRACE [2] DocumentChange end
+  2026-11-17 20:56:42.355 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:56:42.739 INFO  Recalculated 'e2e.docx': 15 items, 0 with errors, 0 redrawn
+  2026-11-17 20:56:42.740 TRACE [2] UI work end
+  2026-11-17 20:56:42.771 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:56:42.772 TRACE [2] UI work end
+  2026-11-17 20:56:43.706 TRACE [2] DocumentChange start
+  2026-11-17 20:56:43.707 TRACE [2] DocumentChange end
+  2026-11-17 20:56:43.792 TRACE [2] DocumentChange start
+  2026-11-17 20:56:43.799 TRACE [2] DocumentChange end
+  2026-11-17 20:56:43.851 TRACE [2] SelectionChange start
+  2026-11-17 20:56:43.852 TRACE [2] SelectionChange end
+  2026-11-17 20:56:43.871 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:56:44.180 INFO  Calculating 'Document2' in the background (3 items)
+  2026-11-17 20:56:44.181 TRACE [2] UI work end
+  2026-11-17 20:56:44.419 INFO  Calculated in 0.2 s, Word content ready in 0.5 s
+  2026-11-17 20:56:44.447 TRACE [2] UI work start: <>c__DisplayClass46_0.<RecalculateCore>b__1
+  2026-11-17 20:56:44.904 INFO  Recalculated 'Document2': 3 items, 0 with errors, 3 redrawn
+  2026-11-17 20:56:44.905 TRACE [2] UI work end
+  2026-11-17 20:56:45.239 TRACE [2] SelectionChange start
+  2026-11-17 20:56:45.240 TRACE [2] SelectionChange end
+  2026-11-17 20:56:45.247 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:56:45.247 TRACE [2] UI work end
+  2026-11-17 20:56:46.478 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:56:46.745 TRACE [2] UI work end
+  2026-11-17 20:56:46.822 TRACE [2] SelectionChange start
+  2026-11-17 20:56:46.823 TRACE [2] SelectionChange end
+  2026-11-17 20:56:46.837 TRACE [2] UI work start: <>c__DisplayClass16_0.<Post>b__0
+  2026-11-17 20:56:47.246 INFO  Recalculated 'Document2': 3 items, 0 with errors, 2 redrawn
+  2026-11-17 20:56:47.247 TRACE [2] UI work end
+  2026-11-17 20:56:47.316 TRACE [2] SelectionChange start
+  2026-11-17 20:56:47.317 TRACE [2] SelectionChange end
+  2026-11-17 20:56:47.330 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:56:47.966 TRACE [2] UI work end
+  2026-11-17 20:56:48.072 TRACE [2] SelectionChange start
+  2026-11-17 20:56:48.074 TRACE [2] SelectionChange end
+  2026-11-17 20:56:48.090 TRACE [2] UI work start: <>c__DisplayClass16_0.<Post>b__0
+  2026-11-17 20:56:48.284 INFO  Recalculated 'Document2': 4 items, 1 with errors, 1 redrawn
+  2026-11-17 20:56:48.284 TRACE [2] UI work end
+  2026-11-17 20:56:48.306 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:56:48.309 TRACE [2] UI work end
+  2026-11-17 20:56:48.344 TRACE [2] SelectionChange start
+  2026-11-17 20:56:48.344 TRACE [2] SelectionChange end
+  2026-11-17 20:56:48.390 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:56:49.407 INFO  Recalculated 'Document2': 5 items, 2 with errors, 1 redrawn
+  2026-11-17 20:56:49.407 TRACE [2] UI work end
+  2026-11-17 20:56:49.529 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:56:49.535 TRACE [2] UI work end
+  2026-11-17 20:56:49.734 TRACE [2] DocumentChange start
+  2026-11-17 20:56:49.735 TRACE [2] DocumentChange end
+  2026-11-17 20:56:49.898 TRACE [2] DocumentChange start
+  2026-11-17 20:56:49.910 TRACE [2] DocumentChange end
+  2026-11-17 20:56:49.965 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:56:50.024 INFO  Recalculated 'e2e-blocks.docx': 5 items, 2 with errors, 0 redrawn
+  2026-11-17 20:56:50.026 TRACE [2] UI work end
+  2026-11-17 20:56:51.490 TRACE [2] DocumentChange start
+  2026-11-17 20:56:51.491 TRACE [2] DocumentChange end
+  2026-11-17 20:56:51.562 TRACE [2] DocumentChange start
+  2026-11-17 20:56:51.570 TRACE [2] DocumentChange end
+  2026-11-17 20:56:51.654 TRACE [2] SelectionChange start
+  2026-11-17 20:56:51.655 TRACE [2] SelectionChange end
+  2026-11-17 20:56:51.682 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:56:51.917 INFO  Recalculated 'Document3': 2 items, 0 with errors, 2 redrawn
+  2026-11-17 20:56:51.918 TRACE [2] UI work end
+  2026-11-17 20:56:51.944 TRACE [2] SelectionChange start
+  2026-11-17 20:56:51.945 TRACE [2] SelectionChange end
+  2026-11-17 20:56:51.963 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:56:52.209 TRACE [2] UI work end
+  2026-11-17 20:56:52.288 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:56:52.293 TRACE [2] UI work end
+  2026-11-17 20:56:52.305 TRACE [2] UI work start: <>c__DisplayClass16_0.<Post>b__0
+  2026-11-17 20:56:52.695 INFO  Recalculated 'Document3': 4 items, 0 with errors, 3 redrawn
+  2026-11-17 20:56:52.697 TRACE [2] UI work end
+  2026-11-17 20:56:52.909 TRACE [2] SelectionChange start
+  2026-11-17 20:56:52.910 TRACE [2] SelectionChange end
+  2026-11-17 20:56:52.922 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:56:52.938 TRACE [2] UI work end
+  2026-11-17 20:56:52.951 TRACE [2] SelectionChange start
+  2026-11-17 20:56:52.952 TRACE [2] SelectionChange end
+  2026-11-17 20:56:52.963 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:56:52.964 TRACE [2] UI work end
+  2026-11-17 20:56:53.001 TRACE [2] DocumentChange start
+  2026-11-17 20:56:53.003 TRACE [2] DocumentChange end
+  2026-11-17 20:56:53.035 TRACE [2] DocumentChange start
+  2026-11-17 20:56:53.039 TRACE [2] DocumentChange end
+  2026-11-17 20:56:53.078 TRACE [2] SelectionChange start
+  2026-11-17 20:56:53.078 TRACE [2] SelectionChange end
+  2026-11-17 20:56:53.087 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:56:53.779 INFO  Calculating 'Document4' in the background (23 items)
+  2026-11-17 20:56:53.780 TRACE [2] UI work end
+  2026-11-17 20:57:05.739 INFO  Calculated in 12.1 s, Word content ready in 12.2 s
+  2026-11-17 20:57:05.756 TRACE [2] UI work start: <>c__DisplayClass46_0.<RecalculateCore>b__1
+  2026-11-17 20:57:08.792 INFO  Recalculated 'Document4': 23 items, 0 with errors, 23 redrawn
+  2026-11-17 20:57:08.794 TRACE [2] UI work end
+  2026-11-17 20:57:11.919 TRACE [2] SelectionChange start
+  2026-11-17 20:57:11.919 TRACE [2] SelectionChange end
+  2026-11-17 20:57:11.941 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:57:12.808 TRACE [2] UI work end
+  2026-11-17 20:57:12.891 TRACE [2] SelectionChange start
+  2026-11-17 20:57:12.892 TRACE [2] SelectionChange end
+  2026-11-17 20:57:13.001 TRACE [2] UI work start: <>c__DisplayClass16_0.<Post>b__0
+  2026-11-17 20:57:13.356 INFO  Greyed 4 results until the calculation finishes
+  2026-11-17 20:57:13.356 INFO  Calculating 'Document4' in the background (23 items)
+  2026-11-17 20:57:13.357 TRACE [2] UI work end
+  2026-11-17 20:57:18.433 INFO  Calculated in 5.3 s, Word content ready in 5.4 s
+  2026-11-17 20:57:18.463 TRACE [2] UI work start: <>c__DisplayClass46_0.<RecalculateCore>b__1
+  2026-11-17 20:57:18.671 INFO  Recalculated 'Document4': 23 items, 0 with errors, 1 redrawn
+  2026-11-17 20:57:18.672 TRACE [2] UI work end
+  2026-11-17 20:57:18.704 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:57:18.753 INFO  Recalculated 'Document4': 23 items, 0 with errors, 0 redrawn
+  2026-11-17 20:57:18.754 TRACE [2] UI work end
+  2026-11-17 20:57:19.075 TRACE [2] DocumentChange start
+  2026-11-17 20:57:19.077 TRACE [2] DocumentChange end
+  2026-11-17 20:57:19.381 TRACE [2] DocumentChange start
+  2026-11-17 20:57:19.385 TRACE [2] DocumentChange end
+  2026-11-17 20:57:19.587 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:57:19.643 INFO  Recalculated 'e2e-soil-stress.docx': 23 items, 0 with errors, 0 redrawn
+  2026-11-17 20:57:19.644 TRACE [2] UI work end
+  2026-11-17 20:57:19.770 TRACE [2] DocumentChange start
+  2026-11-17 20:57:19.770 TRACE [2] DocumentChange end
+  2026-11-17 20:57:19.817 TRACE [2] DocumentChange start
+  2026-11-17 20:57:19.823 TRACE [2] DocumentChange end
+  2026-11-17 20:57:19.864 TRACE [2] SelectionChange start
+  2026-11-17 20:57:19.865 TRACE [2] SelectionChange end
+  2026-11-17 20:57:19.879 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:57:20.804 INFO  Calculating 'Document5' in the background (22 items)
+  2026-11-17 20:57:20.805 TRACE [2] UI work end
+  2026-11-17 20:57:20.835 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:57:20.837 INFO  Cancelled the calculation
+  2026-11-17 20:57:20.838 TRACE [2] UI work end
+  2026-11-17 20:57:20.879 TRACE [2] UI work start: <>c__DisplayClass46_0.<RecalculateCore>b__1
+  2026-11-17 20:57:20.880 INFO  A background calculation was cancelled, or replaced by a newer one
+  2026-11-17 20:57:20.880 TRACE [2] UI work end
+  2026-11-17 20:57:20.991 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:57:20.991 TRACE [2] UI work end
+  2026-11-17 20:57:21.061 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:57:21.319 INFO  Calculating 'Document5' in the background (22 items)
+  2026-11-17 20:57:21.319 TRACE [2] UI work end
+  2026-11-17 20:57:33.065 INFO  Calculated in 11.9 s, Word content ready in 12.0 s
+  2026-11-17 20:57:33.083 TRACE [2] UI work start: <>c__DisplayClass46_0.<RecalculateCore>b__1
+  2026-11-17 20:57:35.748 INFO  Recalculated 'Document5': 22 items, 0 with errors, 22 redrawn
+  2026-11-17 20:57:35.749 TRACE [2] UI work end
+  2026-11-17 20:57:36.186 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:57:36.188 TRACE [2] UI work end
+  2026-11-17 20:57:36.329 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:57:37.040 INFO  Greyed 22 results until the calculation finishes
+  2026-11-17 20:57:37.040 INFO  Calculating 'Document5' in the background (22 items)
+  2026-11-17 20:57:37.041 TRACE [2] UI work end
+  2026-11-17 20:57:37.693 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:57:37.716 TRACE [2] UI work end
+  2026-11-17 20:57:37.742 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:57:37.743 INFO  Cancelled the calculation
+  2026-11-17 20:57:37.745 TRACE [2] UI work end
+  2026-11-17 20:57:37.773 TRACE [2] UI work start: <>c__DisplayClass46_0.<RecalculateCore>b__1
+  2026-11-17 20:57:37.775 INFO  A background calculation was cancelled, or replaced by a newer one
+  2026-11-17 20:57:37.775 TRACE [2] UI work end
+  2026-11-17 20:57:38.395 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:57:38.617 INFO  Recalculated 'Document5': 22 items, 0 with errors, 0 redrawn
+  2026-11-17 20:57:38.618 TRACE [2] UI work end
+  2026-11-17 20:57:39.293 TRACE [2] DocumentChange start
+  2026-11-17 20:57:39.293 TRACE [2] DocumentChange end
+  2026-11-17 20:57:39.315 TRACE [2] DocumentChange start
+  2026-11-17 20:57:39.319 TRACE [2] DocumentChange end
+  2026-11-17 20:57:39.347 TRACE [2] SelectionChange start
+  2026-11-17 20:57:39.348 TRACE [2] SelectionChange end
+  2026-11-17 20:57:39.352 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:57:39.586 INFO  Recalculated 'Document6': 1 items, 0 with errors, 1 redrawn
+  2026-11-17 20:57:39.587 TRACE [2] UI work end
+  2026-11-17 20:57:39.687 TRACE [2] SelectionChange start
+  2026-11-17 20:57:39.688 TRACE [2] SelectionChange end
+  2026-11-17 20:57:39.703 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:57:39.705 TRACE [2] UI work end
+  2026-11-17 20:57:39.718 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:57:40.920 INFO  Recalculated 'Document6': 2 items, 0 with errors, 2 redrawn
+  2026-11-17 20:57:40.921 TRACE [2] UI work end
+  2026-11-17 20:57:41.018 TRACE [2] DocumentChange start
+  2026-11-17 20:57:41.018 TRACE [2] DocumentChange end
+  2026-11-17 20:57:41.038 TRACE [2] DocumentChange start
+  2026-11-17 20:57:41.041 TRACE [2] DocumentChange end
+  2026-11-17 20:57:41.051 TRACE [2] SelectionChange start
+  2026-11-17 20:57:41.051 TRACE [2] SelectionChange end
+  2026-11-17 20:57:41.070 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:57:41.543 INFO  Recalculated 'Document7': 4 items, 0 with errors, 4 redrawn
+  2026-11-17 20:57:41.544 TRACE [2] UI work end
+  2026-11-17 20:57:41.545 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:57:42.353 TRACE [2] UI work end
+  2026-11-17 20:57:42.394 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:57:42.405 TRACE [2] UI work end
+  2026-11-17 20:57:42.632 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:57:43.111 INFO  Recalculated 'Document7': 4 items, 0 with errors, 4 redrawn
+  2026-11-17 20:57:43.111 TRACE [2] UI work end
+  2026-11-17 20:57:43.237 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:57:43.238 TRACE [2] UI work end
+  2026-11-17 20:57:43.475 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:57:44.012 INFO  Recalculated 'Document7': 4 items, 0 with errors, 4 redrawn
+  2026-11-17 20:57:44.012 TRACE [2] UI work end
+  2026-11-17 20:57:44.144 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:57:44.145 TRACE [2] UI work end
+  2026-11-17 20:57:44.365 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:57:44.956 INFO  Recalculated 'Document7': 4 items, 0 with errors, 4 redrawn
+  2026-11-17 20:57:44.957 TRACE [2] UI work end
+  2026-11-17 20:57:45.050 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:57:45.051 TRACE [2] UI work end
+  2026-11-17 20:57:45.241 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:57:45.816 INFO  Recalculated 'Document7': 4 items, 0 with errors, 4 redrawn
+  2026-11-17 20:57:45.817 TRACE [2] UI work end
+  2026-11-17 20:57:45.924 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:57:45.926 TRACE [2] UI work end
+  2026-11-17 20:57:46.131 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:57:46.660 INFO  Recalculated 'Document7': 4 items, 0 with errors, 4 redrawn
+  2026-11-17 20:57:46.660 TRACE [2] UI work end
+  2026-11-17 20:57:46.750 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:57:46.751 TRACE [2] UI work end
+  2026-11-17 20:57:47.005 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:57:47.582 INFO  Recalculated 'Document7': 4 items, 0 with errors, 4 redrawn
+  2026-11-17 20:57:47.582 TRACE [2] UI work end
+  2026-11-17 20:57:47.700 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:57:47.701 TRACE [2] UI work end
+  2026-11-17 20:57:47.906 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:57:48.521 INFO  Recalculated 'Document7': 4 items, 0 with errors, 4 redrawn
+  2026-11-17 20:57:48.522 TRACE [2] UI work end
+  2026-11-17 20:57:48.618 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:57:48.618 TRACE [2] UI work end
+  2026-11-17 20:57:48.824 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:57:49.368 INFO  Recalculated 'Document7': 4 items, 0 with errors, 4 redrawn
+  2026-11-17 20:57:49.369 TRACE [2] UI work end
+  2026-11-17 20:57:49.454 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:57:49.455 TRACE [2] UI work end
+  2026-11-17 20:57:49.770 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:57:50.236 INFO  Recalculated 'Document7': 4 items, 0 with errors, 4 redrawn
+  2026-11-17 20:57:50.236 TRACE [2] UI work end
+  2026-11-17 20:57:50.355 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:57:50.355 TRACE [2] UI work end
+  2026-11-17 20:57:50.624 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:57:51.174 INFO  Recalculated 'Document7': 4 items, 0 with errors, 4 redrawn
+  2026-11-17 20:57:51.174 TRACE [2] UI work end
+  2026-11-17 20:57:51.276 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:57:51.276 TRACE [2] UI work end
+  2026-11-17 20:57:51.545 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:57:51.564 TRACE [2] UI work end
+  2026-11-17 20:57:51.632 TRACE [2] DocumentChange start
+  2026-11-17 20:57:51.633 TRACE [2] DocumentChange end
+  2026-11-17 20:57:51.680 TRACE [2] DocumentChange start
+  2026-11-17 20:57:51.690 TRACE [2] DocumentChange end
+  2026-11-17 20:57:51.729 TRACE [2] SelectionChange start
+  2026-11-17 20:57:51.731 TRACE [2] SelectionChange end
+  2026-11-17 20:57:51.751 TRACE [2] UI work start: <>c__DisplayClass18_0`1.<Invoke>b__0
+  2026-11-17 20:57:51.941 INFO  Recalculated 'Document8': 1 items, 0 with errors, 1 redrawn
+  2026-11-17 20:57:51.942 TRACE [2] UI work end
+  2026-11-17 20:57:51.952 TRACE [2] SelectionChange start
+  2026-11-17 20:57:51.952 TRACE [2] SelectionChange end
+  2026-11-17 20:57:51.973 TRACE [2] DocumentChange start
+  2026-11-17 20:57:51.974 TRACE [2] DocumentChange end
+  2026-11-17 20:57:51.989 INFO  Disconnecting (ext_dm_HostShutdown)
+  PASS  the add-in logged no errors
+ALL PASSED

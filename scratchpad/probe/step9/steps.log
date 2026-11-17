@@ -1,0 +1,22 @@
+﻿20:43:05.114 warmed up
+20:43:05.979 round 1 Evaluate -> Calcpad: calculating in the background…
+20:43:06.637   done: Calcpad: 3 items, 0 errors
+20:43:06.755   controls: 3
+20:43:06.807   [1] calcpad:r:8F3CFFFE5266CDA0:L = 6m | Calcpad: L = 6m
+20:43:06.816   [2] calcpad-block:r:86C79D0F109BAC87:"Beam c | Calcpad block: "Beam check
+20:43:06.824   [3] calcpad:r:7C3FE14C8FBF0FF7:#val M | Calcpad: #val M
+20:43:06.865   closed
+20:43:07.488 round 2 Evaluate -> Calcpad: 3 items, 0 errors
+20:43:07.488   done: Calcpad: 3 items, 0 errors
+20:43:07.529   controls: 3
+20:43:07.546   [1] calcpad:r:8F3CFFFE5266CDA0:L = 6m | Calcpad: L = 6m
+20:43:07.565   [2] calcpad-block:r:86C79D0F109BAC87:"Beam c | Calcpad block: "Beam check
+20:43:07.604   [3] calcpad:r:7C3FE14C8FBF0FF7:#val M | Calcpad: #val M
+20:43:07.646   closed
+20:43:08.315 round 3 Evaluate -> Calcpad: 3 items, 0 errors
+20:43:08.327   done: Calcpad: 3 items, 0 errors
+20:43:08.327   controls: 3
+20:43:08.346   [1] calcpad:r:8F3CFFFE5266CDA0:L = 6m | Calcpad: L = 6m
+20:43:08.354   [2] calcpad-block:r:86C79D0F109BAC87:"Beam c | Calcpad block: "Beam check
+20:43:08.365   [3] calcpad:r:7C3FE14C8FBF0FF7:#val M | Calcpad: #val M
+20:43:08.396   closed

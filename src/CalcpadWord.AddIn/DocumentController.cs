@@ -1,0 +1,1508 @@
+using System.Runtime.InteropServices;
+using CalcpadWord.Engine;
+using Word = Microsoft.Office.Interop.Word;
+
+namespace CalcpadWord.AddIn;
+
+internal sealed record CalcpadError(string Source, string Message, Word.ContentControl Control);
+
+/// <summary>What is under the cursor, for the right-click menu.</summary>
+internal enum CalcpadKind { None, Result, Source }
+
+/// <summary>
+/// Word-side logic. Every Calcpad expression or block in a document is a rich-text content
+/// control whose Tag holds its source (see <see cref="ControlTag"/>). Recalculation collects
+/// them in reading order (main text, text boxes, notes, then headers and footers) and runs
+/// them as one Calcpad worksheet (<see cref="Worksheet"/>).
+/// </summary>
+internal sealed class DocumentController(Word.Application app)
+{
+    private const string SettingsVariable = "Calcpad.Settings";
+    private const string ErrorTitlePrefix = "Error: ";
+    private const int MaxTitle = 250;
+    private const int MaxDelimiters = 10_000;
+
+    // Order in which stories are evaluated. Comments and note separators are not scanned.
+    private static readonly Word.WdStoryType[] StoryOrder =
+    [
+        Word.WdStoryType.wdMainTextStory,
+        Word.WdStoryType.wdTextFrameStory,
+        Word.WdStoryType.wdFootnotesStory,
+        Word.WdStoryType.wdEndnotesStory,
+        Word.WdStoryType.wdFirstPageHeaderStory,
+        Word.WdStoryType.wdPrimaryHeaderStory,
+        Word.WdStoryType.wdEvenPagesHeaderStory,
+        Word.WdStoryType.wdFirstPageFooterStory,
+        Word.WdStoryType.wdPrimaryFooterStory,
+        Word.WdStoryType.wdEvenPagesFooterStory,
+    ];
+
+    private bool _busy;
+
+    // ---- Commands -----------------------------------------------------------------------
+
+    /// <summary>
+    /// Turns the selection (or the current paragraph) into Calcpad, then recalculates the
+    /// document. A selection that reads like a script (comments, headings, keywords, plots)
+    /// becomes one block; otherwise each paragraph becomes one inline expression. Inside an
+    /// existing expression or block it just recalculates.
+    /// </summary>
+    public string Evaluate()
+    {
+        var doc = ActiveDocument();
+        using var undo = new UndoScope(app, "Calcpad Evaluate");
+        var selection = app.Selection.Range;
+        var note = string.Empty;
+        if (FindCalcpadControl(selection) is null)
+        {
+            var paragraphs = WholeParagraphs(selection);
+            if (paragraphs.ContentControls.Count == 0 && BlockSource.LooksLikeScript(ParagraphTexts(paragraphs)))
+            {
+                // A pasted Calcpad script: headings and text become Word paragraphs, calculations Calcpad.
+                var source = SourceNormalizer.NormalizeBlock(paragraphs.Text);
+                var conversion = ScriptConverter.Convert(source);
+                if (conversion.Converted)
+                {
+                    InsertConverted(paragraphs, conversion);
+                }
+                else
+                {
+                    CreateBlock(paragraphs, source);
+                    note = $" Kept the script as one Calcpad block because {conversion.KeptAsBlockReason}.";
+                }
+            }
+            else
+            {
+                WrapAsExpressions(selection);
+            }
+        }
+        return RecalculateCore(doc, keepActiveSource: false) + note;
+    }
+
+    /// <summary>
+    /// Replaces the block at the cursor with Word content: headings and text become Word
+    /// paragraphs, expressions inline Calcpad expressions, and only plots, tables and control
+    /// flow stay in (smaller) blocks.
+    /// </summary>
+    public string ConvertBlockToText()
+    {
+        var doc = ActiveDocument();
+        var cc = FindCalcpadControl(app.Selection.Range);
+        if (cc is null || ControlTag.Parse(cc.Tag) is not { Kind: ControlKind.Block } tag)
+            throw new UserMessageException("Put the cursor in a Calcpad block first.");
+
+        var source = tag.ShowsSource ? ReadEditedSource(cc, ControlKind.Block) : tag.Source;
+        var conversion = ScriptConverter.Convert(source);
+        if (!conversion.Converted)
+            throw new UserMessageException($"This block stays a Calcpad block because {conversion.KeptAsBlockReason}.");
+
+        using var undo = new UndoScope(app, "Calcpad Block to Text");
+        _busy = true;
+        try
+        {
+            // A range over the block's paragraphs follows them once the control is unwrapped.
+            var content = cc.Range;
+            var paragraphs = Slice(content, content.Paragraphs.First.Range.Start, content.Paragraphs.Last.Range.End);
+            cc.LockContents = false;
+            cc.Delete(false);
+            InsertConverted(paragraphs, conversion);
+        }
+        finally
+        {
+            _busy = false;
+        }
+        return RecalculateCore(doc, keepActiveSource: false);
+    }
+
+    public bool IsBlockAt(Word.Range range) =>
+        !_busy && FindCalcpadControl(range) is { } cc && ControlTag.Parse(cc.Tag)?.Kind == ControlKind.Block;
+
+    /// <summary>Keyboard Evaluate: on a result it shows the source; anywhere else it evaluates.</summary>
+    public string EvaluateOrEditSource() =>
+        IsCalcpadResult(app.Selection.Range) ? ToggleEditSource() : Evaluate();
+
+    /// <summary>
+    /// Makes the selected paragraphs (or the current one) a Calcpad block. An empty paragraph
+    /// becomes an empty block, ready to type into.
+    /// </summary>
+    public string MakeBlock()
+    {
+        var doc = ActiveDocument();
+        var selection = app.Selection.Range;
+        if (FindCalcpadControl(selection) is not null)
+            throw new UserMessageException("The cursor is already in a Calcpad expression or block.");
+
+        var paragraphs = WholeParagraphs(selection);
+        if (paragraphs.ContentControls.Count > 0)
+            throw new UserMessageException("The selection already contains content controls. Select ordinary paragraphs to make a block.");
+
+        using var undo = new UndoScope(app, "Calcpad Block");
+        var source = SourceNormalizer.NormalizeBlock(paragraphs.Text);
+        var cc = CreateBlock(paragraphs, source);
+        if (source.Length > 0)
+            return RecalculateCore(doc, keepActiveSource: false);
+
+        _busy = true;
+        try
+        {
+            ShowSource(cc, string.Empty, TextLook.Source, "Calcpad block: type the script, then click outside it to evaluate",
+                ControlState.Editing, string.Empty);
+            PlaceCursorAtEnd(cc);
+        }
+        finally
+        {
+            _busy = false;
+        }
+        return "Type the Calcpad script in the block, one statement per line. Click outside it to evaluate.";
+    }
+
+    public string Recalculate() => Recalculate(ActiveDocument(), keepActiveSource: false);
+
+    /// <param name="keepActiveSource">
+    /// Leave the source the cursor is in as it is (used when another control was just left,
+    /// so the user is not thrown out of the source they moved into).
+    /// </param>
+    public string Recalculate(Word.Document doc, bool keepActiveSource)
+    {
+        using var undo = new UndoScope(app, "Calcpad Recalculate");
+        return RecalculateCore(doc, keepActiveSource);
+    }
+
+    /// <summary>Switches the expression or block at the cursor between its result and its editable source.</summary>
+    public string ToggleEditSource()
+    {
+        var doc = ActiveDocument();
+        var cc = FindCalcpadControl(app.Selection.Range)
+            ?? throw new UserMessageException("Put the cursor in a Calcpad result first.");
+        var tag = ControlTag.Parse(cc.Tag)!;
+
+        using var undo = new UndoScope(app, "Calcpad Edit Source");
+        if (tag.ShowsSource)
+            return RecalculateCore(doc, keepActiveSource: false);
+
+        _busy = true;
+        try
+        {
+            ShowSource(cc, tag.Source, TextLook.Source,
+                tag.Kind == ControlKind.Block
+                    ? "Calcpad block: click outside to evaluate"
+                    : "Calcpad source: Enter or click outside to evaluate; Shift+Enter adds an expression",
+                ControlState.Editing, string.Empty);
+            PlaceCursorAtEnd(cc);
+        }
+        finally
+        {
+            _busy = false;
+        }
+        return tag.Kind == ControlKind.Block
+            ? "Editing the Calcpad block. Click outside it to evaluate."
+            : "Editing the Calcpad source. Enter or click outside to evaluate; Shift+Enter adds another expression.";
+    }
+
+    /// <summary>
+    /// True when leaving <paramref name="cc"/> should recalculate: it shows source that was edited,
+    /// or it is an input field whose value differs from the last calculation's.
+    /// </summary>
+    public bool NeedsEvaluationAfterExit(Word.ContentControl cc)
+    {
+        if (_busy)
+            return false;
+        if (InputField.IsInput(cc.Tag))
+            return !_inputValues.TryGetValue(cc.ID, out var last) || last != ReadInput(cc);
+        if (ControlTag.Parse(cc.Tag) is not { } tag)
+            return false;
+
+        return tag.State switch
+        {
+            ControlState.Editing => true,
+            ControlState.Error => ReadEditedSource(cc, tag.Kind) != tag.Source, // an untouched error would fail again
+            _ => false,
+        };
+    }
+
+    /// <summary>
+    /// True where Enter means "done here, carry on writing": in an inline expression (its source
+    /// or its result) and in a block's output. In a block's script Enter adds a line, as usual.
+    /// </summary>
+    public bool EnterLeavesControlAt(Word.Range range)
+    {
+        if (_busy || FindCalcpadControl(range) is not { } cc || ControlTag.Parse(cc.Tag) is not { } tag)
+            return false;
+
+        return tag.Kind == ControlKind.Inline || !tag.ShowsSource;
+    }
+
+    /// <summary>
+    /// Enter in an expression: leave it (an edited source is then evaluated by the exit event)
+    /// and, if nothing else follows on its line, start a new paragraph below. Inside a sentence
+    /// the cursor just moves past the expression. After a block's output, a new paragraph
+    /// follows the block. Returns false if the cursor is not where Enter means that.
+    /// </summary>
+    public bool LeaveWithEnter()
+    {
+        if (TryActiveDocument() is null || !EnterLeavesControlAt(app.Selection.Range))
+            return false;
+
+        var cc = FindCalcpadControl(app.Selection.Range)!;
+        var tag = ControlTag.Parse(cc.Tag)!;
+        using var undo = new UndoScope(app, "Calcpad Enter");
+        if (tag.Kind == ControlKind.Block)
+        {
+            var next = cc.Range.Paragraphs.Last.Next();
+            if (next is null)
+                return false;
+
+            var start = next.Range.Start;
+            Slice(next.Range, start, start).InsertParagraphBefore();
+            Slice(next.Range, start, start).Select();
+            return true;
+        }
+
+        var after = cc.Range.End + 1; // just past the control's closing boundary
+        var paragraph = cc.Range.Paragraphs.Last.Range;
+        var rest = Slice(paragraph, after, paragraph.End).Text ?? string.Empty;
+        if (rest.Trim(' ', '\t', '\u00A0', '\r', '\a').Length == 0)
+        {
+            Slice(paragraph, after, after).InsertParagraphAfter();
+            Slice(paragraph, after + 1, after + 1).Select();
+        }
+        else
+        {
+            Slice(paragraph, after, after).Select();
+        }
+        return true;
+    }
+
+    public bool IsCalcpadResult(Word.Range range) => KindAt(range) == CalcpadKind.Result;
+
+    public CalcpadKind KindAt(Word.Range range)
+    {
+        if (_busy || FindCalcpadControl(range) is not { } cc || ControlTag.Parse(cc.Tag) is not { } tag)
+            return CalcpadKind.None;
+
+        return tag.ShowsSource ? CalcpadKind.Source : CalcpadKind.Result;
+    }
+
+    public DocumentSettings GetSettings() =>
+        TryActiveDocument() is { } doc ? LoadSettings(doc) : new DocumentSettings();
+
+    public string ChangeSettings(Func<DocumentSettings, DocumentSettings> change)
+    {
+        var doc = ActiveDocument();
+        SaveSettings(doc, change(LoadSettings(doc)));
+        using var undo = new UndoScope(app, "Calcpad Settings");
+        return RecalculateCore(doc, keepActiveSource: false);
+    }
+
+    // ---- Errors -------------------------------------------------------------------------
+
+    public IReadOnlyList<CalcpadError> Errors() =>
+        TryActiveDocument() is { } doc ? Errors(doc) : [];
+
+    /// <summary>Input fields with values that can't be used, expressions and blocks that could not run, and blocks whose output contains errors.</summary>
+    public static IReadOnlyList<CalcpadError> Errors(Word.Document doc)
+    {
+        var errors = new List<CalcpadError>();
+        foreach (var cc in WorksheetControls(doc))
+        {
+            if (InputField.Parse(cc.Tag) is { } field)
+            {
+                try
+                {
+                    field.Assignment(ReadInput(cc));
+                }
+                catch (FormatException ex)
+                {
+                    errors.Add(new CalcpadError("Input " + field.Name, ex.Message, cc));
+                }
+                continue;
+            }
+
+            var tag = ControlTag.Parse(cc.Tag)!;
+            var title = TitleOf(cc);
+            var hasError = tag.State == ControlState.Error ||
+                           tag.Kind == ControlKind.Block && title.StartsWith(ErrorTitlePrefix, StringComparison.Ordinal);
+            if (!hasError)
+                continue;
+
+            var message = title.StartsWith(ErrorTitlePrefix, StringComparison.Ordinal) ? title[ErrorTitlePrefix.Length..] : title;
+            var label = tag.Kind == ControlKind.Block ? "Block: " + FirstLine(tag.Source) : tag.Source;
+            errors.Add(new CalcpadError(label, message, cc));
+        }
+        return errors;
+    }
+
+    /// <summary>Moves the cursor to the next error after the cursor, wrapping around.</summary>
+    public string NextError()
+    {
+        var doc = ActiveDocument();
+        var errors = Errors(doc);
+        if (errors.Count == 0)
+            return "Calcpad: no errors.";
+
+        var selection = app.Selection.Range;
+        var index = 0;
+        if (FindCalcpadControl(selection) is { } current &&
+            errors.Select(e => e.Control.ID).ToList().IndexOf(current.ID) is var i and >= 0)
+        {
+            index = (i + 1) % errors.Count;
+        }
+        else
+        {
+            var after = errors.Select((e, n) => (e, n)).FirstOrDefault(x =>
+                x.e.Control.Range.StoryType == selection.StoryType && x.e.Control.Range.Start > selection.Start);
+            index = after.e is null ? 0 : after.n;
+        }
+        return GoToError(errors, index);
+    }
+
+    public string GoToError(int index)
+    {
+        var errors = Errors(ActiveDocument());
+        if (errors.Count == 0)
+            return "Calcpad: no errors.";
+
+        return GoToError(errors, Math.Clamp(index, 0, errors.Count - 1));
+    }
+
+    private static string GoToError(IReadOnlyList<CalcpadError> errors, int index)
+    {
+        var error = errors[index];
+        var at = error.Control.Range;
+        var isBlock = ControlTag.Parse(error.Control.Tag)?.Kind == ControlKind.Block;
+        at.Collapse(isBlock ? Word.WdCollapseDirection.wdCollapseStart : Word.WdCollapseDirection.wdCollapseEnd);
+        at.Select();
+        return $"Calcpad error {index + 1} of {errors.Count}: {error.Message}";
+    }
+
+    // ---- Recalculation ------------------------------------------------------------------
+
+    // ---- Background calculation ----------------------------------------------------------
+    //
+    // Recalculation has three steps. Reading the document and drawing results use Word, so they
+    // run on Word's thread; running Calcpad in between does not, so it runs on a background
+    // thread. If Calcpad is done within ForegroundMilliseconds the results are drawn straight
+    // away (the usual case: one Undo step, no flicker). Otherwise Word stays usable and the
+    // results are drawn when ready, provided the Calcpad items haven't changed meanwhile; if they
+    // have, it recalculates. A newer recalculation cancels the one still running.
+
+    private const int ForegroundMilliseconds = 250;
+
+    /// <summary>What a calculation started from: the controls and the sources they had.</summary>
+    /// <param name="Controls">The Calcpad expressions and blocks (with <paramref name="Ids"/>, <paramref name="Tags"/>, <paramref name="Parsed"/>).</param>
+    /// <param name="Items">What the worksheet runs, in document order: the controls and the input fields.</param>
+    /// <param name="ItemOf">For each of <paramref name="Controls"/>: its index in <paramref name="Items"/>.</param>
+    /// <param name="Inputs">The input fields, with the value calculated with.</param>
+    private sealed record Snapshot(
+        Word.Document Doc, List<Word.ContentControl> Controls, List<string> Ids, List<string> Tags,
+        List<ControlTag> Parsed, List<WorksheetItem> Items, List<int> ItemOf, List<InputSnapshot> Inputs,
+        DocumentSettings Settings, string? Folder);
+
+    /// <param name="Changed">The value differs from the last calculation's (or this session hasn't calculated it yet).</param>
+    private sealed record InputSnapshot(Word.ContentControl Control, string Id, InputField Field, string Value, int Item, bool Changed);
+
+    /// <summary>The value each input field (by control ID) had in the last calculation: leaving a changed one recalculates.</summary>
+    private readonly Dictionary<string, string> _inputValues = new(StringComparer.Ordinal);
+
+    // Written on Word's thread only; IsWorking and LastStatus may be read from any thread (an
+    // automation client polling them must not keep interrupting Word while it draws).
+    private volatile CancellationTokenSource? _calculation;
+    private volatile Task _lastCalculation = Task.CompletedTask; // Calcpad runs one calculation at a time
+    private volatile string _lastStatus = string.Empty;
+
+    /// <summary>A calculation (or font download) is running in the background, or its results are still to be drawn. Any thread.</summary>
+    public bool IsWorking => _calculation is not null || _fontInstall is not null || !_lastCalculation.IsCompleted;
+
+    /// <summary>
+    /// Runs Calcpad once on a background thread at start-up. Loading and compiling it takes
+    /// longer than the foreground budget, and the first real calculation would otherwise
+    /// always be drawn late.
+    /// </summary>
+    public void WarmUp()
+    {
+        _lastCalculation = Task.Run(() =>
+        {
+            try
+            {
+                var timer = System.Diagnostics.Stopwatch.StartNew();
+                var results = Worksheet.Evaluate(
+                    [WorksheetItem.Inline("a = 2*3"), WorksheetItem.Block("'Warm-up\nb = sqrt(a)*1m\nf(x) = x^2\nc = f(b)")],
+                    new DocumentSettings());
+                foreach (var result in results)
+                    _ = result.Block?.WordPackage;
+                Log.Info($"Calcpad warmed up in {timer.ElapsedMilliseconds} ms");
+            }
+            catch (Exception ex)
+            {
+                Log.Error("Warming up Calcpad failed", ex);
+            }
+        });
+    }
+
+    /// <summary>At shutdown: stops a calculation still running.</summary>
+    public void CancelBackgroundWork()
+    {
+        _calculation?.Cancel();
+        _calculation = null;
+        _fontInstallCancel?.Cancel();
+    }
+
+    /// <summary>A background calculation or font download can be cancelled. Any thread (the keyboard hook asks).</summary>
+    public bool CanCancel => _calculation is not null || _fontInstallCancel is { IsCancellationRequested: false };
+
+    /// <summary>
+    /// The Cancel button (or Esc): stops the background calculation, or the font download.
+    /// Results already in the document stay as they were.
+    /// </summary>
+    public string Cancel()
+    {
+        var what = new List<string>();
+        if (_calculation is { } calculation)
+        {
+            calculation.Cancel();
+            _calculation = null;
+            what.Add("the calculation");
+        }
+        if (_fontInstallCancel is { IsCancellationRequested: false } fontInstall)
+        {
+            fontInstall.Cancel();
+            what.Add("the font download");
+        }
+        if (what.Count == 0)
+            return "Calcpad: nothing to cancel.";
+
+        Log.Info($"Cancelled {string.Join(" and ", what)}");
+        var hint = what.Contains("the calculation")
+            ? " Results that may be out of date stay greyed: Recalculate (Ctrl+Alt+F9) to calculate them."
+            : string.Empty;
+        return LastStatus = $"Calcpad: cancelled {string.Join(" and ", what)}.{hint}";
+    }
+
+    /// <summary>The status of the last finished recalculation. Any thread.</summary>
+    public string LastStatus { get => _lastStatus; private set => _lastStatus = value; }
+
+    /// <summary>Raised on Word's thread when results calculated in the background have been drawn (or failed).</summary>
+    public event Action<string>? BackgroundFinished;
+
+    private string RecalculateCore(Word.Document doc, bool keepActiveSource)
+    {
+        if (_busy)
+            return "Calcpad is busy.";
+
+        _calculation?.Cancel(); // its results would be out of date
+        Snapshot snapshot;
+        _busy = true;
+        try
+        {
+            using var fullSpeed = new FullSpeedScope();
+            using var screen = new ScreenUpdatingScope(app);
+            var activeId = keepActiveSource ? FindCalcpadControl(app.Selection.Range)?.ID : null;
+            SplitMultiLineExpressions(doc, activeId);
+            foreach (var story in Stories(doc))
+                ConvertDelimiters(story);
+            snapshot = TakeSnapshot(doc);
+        }
+        finally
+        {
+            _busy = false;
+        }
+
+        var cancel = new CancellationTokenSource();
+        _calculation = cancel;
+        var token = cancel.Token;
+        var calculation = _lastCalculation.ContinueWith(
+            _ => Calculate(snapshot, token), CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default);
+        _lastCalculation = calculation;
+
+        if (Task.WaitAny([calculation], ForegroundMilliseconds) == 0)
+            return Finish(snapshot, calculation, cancel, keepActiveSource, inBackground: false) ?? LastStatus;
+
+        GreyWhileCalculating(snapshot);
+        app.StatusBar = "Calcpad: calculating… you can keep working.";
+        Log.Info($"Calculating '{doc.Name}' in the background ({snapshot.Items.Count} items)");
+        UiThread.WhenDone(calculation, () =>
+        {
+            var status = Finish(snapshot, calculation, cancel, keepActiveSource: true, inBackground: true);
+            if (status is not null)
+                BackgroundFinished?.Invoke(status);
+        });
+        return "Calcpad: calculating in the background…";
+    }
+
+    /// <summary>The results may change while Calcpad runs: grey them until they are drawn again (or for good, if cancelled).</summary>
+    private void GreyWhileCalculating(Snapshot snapshot)
+    {
+        var stale = StaleCandidates(snapshot);
+        if (stale.Count == 0)
+            return; // nothing drawn yet that could change: leave Word alone
+
+        _busy = true;
+        try
+        {
+            // No ScreenUpdating switch here: a few formatting changes don't flicker, and an extra
+            // off/on just before background results are drawn coincided with Word hanging.
+            using var fullSpeed = new FullSpeedScope();
+            var marked = 0;
+            foreach (var cc in stale)
+            {
+                if (IsStale(cc))
+                    continue;
+                SetStale(cc, stale: true);
+                ++marked;
+            }
+            if (marked > 0)
+                Log.Info($"Greyed {marked} result{(marked == 1 ? "" : "s")} until the calculation finishes");
+        }
+        catch (COMException ex)
+        {
+            Log.Error("Greying out-of-date results failed", ex); // only a hint: the calculation goes on
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private Snapshot TakeSnapshot(Word.Document doc)
+    {
+        List<Word.ContentControl> controls = [];
+        List<string> tags = [];
+        List<ControlTag> parsed = [];
+        List<WorksheetItem> items = [];
+        List<int> itemOf = [];
+        List<InputSnapshot> inputs = [];
+        foreach (var cc in WorksheetControls(doc))
+        {
+            var tag = cc.Tag;
+            if (InputField.Parse(tag) is { } field)
+            {
+                var value = ReadInput(cc);
+                var id = cc.ID;
+                var changed = !_inputValues.TryGetValue(id, out var last) || last != value;
+                _inputValues[id] = value;
+                inputs.Add(new InputSnapshot(cc, id, field, value, items.Count, changed));
+                items.Add(WorksheetItem.Input(field, value));
+                continue;
+            }
+
+            var p = ControlTag.Parse(tag)!;
+            controls.Add(cc);
+            tags.Add(tag);
+            parsed.Add(p);
+            itemOf.Add(items.Count);
+            items.Add(new WorksheetItem(
+                p.Kind,
+                p.ShowsSource ? ReadEditedSource(cc, p.Kind) : p.Source,
+                // A block showing output carries the input hash it was drawn with: unchanged blocks aren't redrawn.
+                p.Kind == ControlKind.Block && !p.ShowsSource ? p.Fingerprint : null));
+        }
+        return new Snapshot(doc, controls, [.. controls.Select(cc => cc.ID)], tags, parsed, items, itemOf, inputs,
+            LoadSettings(doc), DocumentFolder(doc));
+    }
+
+    /// <summary>Background thread: Calcpad, then the Word content of blocks to draw. No Word calls here.</summary>
+    private static IReadOnlyList<EvaluationResult> Calculate(Snapshot snapshot, CancellationToken token)
+    {
+        using var fullSpeed = new FullSpeedScope();
+        var timer = System.Diagnostics.Stopwatch.StartNew();
+        var results = Worksheet.Evaluate(snapshot.Items, snapshot.Settings, snapshot.Folder, token);
+        var calculated = timer.Elapsed;
+        foreach (var result in results)
+        {
+            token.ThrowIfCancellationRequested();
+            _ = result.Block?.WordPackage;
+        }
+        if (timer.ElapsedMilliseconds > ForegroundMilliseconds)
+            Log.Info($"Calculated in {calculated.TotalSeconds:F1} s, Word content ready in {timer.Elapsed.TotalSeconds:F1} s");
+        return results;
+    }
+
+    /// <summary>Word's thread: draws the results. Null when a newer calculation replaced this one.</summary>
+    private string? Finish(Snapshot s, Task<IReadOnlyList<EvaluationResult>> calculation, CancellationTokenSource cancel,
+        bool keepActiveSource, bool inBackground)
+    {
+        if (cancel.IsCancellationRequested)
+        {
+            if (inBackground)
+                Log.Info("A background calculation was cancelled, or replaced by a newer one");
+            return null;
+        }
+        // This calculation counts as running (IsWorking) until its results are drawn and LastStatus is set.
+        var drawLater = false;
+        try
+        {
+            if (!IsOpen(s.Doc))
+            {
+                Log.Info("The document was closed before its calculation finished");
+                return null;
+            }
+            if (calculation.IsFaulted)
+            {
+                Log.Error("Calculation failed", calculation.Exception);
+                return LastStatus = $"Calcpad: the calculation failed: {calculation.Exception?.GetBaseException().Message}";
+            }
+            if (_busy)
+            {
+                // Another command is running: draw right after it.
+                Log.Info("Background results wait for a running command");
+                drawLater = true;
+                UiThread.Post(() =>
+                {
+                    var status = Finish(s, calculation, cancel, keepActiveSource, inBackground);
+                    if (status is not null)
+                        BackgroundFinished?.Invoke(status);
+                });
+                return null;
+            }
+            return DrawResults(s, calculation.Result, keepActiveSource, inBackground);
+        }
+        finally
+        {
+            if (!drawLater && ReferenceEquals(_calculation, cancel))
+                _calculation = null;
+        }
+    }
+
+    /// <summary>Word's thread. Null when the document changed meanwhile and a new background calculation started.</summary>
+    private string? DrawResults(Snapshot s, IReadOnlyList<EvaluationResult> results, bool keepActiveSource, bool inBackground)
+    {
+        using var fullSpeed = new FullSpeedScope(); // Word may be in the background while results arrive
+        using var undo = inBackground ? new UndoScope(app, "Calcpad results") : null;
+        _busy = true;
+        try
+        {
+            using var screen = new ScreenUpdatingScope(app);
+            var controls = s.Controls;
+            if (inBackground)
+            {
+                // The user kept working: are these still the items that were calculated?
+                controls = CalcpadControls(s.Doc);
+                if (!StillTheSame(s, controls))
+                {
+                    _busy = false;
+                    Log.Info($"'{s.Doc.Name}' changed during the calculation: calculating again");
+                    var restarted = RecalculateCore(s.Doc, keepActiveSource: true);
+                    return _calculation is null ? restarted : null; // still running: it reports when done
+                }
+            }
+            var activeId = keepActiveSource ? FindCalcpadControl(app.Selection.Range)?.ID : null;
+            return LastStatus = Draw(s, controls, results, activeId);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private static bool StillTheSame(Snapshot s, List<Word.ContentControl> now)
+    {
+        if (now.Count != s.Controls.Count)
+            return false;
+        for (var i = 0; i < now.Count; ++i)
+        {
+            if (now[i].ID != s.Ids[i] || now[i].Tag != s.Tags[i])
+                return false;
+            if (s.Parsed[i].ShowsSource && ReadEditedSource(now[i], s.Parsed[i].Kind) != s.Items[s.ItemOf[i]].Source)
+                return false;
+        }
+
+        // And the input fields hold the values calculated with.
+        var inputs = InputControls(s.Doc);
+        if (inputs.Count != s.Inputs.Count)
+            return false;
+        for (var k = 0; k < inputs.Count; ++k)
+        {
+            if (inputs[k].ID != s.Inputs[k].Id || ReadInput(inputs[k]) != s.Inputs[k].Value)
+                return false;
+        }
+        return true;
+    }
+
+    /// <summary>Word's thread: redraws what changed. <paramref name="activeId"/> is a source the user is typing in: left alone.</summary>
+    private static string Draw(Snapshot s, List<Word.ContentControl> controls, IReadOnlyList<EvaluationResult> results, string? activeId)
+    {
+        int errors = 0, redrawn = 0;
+        string? firstError = null;
+
+        // Input fields come first in the count: a wrong value explains the errors after it.
+        foreach (var input in s.Inputs)
+        {
+            var result = results[input.Item];
+            var failed = result.Kind == ResultKind.Error;
+            if (failed)
+            {
+                ++errors;
+                firstError ??= result.Error;
+            }
+            MarkInput(input.Control, failed);
+        }
+
+        for (var i = 0; i < controls.Count; ++i)
+        {
+            var (cc, tag, result) = (controls[i], s.Parsed[i], results[s.ItemOf[i]]);
+            // A block that wasn't redrawn keeps the error summary in its title.
+            var title = TitleOf(cc);
+            var keptError = result.Unchanged && title.StartsWith(ErrorTitlePrefix, StringComparison.Ordinal)
+                ? title[ErrorTitlePrefix.Length..]
+                : null;
+            if (result.Kind == ResultKind.Error || result.ErrorCount > 0 || keptError is not null)
+            {
+                ++errors;
+                firstError ??= $"{(tag.Kind == ControlKind.Block ? "block" : FirstLine(result.Source))}: {keptError ?? result.Error}";
+            }
+
+            if (tag.ShowsSource && activeId is not null && cc.ID == activeId)
+                continue; // the user is typing in it; it is evaluated when they leave
+
+            var fingerprint = result.Fingerprint;
+            var state = result.Kind == ResultKind.Error ? ControlState.Error : ControlState.Result;
+            if (tag.State == state && tag.Fingerprint == fingerprint)
+            {
+                // Unchanged since it was last drawn: only the out-of-date mark goes.
+                if (IsStale(cc))
+                    SetStale(cc, stale: false);
+                continue;
+            }
+
+            Render(cc, tag.Kind, result, fingerprint); // new content and title: not greyed
+            ++redrawn;
+        }
+
+        var total = controls.Count;
+        var fields = s.Inputs.Count;
+        Log.Info($"Recalculated '{s.Doc.Name}': {total} items, {fields} inputs, {errors} with errors, {redrawn} redrawn");
+        if (total == 0 && fields == 0)
+            return "Calcpad: nothing to calculate. Select text and press Evaluate (Alt+Shift+Enter), type {= expression } in the text, or add a Calcpad Block.";
+
+        return $"Calcpad: {total} item{(total == 1 ? "" : "s")}" +
+               (fields == 0 ? "" : $", {fields} input{(fields == 1 ? "" : "s")}") +
+               $", {errors} error{(errors == 1 ? "" : "s")}" +
+               (firstError is null ? "" : $". First error: {firstError}  (Ctrl+Alt+F8 goes to it)");
+    }
+
+    /// <summary>Light red behind an input field whose value can't be used; removed once it can. Changes nothing otherwise.</summary>
+    private static void MarkInput(Word.ContentControl cc, bool error)
+    {
+        var shading = cc.Range.Font.Shading;
+        var marked = shading.BackgroundPatternColor == InputErrorColor;
+        if (error != marked)
+            shading.BackgroundPatternColor = error ? InputErrorColor : Word.WdColor.wdColorAutomatic;
+    }
+
+    /// <summary>#FFC7CE (Word colours are BGR).</summary>
+    private const Word.WdColor InputErrorColor = (Word.WdColor)0xCEC7FF;
+
+    /// <summary>What an input field holds: its text, or for a list the chosen item's value (its text if it has none).</summary>
+    private static string ReadInput(Word.ContentControl cc)
+    {
+        if (cc.ShowingPlaceholderText)
+            return string.Empty;
+
+        var text = cc.Range.Text ?? string.Empty;
+        if (cc.Type is Word.WdContentControlType.wdContentControlDropdownList or Word.WdContentControlType.wdContentControlComboBox)
+        {
+            var entries = cc.DropdownListEntries;
+            for (int i = 1, n = entries.Count; i <= n; ++i)
+            {
+                var entry = entries[i];
+                if (entry.Text == text)
+                    return string.IsNullOrEmpty(entry.Value) ? entry.Text : entry.Value;
+            }
+        }
+        return text;
+    }
+
+    private static void Render(Word.ContentControl cc, ControlKind kind, EvaluationResult result, string fingerprint)
+    {
+        switch (result.Kind)
+        {
+            case ResultKind.Math:
+                Write(cc, WordMarkup.Package(WordMarkup.MathParagraph(result.Omml)));
+                cc.Title = Clip("Calcpad: " + result.Source);
+                cc.Tag = new ControlTag(ControlState.Result, fingerprint, result.Source, kind).ToString();
+                cc.LockContents = true; // results are read-only; change them with Edit Source or a double-click
+                break;
+
+            case ResultKind.Hidden:
+                Write(cc, WordMarkup.Package(WordMarkup.TextParagraph(result.Source, TextLook.Hidden)));
+                cc.Title = Clip("Calcpad (hidden): " + result.Source);
+                cc.Tag = new ControlTag(ControlState.Result, fingerprint, result.Source, kind).ToString();
+                cc.LockContents = true;
+                break;
+
+            case ResultKind.Block:
+                Write(cc, result.Block!.WordPackage); // made on the background thread
+                cc.Title = result.ErrorCount == 0
+                    ? Clip("Calcpad block: " + FirstLine(result.Source))
+                    : Clip($"{ErrorTitlePrefix}{result.Error} ({result.ErrorCount} error{(result.ErrorCount == 1 ? "" : "s")} in this block)");
+                cc.Tag = new ControlTag(ControlState.Result, fingerprint, result.Source, kind).ToString();
+                cc.LockContents = true;
+                break;
+
+            default:
+                // Errors stay as editable source so they can be fixed in place; the message is the title.
+                ShowSource(cc, result.Source, TextLook.Error, ErrorTitlePrefix + result.Error, ControlState.Error, fingerprint);
+                break;
+        }
+    }
+
+    private static void ShowSource(Word.ContentControl cc, string source, TextLook look, string title, ControlState state, string fingerprint)
+    {
+        var kind = ControlTag.Parse(cc.Tag)?.Kind ?? ControlKind.Inline;
+        var body = kind == ControlKind.Block
+            ? WordMarkup.SourceParagraphs(source, look)
+            : WordMarkup.TextParagraph(source, look);
+        Write(cc, WordMarkup.Package(body));
+        cc.Title = Clip(title);
+        cc.Tag = new ControlTag(state, fingerprint, source, kind).ToString();
+    }
+
+    /// <summary>Replaces the control's content. Always via InsertXML: see <see cref="WordMarkup"/>.</summary>
+    private static void Write(Word.ContentControl cc, string package)
+    {
+        cc.LockContents = false;
+        DeleteTables(cc.Range);
+        cc.Range.InsertXML(package);
+    }
+
+    // ---- Out-of-date results ---------------------------------------------------------------
+    //
+    // While a calculation runs in the background (and after it is cancelled), results that may
+    // change are greyed: a light grey background, washed-out pictures, and "Out of date: " in
+    // front of the title. All three can be undone exactly, which matters for results that turn
+    // out unchanged and are not redrawn. The title also keeps the mark in a saved document.
+
+    private const string StaleTitlePrefix = "Out of date: ";
+
+    private static bool IsStale(Word.ContentControl cc) =>
+        (cc.Title ?? string.Empty).StartsWith(StaleTitlePrefix, StringComparison.Ordinal);
+
+    /// <summary>The control's title without the out-of-date mark.</summary>
+    private static string TitleOf(Word.ContentControl cc)
+    {
+        var title = cc.Title ?? string.Empty;
+        return title.StartsWith(StaleTitlePrefix, StringComparison.Ordinal) ? title[StaleTitlePrefix.Length..] : title;
+    }
+
+    /// <summary>
+    /// The results that the calculation now running may change: everything from the first item
+    /// that is new or being edited (the worksheet runs top to bottom, so nothing before it
+    /// changes), or everything if none is (Recalculate, a settings change). Reads only tags.
+    /// </summary>
+    private static List<Word.ContentControl> StaleCandidates(Snapshot s)
+    {
+        // The first item (in worksheet order) that is new, edited, or an input field with a new value.
+        var first = s.Parsed.FindIndex(p => p.ShowsSource || p.Fingerprint is "" or "-");
+        var firstItem = first >= 0 ? s.ItemOf[first] : int.MaxValue;
+        foreach (var input in s.Inputs)
+            if (input.Changed)
+                firstItem = Math.Min(firstItem, input.Item);
+        if (firstItem == int.MaxValue)
+            firstItem = 0;
+
+        var candidates = new List<Word.ContentControl>();
+        for (var i = 0; i < s.Controls.Count; ++i)
+        {
+            // Only results already drawn: new items still show their source, edited ones too.
+            var tag = s.Parsed[i];
+            if (s.ItemOf[i] >= firstItem && tag.State == ControlState.Result && tag.Fingerprint is not ("" or "-"))
+                candidates.Add(s.Controls[i]);
+        }
+        return candidates;
+    }
+
+    private static void SetStale(Word.ContentControl cc, bool stale)
+    {
+        var title = TitleOf(cc);
+        var locked = cc.LockContents;
+        cc.LockContents = false;
+        try
+        {
+            var range = cc.Range;
+            range.Font.Shading.BackgroundPatternColor = stale ? Word.WdColor.wdColorGray10 : Word.WdColor.wdColorAutomatic;
+            var pictures = range.InlineShapes;
+            for (var i = 1; i <= pictures.Count; ++i)
+            {
+                pictures[i].PictureFormat.ColorType = stale
+                    ? Microsoft.Office.Core.MsoPictureColorType.msoPictureWatermark
+                    : Microsoft.Office.Core.MsoPictureColorType.msoPictureAutomatic;
+            }
+            cc.Title = stale ? Clip(StaleTitlePrefix + title) : title;
+        }
+        finally
+        {
+            cc.LockContents = locked;
+        }
+    }
+
+    /// <summary>
+    /// Word refuses to replace a range that contains a whole table ("The range cannot be
+    /// deleted"), as a block's output can. Deleting the tables first is allowed.
+    /// </summary>
+    private static void DeleteTables(Word.Range range)
+    {
+        var tables = range.Tables;
+        for (var i = tables.Count; i >= 1; --i)
+            tables[i].Delete();
+    }
+
+    private static string ReadEditedSource(Word.ContentControl cc, ControlKind kind)
+    {
+        if (cc.ShowingPlaceholderText)
+            return string.Empty;
+
+        return kind == ControlKind.Block
+            ? SourceNormalizer.NormalizeBlock(cc.Range.Text)
+            : SourceNormalizer.Normalize(cc.Range.Text);
+    }
+
+    private static void PlaceCursorAtEnd(Word.ContentControl cc)
+    {
+        var end = cc.Range;
+        end.Collapse(Word.WdCollapseDirection.wdCollapseEnd);
+        end.Select();
+    }
+
+    // ---- Turning text into controls -----------------------------------------------------
+
+    /// <summary>
+    /// Shift+Enter while editing an expression adds a line (a Word line break); so does a
+    /// paragraph break pasted or typed into it. Each line becomes its own expression: the
+    /// control is unwrapped (its text stays) and every non-empty line is wrapped again, in place.
+    /// The source the cursor is in is left alone until the user leaves it.
+    /// </summary>
+    private static void SplitMultiLineExpressions(Word.Document doc, string? activeId)
+    {
+        foreach (var cc in CalcpadControls(doc))
+        {
+            var tag = ControlTag.Parse(cc.Tag)!;
+            if (tag.Kind != ControlKind.Inline || !tag.ShowsSource || cc.ID == activeId)
+                continue;
+
+            var content = cc.Range;
+            var text = content.Text ?? string.Empty;
+            if (!text.Contains('\r') && !text.Contains('\v'))
+                continue;
+
+            // A range around the control (its boundaries included) follows the text once the control is gone.
+            var lines = Slice(content, content.Start - 1, content.End + 1);
+            cc.LockContents = false;
+            cc.Delete(false);
+            WrapLines(lines);
+        }
+    }
+
+    /// <summary>Wraps each line of <paramref name="range"/> (split at paragraph marks and line breaks) as an expression.</summary>
+    private static void WrapLines(Word.Range range)
+    {
+        var text = range.Text ?? string.Empty;
+        if (text.Length != range.End - range.Start)
+        {
+            // Something in the text takes up positions differently (a field, an object); go by paragraphs.
+            WrapAsExpressions(range);
+            return;
+        }
+
+        var lines = new List<(int Start, int End)>();
+        var lineStart = 0;
+        for (var i = 0; i <= text.Length; ++i)
+        {
+            if (i < text.Length && text[i] is not ('\r' or '\v' or '\a'))
+                continue;
+            if (i > lineStart)
+                lines.Add((range.Start + lineStart, range.Start + i));
+            lineStart = i + 1;
+        }
+
+        // Back to front, so earlier positions stay valid.
+        for (var i = lines.Count - 1; i >= 0; --i)
+        {
+            var piece = Slice(range, lines[i].Start, lines[i].End);
+            Trim(piece);
+            if (piece.End <= piece.Start || piece.ContentControls.Count > 0)
+                continue;
+
+            var source = piece.Text ?? string.Empty;
+            if (source.Contains(DelimiterScanner.Open, StringComparison.Ordinal))
+                continue; // the delimiter pass handles {= ... }
+
+            CreateInline(piece, SourceNormalizer.Normalize(source));
+        }
+    }
+
+    private static void WrapAsExpressions(Word.Range selection)
+    {
+        var scope = selection.Start == selection.End ? selection.Paragraphs.First.Range : selection;
+        var pieces = new List<Word.Range>();
+        var paragraphs = scope.Paragraphs;
+        for (int i = 1, n = paragraphs.Count; i <= n; ++i)
+        {
+            var p = paragraphs[i].Range;
+            var piece = Slice(scope, Math.Max(p.Start, scope.Start), Math.Min(p.End, scope.End));
+            Trim(piece);
+            if (piece.End <= piece.Start || piece.ContentControls.Count > 0)
+                continue;
+
+            var text = piece.Text ?? string.Empty;
+            if (text.Contains(DelimiterScanner.Open, StringComparison.Ordinal))
+                continue; // the delimiter pass handles {= ... } inside prose
+
+            pieces.Add(piece);
+        }
+
+        // Back to front, so earlier positions stay valid.
+        for (var i = pieces.Count - 1; i >= 0; --i)
+            CreateInline(pieces[i], SourceNormalizer.Normalize(pieces[i].Text));
+    }
+
+    /// <summary>
+    /// Finds every <c>{= … }</c> in one story and every fenced block (a paragraph that is only
+    /// <c>{=</c>, the script, and a paragraph that is only <c>}</c>), and turns each into a control.
+    /// </summary>
+    private static void ConvertDelimiters(Word.Range story)
+    {
+        var starts = new List<int>();
+        var range = story.Duplicate;
+        var find = range.Find;
+        find.ClearFormatting();
+        find.Text = DelimiterScanner.Open;
+        find.Forward = true;
+        find.Wrap = Word.WdFindWrap.wdFindStop;
+        find.Format = false;
+        find.MatchWildcards = false;
+        find.MatchCase = false;
+        while (starts.Count < MaxDelimiters && find.Execute())
+        {
+            starts.Add(range.Start);
+            range.Collapse(Word.WdCollapseDirection.wdCollapseEnd);
+        }
+
+        // Plan first (front to back, so text inside a fenced block is not taken as inline), apply back to front.
+        var conversions = new List<Action>();
+        var skipUntil = -1;
+        foreach (var start in starts)
+        {
+            if (start < skipUntil)
+                continue;
+
+            var at = Slice(story, start, start);
+            if (IsInsideCalcpadControl(at))
+                continue;
+
+            var paragraph = at.Paragraphs.First;
+            if (BlockFence.IsOpening(paragraph.Range.Text))
+            {
+                var following = new List<Word.Paragraph>();
+                var close = BlockFence.FindClose(Following(paragraph, following));
+                if (close < 0)
+                    continue; // not closed: leave the text alone
+
+                var open = paragraph.Range;
+                var closing = following[close].Range;
+                var inner = close > 0 ? Slice(story, following[0].Range.Start, following[close - 1].Range.End) : null;
+                skipUntil = closing.End;
+                conversions.Add(() =>
+                {
+                    // Word ranges follow edits, so 'inner' stays on the script while the fences go.
+                    closing.Delete();
+                    open.Delete();
+                    if (inner is not null)
+                        CreateBlock(inner, SourceNormalizer.NormalizeBlock(inner.Text));
+                });
+                continue;
+            }
+
+            var tail = Slice(story, start, paragraph.Range.End).Text ?? string.Empty;
+            var length = DelimiterScanner.MatchLength(tail, 0);
+            if (length < 0)
+                continue; // not closed in this paragraph: leave the text alone
+
+            var target = Slice(story, start, start + length);
+            if (target.Text != tail[..length])
+            {
+                // Fields, controls or other objects inside shift Word's positions; don't guess.
+                Log.Info($"Skipped {{= ... }} at {start} in story {story.StoryType}: its text contains objects.");
+                continue;
+            }
+            var source = DelimiterScanner.Inner(tail[..length]);
+            conversions.Add(() => CreateInline(target, source));
+        }
+
+        for (var i = conversions.Count - 1; i >= 0; --i)
+            conversions[i]();
+
+        static IEnumerable<string> Following(Word.Paragraph paragraph, List<Word.Paragraph> visited)
+        {
+            for (var p = paragraph.Next(); p is not null; p = p.Next())
+            {
+                visited.Add(p);
+                yield return p.Range.Text ?? string.Empty;
+            }
+        }
+    }
+
+    private static void CreateInline(Word.Range range, string source)
+    {
+        var cc = range.ContentControls.Add(Word.WdContentControlType.wdContentControlRichText, range);
+        // Result state with no fingerprint: the next pass evaluates and draws it.
+        cc.Tag = new ControlTag(ControlState.Result, string.Empty, source).ToString();
+        cc.Title = Clip("Calcpad: " + source);
+    }
+
+    /// <summary>Replaces whole paragraphs with a converted script, then gives headings Word's Heading styles.</summary>
+    private static void InsertConverted(Word.Range paragraphs, ConversionResult conversion)
+    {
+        var story = paragraphs.Duplicate;
+        story.WholeStory();
+        var storyLength = story.End;
+        DeleteTables(paragraphs); // a converted block's output may hold one
+        var start = paragraphs.Start;
+        var replaced = paragraphs.End - paragraphs.Start;
+
+        // Replacing whole paragraphs, InsertXML drops the last paragraph mark it inserts and joins
+        // that paragraph to the text that follows. An empty last paragraph takes that hit instead.
+        paragraphs.InsertXML(WordMarkup.Package(WordMarkup.ConvertedContent(conversion.Parts) + "<w:p/>"));
+
+        story.WholeStory();
+        var inserted = Slice(story, start, Math.Min(story.End, start + replaced + story.End - storyLength));
+        var all = inserted.Paragraphs;
+        for (int i = 1, n = all.Count; i <= n; ++i)
+        {
+            var p = all[i];
+            var heading = p.OutlineLevel switch
+            {
+                Word.WdOutlineLevel.wdOutlineLevel1 => Word.WdBuiltinStyle.wdStyleHeading1,
+                Word.WdOutlineLevel.wdOutlineLevel2 => Word.WdBuiltinStyle.wdStyleHeading2,
+                Word.WdOutlineLevel.wdOutlineLevel3 => Word.WdBuiltinStyle.wdStyleHeading3,
+                Word.WdOutlineLevel.wdOutlineLevel4 => Word.WdBuiltinStyle.wdStyleHeading4,
+                _ => (Word.WdBuiltinStyle?)null,
+            };
+            if (heading is null || p.Range.ParentContentControl is not null)
+                continue;
+
+            p.Reset(); // drop the outline level that marked it; the style brings its own
+            p.Range.set_Style(heading.Value);
+        }
+    }
+
+    /// <summary>Wraps whole paragraphs in a block control.</summary>
+    private static Word.ContentControl CreateBlock(Word.Range paragraphs, string source)
+    {
+        var range = WholeParagraphs(paragraphs);
+        var story = range.Duplicate;
+        story.WholeStory();
+        if (range.End >= story.End)
+        {
+            // Keep an ordinary paragraph after the block when it reaches the end of the text.
+            story.InsertParagraphAfter();
+        }
+        var cc = range.ContentControls.Add(Word.WdContentControlType.wdContentControlRichText, range);
+        cc.Tag = new ControlTag(ControlState.Result, string.Empty, source, ControlKind.Block).ToString();
+        cc.Title = Clip("Calcpad block: " + FirstLine(source));
+        return cc;
+    }
+
+    // ---- Finding stories and controls ---------------------------------------------------
+
+    private static List<Word.Range> Stories(Word.Document doc)
+    {
+        var stories = new List<Word.Range>();
+        var all = doc.StoryRanges;
+        foreach (var type in StoryOrder)
+        {
+            Word.Range? story;
+            try
+            {
+                story = all[type];
+            }
+            catch (COMException)
+            {
+                continue; // this document has no such story
+            }
+            for (; story is not null; story = story.NextStoryRange)
+                stories.Add(story);
+        }
+        return stories;
+    }
+
+    /// <summary>All Calcpad expressions and blocks, in evaluation order. Linked headers are visited once.</summary>
+    private static List<Word.ContentControl> CalcpadControls(Word.Document doc) => Controls(doc, ControlTag.IsCalcpad);
+
+    /// <summary>All input fields, in evaluation order.</summary>
+    private static List<Word.ContentControl> InputControls(Word.Document doc) => Controls(doc, InputField.IsInput);
+
+    /// <summary>Everything the worksheet runs: Calcpad expressions, blocks and input fields, in evaluation order.</summary>
+    private static List<Word.ContentControl> WorksheetControls(Word.Document doc) =>
+        Controls(doc, tag => ControlTag.IsCalcpad(tag) || InputField.IsInput(tag));
+
+    private static List<Word.ContentControl> Controls(Word.Document doc, Func<string?, bool> wanted)
+    {
+        var result = new List<Word.ContentControl>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var story in Stories(doc))
+        {
+            var found = new List<(int Start, Word.ContentControl Control)>();
+            var controls = story.ContentControls;
+            for (int i = 1, n = controls.Count; i <= n; ++i)
+            {
+                var cc = controls[i];
+                if (wanted(cc.Tag) && seen.Add(cc.ID))
+                    found.Add((cc.Range.Start, cc));
+            }
+            result.AddRange(found.OrderBy(f => f.Start).Select(f => f.Control));
+        }
+        return result;
+    }
+
+    private static Word.ContentControl? FindCalcpadControl(Word.Range range)
+    {
+        for (var cc = range.ParentContentControl; cc is not null; cc = cc.ParentContentControl)
+            if (ControlTag.IsCalcpad(cc.Tag))
+                return cc;
+
+        // The whole control is selected.
+        var inside = range.ContentControls;
+        if (inside.Count == 1 && ControlTag.IsCalcpad(inside[1].Tag))
+            return inside[1];
+
+        return null;
+    }
+
+    private static bool IsInsideCalcpadControl(Word.Range range)
+    {
+        for (var cc = range.ParentContentControl; cc is not null; cc = cc.ParentContentControl)
+            if (ControlTag.IsCalcpad(cc.Tag))
+                return true;
+
+        return false;
+    }
+
+    // ---- Helpers ------------------------------------------------------------------------
+
+    private Word.Document ActiveDocument() =>
+        TryActiveDocument() ?? throw new UserMessageException("Open a document first. (Calcpad can't change documents in Protected View.)");
+
+    private Word.Document? TryActiveDocument()
+    {
+        try
+        {
+            return app.Documents.Count == 0 ? null : app.ActiveDocument;
+        }
+        catch (COMException)
+        {
+            return null; // e.g. Protected View is active
+        }
+    }
+
+    private static string? DocumentFolder(Word.Document doc)
+    {
+        try { return string.IsNullOrEmpty(doc.Path) ? null : doc.Path; }
+        catch (COMException) { return null; }
+    }
+
+    private static DocumentSettings LoadSettings(Word.Document doc)
+    {
+        DocumentSettings settings;
+        try
+        {
+            settings = DocumentSettings.Parse(doc.Variables[SettingsVariable].Value);
+        }
+        catch (COMException)
+        {
+            settings = new DocumentSettings(); // never set in this document
+        }
+        // Word's own math font setting (Equation Options) is the one that counts.
+        return settings with { MathFont = MathFontOf(doc) };
+    }
+
+    private static string MathFontOf(Word.Document doc)
+    {
+        try { return string.IsNullOrWhiteSpace(doc.OMathFontName) ? MathFonts.Default : doc.OMathFontName; }
+        catch (COMException) { return MathFonts.Default; }
+    }
+
+    private static bool IsOpen(Word.Document doc)
+    {
+        try { _ = doc.Name; return true; }
+        catch (COMException) { return false; }
+    }
+
+    // ---- Math font ----------------------------------------------------------------------
+
+    private volatile Task? _fontInstall;
+    private volatile CancellationTokenSource? _fontInstallCancel;
+    private readonly HashSet<string> _installedThisSession = new(StringComparer.OrdinalIgnoreCase);
+    private HashSet<string>? _wordFonts;
+
+    private (string Current, long At, IReadOnlyList<(MathFontInfo Font, bool Installed)> Choices)? _fontChoices;
+
+    /// <summary>
+    /// The fonts the ribbon offers, alphabetically, with whether each is installed: the starters,
+    /// the other math fonts found on this computer, and the document's own font. Kept for a moment,
+    /// because the ribbon asks once per item.
+    /// </summary>
+    public IReadOnlyList<(MathFontInfo Font, bool Installed)> MathFontChoices()
+    {
+        var current = CurrentMathFont();
+        var now = Environment.TickCount64;
+        if (_fontChoices is { } cached && cached.Current == current && now - cached.At < 2000)
+            return cached.Choices;
+
+        var installed = InstalledFonts();
+        var math = new HashSet<string>(InstalledMathFonts.Families(), StringComparer.OrdinalIgnoreCase);
+        math.UnionWith(_installedThisSession);
+        var choices = MathFonts.Choices(math, installed.Contains, current);
+        _fontChoices = (current, now, choices);
+        return choices;
+    }
+
+    /// <summary>Finds the installed math fonts in the background at start-up, so the ribbon's list is ready.</summary>
+    public static void DiscoverMathFonts() => Task.Run(() =>
+    {
+        try { InstalledMathFonts.Families(); }
+        catch (Exception ex) { Log.Error("Looking for math fonts failed", ex); }
+    });
+
+    public string CurrentMathFont() => TryActiveDocument() is { } doc ? MathFontOf(doc) : MathFonts.Default;
+
+    /// <summary>
+    /// Sets the document's math font and redraws the equations in it. A free font that isn't
+    /// installed is downloaded and installed for the user first (in the background), but only
+    /// with <paramref name="allowDownload"/>; otherwise <see cref="FontNotInstalledException"/> lets
+    /// the caller ask.
+    /// </summary>
+    public string SetMathFont(string family, bool allowDownload)
+    {
+        var doc = ActiveDocument();
+        var font = MathFontChoices().FirstOrDefault(c => c.Font.Family.Equals(family, StringComparison.OrdinalIgnoreCase));
+        if (font.Font is null)
+            throw new UserMessageException($"{family} is not one of the math fonts Calcpad offers.");
+
+        if (font.Installed)
+            return ApplyMathFont(doc, font.Font.Family);
+
+        if (font.Font.DownloadUrl is null)
+            throw new UserMessageException($"{font.Font.Family} is not installed on this computer. {font.Font.Note} Then restart Word and choose it again.");
+        if (!allowDownload)
+            throw new FontNotInstalledException(font.Font);
+        if (_fontInstall is not null)
+            throw new UserMessageException("A font is already being installed. Try again in a moment.");
+
+        var cancel = new CancellationTokenSource();
+        var install = Task.Run(() => FontInstaller.InstallAsync(font.Font, cancel.Token));
+        _fontInstallCancel = cancel;
+        _fontInstall = install;
+        UiThread.WhenDone(install, () =>
+        {
+            string status;
+            try
+            {
+                if (install.IsCanceled || cancel.IsCancellationRequested)
+                {
+                    Log.Info($"Installing {font.Font.Family} was cancelled");
+                    status = LastStatus = $"Calcpad: installing {font.Font.Family} was cancelled.";
+                }
+                else if (install.IsFaulted)
+                {
+                    Log.Error($"Installing {font.Font.Family} failed", install.Exception);
+                    status = LastStatus = $"Calcpad: {font.Font.Family} could not be installed: {install.Exception?.GetBaseException().Message}";
+                }
+                else
+                {
+                    _installedThisSession.Add(font.Font.Family);
+                    _fontChoices = null;
+                    status = IsOpen(doc) ? ApplyMathFont(doc, font.Font.Family) : LastStatus = $"Calcpad: {font.Font.Family} is installed.";
+                }
+            }
+            finally
+            {
+                _fontInstall = null; // only now: a calculation started above already counts as working
+                _fontInstallCancel = null;
+                cancel.Dispose();
+            }
+            BackgroundFinished?.Invoke(status);
+        });
+        return $"Calcpad: downloading and installing {font.Font.Family} (free; {font.Font.Note})…";
+    }
+
+    private string ApplyMathFont(Word.Document doc, string family)
+    {
+        using var undo = new UndoScope(app, "Calcpad Math Font");
+        doc.OMathFontName = family;
+        var status = RecalculateCore(doc, keepActiveSource: false);
+        return status.StartsWith("Calcpad: calculating", StringComparison.Ordinal) ? status : $"{status}. Math font: {family}.";
+    }
+
+    private HashSet<string> InstalledFonts()
+    {
+        if (_wordFonts is null)
+        {
+            _wordFonts = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            try
+            {
+                var names = app.FontNames;
+                for (int i = 1, n = names.Count; i <= n; ++i)
+                    _wordFonts.Add(names[i]);
+            }
+            catch (COMException ex)
+            {
+                Log.Error("Reading Word's font list failed", ex);
+            }
+        }
+        // Word reads its font list at start-up; fonts installed since are registered with Windows.
+        var all = new HashSet<string>(_wordFonts, StringComparer.OrdinalIgnoreCase);
+        all.UnionWith(FontInstaller.RegisteredFamilies());
+        all.UnionWith(_installedThisSession);
+        return all;
+    }
+
+    private static void SaveSettings(Word.Document doc, DocumentSettings settings)
+    {
+        var value = settings.Serialize();
+        try
+        {
+            doc.Variables[SettingsVariable].Value = value;
+        }
+        catch (COMException)
+        {
+            doc.Variables.Add(SettingsVariable, value);
+        }
+    }
+
+    /// <summary>The paragraphs touched by <paramref name="range"/>, from the start of the first to the end of the last.</summary>
+    private static Word.Range WholeParagraphs(Word.Range range)
+    {
+        var paragraphs = range.Paragraphs;
+        return Slice(range, paragraphs.First.Range.Start, paragraphs.Last.Range.End);
+    }
+
+    private static IEnumerable<string> ParagraphTexts(Word.Range range)
+    {
+        var paragraphs = range.Paragraphs;
+        for (int i = 1, n = paragraphs.Count; i <= n; ++i)
+            yield return paragraphs[i].Range.Text ?? string.Empty;
+    }
+
+    /// <summary>A range over [start, end) in the same story as <paramref name="within"/>.</summary>
+    private static Word.Range Slice(Word.Range within, int start, int end)
+    {
+        var r = within.Duplicate;
+        r.SetRange(start, end);
+        return r;
+    }
+
+    private static void Trim(Word.Range range)
+    {
+        range.MoveEndWhile(" \t\r\n\a\v\f\u00A0", Word.WdConstants.wdBackward);
+        if (range.End > range.Start)
+            range.MoveStartWhile(" \t\u00A0", Word.WdConstants.wdForward);
+    }
+
+    private static string FirstLine(string source)
+    {
+        var line = source.Split('\n').FirstOrDefault(l => l.Trim().Length > 0)?.Trim() ?? string.Empty;
+        return line.Length <= 60 ? line : line[..59] + "…";
+    }
+
+    private static string Clip(string s) => s.Length <= MaxTitle ? s : s[..(MaxTitle - 1)] + "…";
+}

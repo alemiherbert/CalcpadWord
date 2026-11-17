@@ -1,0 +1,13 @@
+﻿paragraphs: 5
+block cc: paragraphs inside=3, doc paragraphs=5, cc text=[line one\rline two\rline three]
+Tag   2000 chars with \n -> read 2000, equal=True
+Tag  10000 chars with \n -> read 10000, equal=True
+Tag  40000 chars with \n -> read 40000, equal=True
+Tag  70000 chars with \n -> read 70000, equal=True
+Tag 140000 chars with \n -> read 140000, equal=True
+after InsertXML 3 paras: cc paragraphs=3, doc paragraphs=5, ccs=1
+  doc text=[Before\rOutput heading\r𝑎=1\rOutput last\rAfter\r]
+after InsertXML 1 para: cc paragraphs=1, doc paragraphs=3
+  doc text=[Before\rsingle\rAfter\r]
+source read back: [L = 6m\r#if L > 5m\r#end if]
+Done.

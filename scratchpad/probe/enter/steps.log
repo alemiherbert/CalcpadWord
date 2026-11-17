@@ -1,0 +1,12 @@
+﻿case 1 before: paragraphs=2 ccs=1 doc=[L = 6m\rAfter\r]
+    cc1 tag=probe-own-paragraph range=1..7 paragraphsInside=1 text=[L = 6m]
+    cursor at 7, inside cc: probe-own-paragraph
+case 1 after Enter: paragraphs=3 ccs=1 doc=[L = 6m\r\rAfter\r]
+    cc1 tag=probe-own-paragraph range=1..8 paragraphsInside=1 text=[L = 6m\r]
+    cursor at 8, inside cc: probe-own-paragraph
+case 1 after typing two more lines: paragraphs=4 ccs=1 doc=[L = 6m\rq = 3kN/m\rM = q*L^2/8\rAfter\r]
+    cc1 tag=probe-own-paragraph range=1..29 paragraphsInside=3 text=[L = 6m\rq = 3kN/m\rM = q*L^2/8]
+    cursor at 29, inside cc: probe-own-paragraph
+    outer before unwrap: 0..30 [L = 6m\rq = 3kN/m\rM = q*L^2/8]
+    outer after unwrap:  0..28 [L = 6m\rq = 3kN/m\rM = q*L^2/8] ccs=0
+FAILED: The TypeParagraph method or property is not available because the current selection is in a limited editing zone. @ 53

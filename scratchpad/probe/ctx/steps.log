@@ -1,0 +1,28 @@
+﻿Popup count: 81
+Matching popups: Fields | Display Fields | Field Display List Numbers | Form Fields | Text | Format Inspector Popup in Normal Mode | Format Inspector Popup in Compare Mode | Format consistency | Field AutoText | Barcode Merge Field Popup | Equation Popup | Text
+GetLabelMso ContextMenuText -> ''
+GetLabelMso Bold -> 'Bold'
+GetLabelMso ContextMenuDoesNotExist -> ERROR Value does not fall within the expected range.
+VALID   ContextMenuEquation
+invalid ContextMenuEquationArea
+invalid ContextMenuEquations
+invalid ContextMenuMath
+invalid ContextMenuMathStructure
+invalid ContextMenuMathEquation
+invalid ContextMenuOMath
+invalid ContextMenuEquationText
+invalid ContextMenuContentControl
+invalid ContextMenuContentControls
+invalid ContextMenuTextContentControl
+VALID   ContextMenuTextLinked
+VALID   ContextMenuHeading
+VALID   ContextMenuList
+invalid ContextMenuFields
+VALID   ContextMenuTable
+VALID   ContextMenuHeaderArea
+VALID   ContextMenuFooterArea
+invalid ContextMenuTextBox
+VALID   ContextMenuSpell
+VALID   ContextMenuGrammar
+Derived valid ids: ContextMenuFieldDisplayListNumbers, ContextMenuInlinePicture, ContextMenuText, ContextMenuGrammar, ContextMenuCurve, ContextMenuCurveNode, ContextMenuCurveSegment, ContextMenuFloatingPicture, ContextMenuActiveXControl, ContextMenuComment, ContextMenuDiagram, ContextMenuInlineActiveXControl, ContextMenuInkComment, ContextMenuText
+All popup names: Drop Caps | Endnotes | Fields | Display Fields | Field Display List Numbers | Form Fields | Footnotes | Frames | Headings | Linked Headings | Script Anchor Popup | Lists | Inline Picture | Inline Canvas | Horizontal Line Popup | Tables | Table Cells | Table Headings | Table Lists | Table Pictures | Table Text | Whole Table | Linked Table | Text | Word Previewer | Linked Text | Font Popup | Font Paragraph | Format Inspector Popup in Normal Mode | Format Inspector Popup in Compare Mode | Spelling | Grammar | Grammar (2) | Format consistency | Background Proofing Status Bar | Track Changes | Frame Properties | Hyperlink Context Menu | AutoSignature Popup | Field AutoText | Document Map | Shapes | Curve | Curve Node | Curve Segment | Floating Picture | Canvas Popup | OLE Object | ActiveX Control | WordArt Context Menu | Rotate Mode | Comment | Organization Chart Popup | Diagram | Connector | Track Changes Indicator | Chinese Translation | Address Block Popup | Greeting Line Popup | Barcode Merge Field Popup | Inline ActiveX Control | XML Structure Node Popup | Word CoAuthoring | XML Error Options | Ink Comment | Business Card | Equation Popup | Header Area Popup | Footer Area Popup | Text | Tables | Table Cells | Table Lists | Table Pictures | Table Text | Whole Table | Linked Table | Lists | Hyperlink Context Menu | Word Page Numbering Options | System

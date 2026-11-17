@@ -1,0 +1,13 @@
+﻿00:50:01.535 add-in connected: True
+00:50:05.450 Evaluate -> Calcpad: 1 item, 0 errors
+00:50:05.529 status: Calcpad: 1 item, 0 errors
+00:50:06.017 document: equations=1, text='𝑎=2+3=5'
+00:50:06.942 math fonts (+ installed): +Asana Math|+Cambria Math|+Euler Math|+Fira Math|+Latin Modern Math|+Libertinus Math|+Noto Sans Math|+STIX Two Math|+TeX Gyre Pagella Math|+XITS Math
+00:50:07.735 module CalcpadWord.Loader.dll <- C:\Users\dell alienware\AppData\Local\Programs\CalcpadWord\app-0.7.0-20261118004916\CalcpadWord.Loader.dll
+00:50:07.751 module hostfxr.dll <- C:\Users\dell alienware\AppData\Local\Programs\CalcpadWord\app-0.7.0-20261118004916\runtime\host\fxr\10.0.12\hostfxr.dll
+00:50:07.770 module CalcpadWord.AddIn.comhost.dll <- C:\Users\dell alienware\AppData\Local\Programs\CalcpadWord\app-0.7.0-20261118004916\CalcpadWord.AddIn.comhost.dll
+00:50:07.815 module hostpolicy.dll <- C:\Users\dell alienware\AppData\Local\Programs\CalcpadWord\app-0.7.0-20261118004916\runtime\shared\Microsoft.NETCore.App\10.0.12\hostpolicy.dll
+00:50:07.837 module coreclr.dll <- C:\Users\dell alienware\AppData\Local\Programs\CalcpadWord\app-0.7.0-20261118004916\runtime\shared\Microsoft.NETCore.App\10.0.12\coreclr.dll
+00:50:07.858 module CalcpadWord.AddIn.dll <- C:\Users\dell alienware\AppData\Local\Programs\CalcpadWord\app-0.7.0-20261118004916\CalcpadWord.AddIn.dll
+00:50:07.886 module CalcpadWord.Engine.dll <- C:\Users\dell alienware\AppData\Local\Programs\CalcpadWord\app-0.7.0-20261118004916\CalcpadWord.Engine.dll
+00:50:07.915 module clr.dll <- C:\Windows\Microsoft.NET\Framework64\v4.0.30319\clr.dll

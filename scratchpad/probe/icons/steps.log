@@ -1,0 +1,40 @@
+﻿Bold                                 label='Bold'                         image=NO-IMAGE: Catastrophic failure (Exception from HRESULT: 0x8000FFFF (E_UNEXPECTED)) enabled=True
+Copy                                 label='Copy'                         image=NO-IMAGE: Catastrophic failure (Exception from HRESULT: 0x8000FFFF (E_UNEXPECTED)) enabled=False
+Paste                                label='Paste'                        image=NO-IMAGE: Catastrophic failure (Exception from HRESULT: 0x8000FFFF (E_UNEXPECTED)) enabled=True
+FunctionWizard                       label=NO-ID                          image=NO-IMAGE: Catastrophic failure (Exception from HRESULT: 0x8000FFFF (E_UNEXPECTED)) enabled=n/a
+CalculateNow                         label=NO-ID                          image=NO-IMAGE: Catastrophic failure (Exception from HRESULT: 0x8000FFFF (E_UNEXPECTED)) enabled=n/a
+ContentControlRichText               label='Rich Text Content Control'    image=NO-IMAGE: Catastrophic failure (Exception from HRESULT: 0x8000FFFF (E_UNEXPECTED)) enabled=True
+EquationLinearFormat                 label=NO-ID                          image=NO-IMAGE: Catastrophic failure (Exception from HRESULT: 0x8000FFFF (E_UNEXPECTED)) enabled=n/a
+TraceError                           label=NO-ID                          image=NO-IMAGE: Catastrophic failure (Exception from HRESULT: 0x8000FFFF (E_UNEXPECTED)) enabled=n/a
+ReviewNextComment                    label='Next'                         image=NO-IMAGE: Catastrophic failure (Exception from HRESULT: 0x8000FFFF (E_UNEXPECTED)) enabled=False
+EquationInsertGallery                label='Equation'                     image=NO-IMAGE: Catastrophic failure (Exception from HRESULT: 0x8000FFFF (E_UNEXPECTED)) enabled=True
+EquationProfessionalFormat           label=NO-ID                          image=NO-IMAGE: Value does not fall within the expected range. enabled=n/a
+ReviewNextChange                     label='Next'                         image=NO-IMAGE: Catastrophic failure (Exception from HRESULT: 0x8000FFFF (E_UNEXPECTED)) enabled=True
+ReviewPreviousComment                label='Previous'                     image=NO-IMAGE: Catastrophic failure (Exception from HRESULT: 0x8000FFFF (E_UNEXPECTED)) enabled=False
+ContentControlText                   label='Plain Text Content Control'   image=NO-IMAGE: Catastrophic failure (Exception from HRESULT: 0x8000FFFF (E_UNEXPECTED)) enabled=True
+ContentControlsGroup                 label='Group'                        image=NO-IMAGE: Catastrophic failure (Exception from HRESULT: 0x8000FFFF (E_UNEXPECTED)) enabled=False
+GroupContentControls                 label=NO-ID                          image=NO-IMAGE: Value does not fall within the expected range. enabled=n/a
+VisualBasic                          label='Visual Basic'                 image=NO-IMAGE: Catastrophic failure (Exception from HRESULT: 0x8000FFFF (E_UNEXPECTED)) enabled=True
+MacroPlay                            label='Macros'                       image=NO-IMAGE: Catastrophic failure (Exception from HRESULT: 0x8000FFFF (E_UNEXPECTED)) enabled=True
+Refresh                              label=NO-ID                          image=NO-IMAGE: Catastrophic failure (Exception from HRESULT: 0x8000FFFF (E_UNEXPECTED)) enabled=n/a
+RefreshAll                           label=NO-ID                          image=NO-IMAGE: Catastrophic failure (Exception from HRESULT: 0x8000FFFF (E_UNEXPECTED)) enabled=n/a
+SpellingAndGrammar                   label='Spelling & Grammar'           image=NO-IMAGE: Catastrophic failure (Exception from HRESULT: 0x8000FFFF (E_UNEXPECTED)) enabled=True
+Spelling                             label='Spelling...'                  image=NO-IMAGE: Catastrophic failure (Exception from HRESULT: 0x8000FFFF (E_UNEXPECTED)) enabled=True
+ErrorChecking                        label=NO-ID                          image=NO-IMAGE: Catastrophic failure (Exception from HRESULT: 0x8000FFFF (E_UNEXPECTED)) enabled=n/a
+InsertEquation                       label=NO-ID                          image=NO-IMAGE: Value does not fall within the expected range. enabled=n/a
+EquationEdit                         label=NO-ID                          image=NO-IMAGE: Catastrophic failure (Exception from HRESULT: 0x8000FFFF (E_UNEXPECTED)) enabled=n/a
+ControlsGallery                      label=NO-ID                          image=NO-IMAGE: Catastrophic failure (Exception from HRESULT: 0x8000FFFF (E_UNEXPECTED)) enabled=n/a
+TableInsert                          label=NO-ID                          image=NO-IMAGE: Catastrophic failure (Exception from HRESULT: 0x8000FFFF (E_UNEXPECTED)) enabled=n/a
+CodeEdit                             label=NO-ID                          image=NO-IMAGE: Catastrophic failure (Exception from HRESULT: 0x8000FFFF (E_UNEXPECTED)) enabled=n/a
+DesignMode                           label='Design Mode'                  image=NO-IMAGE: Catastrophic failure (Exception from HRESULT: 0x8000FFFF (E_UNEXPECTED)) enabled=True
+ContentControlBuildingBlockGallery   label='Building Block Gallery Content Control' image=NO-IMAGE: Catastrophic failure (Exception from HRESULT: 0x8000FFFF (E_UNEXPECTED)) enabled=True
+ContentControlPicture                label='Picture Content Control'      image=NO-IMAGE: Catastrophic failure (Exception from HRESULT: 0x8000FFFF (E_UNEXPECTED)) enabled=True
+ContentControlComboBox               label='Combo Box Content Control'    image=NO-IMAGE: Catastrophic failure (Exception from HRESULT: 0x8000FFFF (E_UNEXPECTED)) enabled=True
+SymbolInsert                         label=NO-ID                          image=NO-IMAGE: Catastrophic failure (Exception from HRESULT: 0x8000FFFF (E_UNEXPECTED)) enabled=n/a
+FormulaMoreFunctionsMenu             label=NO-ID                          image=NO-IMAGE: Catastrophic failure (Exception from HRESULT: 0x8000FFFF (E_UNEXPECTED)) enabled=n/a
+AutoSum                              label='Sum'                          image=NO-IMAGE: Catastrophic failure (Exception from HRESULT: 0x8000FFFF (E_UNEXPECTED)) enabled=False
+ReviewDeleteComment                  label='Delete'                       image=NO-IMAGE: Catastrophic failure (Exception from HRESULT: 0x8000FFFF (E_UNEXPECTED)) enabled=False
+DataValidation                       label=NO-ID                          image=NO-IMAGE: Catastrophic failure (Exception from HRESULT: 0x8000FFFF (E_UNEXPECTED)) enabled=n/a
+ProofingErrorChecking                label=NO-ID                          image=NO-IMAGE: Value does not fall within the expected range. enabled=n/a
+WordCountList                        label=NO-ID                          image=NO-IMAGE: Catastrophic failure (Exception from HRESULT: 0x8000FFFF (E_UNEXPECTED)) enabled=n/a
+ResearchPane                         label='Research...'                  image=NO-IMAGE: Catastrophic failure (Exception from HRESULT: 0x8000FFFF (E_UNEXPECTED)) enabled=True

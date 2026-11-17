@@ -1,0 +1,11 @@
+﻿23:43:53.736 opened; sections 3
+23:43:53.814 section 1 header: exists=True linked=False chars=1
+23:43:53.819 section 2 header: exists=True linked=False chars=201
+23:43:53.828 section 3 header: exists=True linked=False chars=206
+23:43:53.844 pages: 3
+23:43:53.857 section 2 header text: {{LOGO_SHEET}} DOKIMOS CONSULTING ENGINEERS   PROJECT [P
+23:43:53.879 section 2 header paragraphs: 21
+23:43:53.931 first paragraph text: [{{LOGO_SHEET}}] in table: True
+23:43:53.939 marker at 0
+23:43:53.954 marker removed
+23:43:54.036 picture added: 18 x 18

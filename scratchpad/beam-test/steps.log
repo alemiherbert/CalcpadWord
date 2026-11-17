@@ -1,0 +1,16 @@
+﻿02:06:00.830 new document from Dokimos RC Beam Design (EC2) v1.dotx
+02:06:01.059 ok   the template arrives calculated, passing
+02:06:09.928 after typing h = 350 and leaving: Calcpad: 85 items, 20 inputs, 0 errors
+02:06:09.959 ok   leaving a changed field recalculates
+02:06:18.146 h = 300, L = 8: Calcpad: 85 items, 20 inputs, 0 errors
+02:06:18.184 ok   the summary reports a failure
+02:06:18.199 ok   a failing check says FAIL
+02:06:25.169 C40/50 picked: Calcpad: 85 items, 20 inputs, 0 errors
+02:06:25.280 next line: Characteristic cylinder strength: 𝑓𝑐𝑘=40 MPa
+02:06:25.285 ok   the class sets f_ck = 40
+02:06:32.317 b = 30O: Calcpad: 85 items, 20 inputs, 53 errors. First error: b: enter a number, not "30O".  (Ctrl+Alt+F8 goes to it)
+02:06:32.350 ok   a bad value is reported
+02:06:32.398 ok   it counts as an error
+02:06:38.355 ok   fixing it clears the error
+02:06:44.336 ok   back to passing
+02:06:49.094 done: 0 failure(s)

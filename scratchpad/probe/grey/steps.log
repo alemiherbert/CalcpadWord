@@ -1,0 +1,5 @@
+﻿20:28:11.444 shading Evaluate -> Calcpad: calculating in the background…
+20:28:12.295   status: Calcpad: 4 items, 0 errors
+20:28:21.183 shading restored identical XML: False (lengths 6032 / 6032)
+20:28:21.281   first difference at 204 : was [l="1134447487"/><w:lock w:val="contentLocked"/><w:placeholder><w:docPart w:val="320CC78448C749849C509EE5F570A841"/></w:placeholder></w:sdtPr><w:sdtContent><w:p><m:oMath><m:r><w:rPr><w:rFonts w:ascii="Cambria Math" w:hAnsi="Cambria Math"/><w:color w:val="0066DD"/></w:rPr><m:t>F</m:t></m:r><m:r><w:rPr]
+20:28:21.295   now [l="1134447487"/><w:lock w:val="contentLocked"/><w:placeholder><w:docPart w:val="A426B75E1AE74EA4A5DDF61955925815"/></w:placeholder></w:sdtPr><w:sdtContent><w:p><m:oMath><m:r><w:rPr><w:rFonts w:ascii="Cambria Math" w:hAnsi="Cambria Math"/><w:color w:val="0066DD"/></w:rPr><m:t>F</m:t></m:r><m:r><w:rPr]

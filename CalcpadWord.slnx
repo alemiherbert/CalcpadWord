@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/calcpad/">
+    <Project Path="calcpad/Calcpad.Core/Calcpad.Core.csproj" />
+    <Project Path="calcpad/Calcpad.OpenXml/Calcpad.OpenXml.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/CalcpadWord.AddIn/CalcpadWord.AddIn.csproj" />
+    <Project Path="src/CalcpadWord.Engine/CalcpadWord.Engine.csproj" />
+    <Project Path="src/CalcpadWord.Setup/CalcpadWord.Setup.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/CalcpadWord.Engine.Tests/CalcpadWord.Engine.Tests.csproj" />
+  </Folder>
+</Solution>

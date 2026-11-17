@@ -1,0 +1,44 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    In-process COM add-in for desktop Word (64-bit). Word loads CalcpadWord.AddIn.comhost.dll,
+    which starts .NET 10 and creates CalcpadWord.Connect. For development, tools\Register.ps1
+    registers it with the installed .NET. The installer instead registers CalcpadWord.Loader.dll,
+    which starts the .NET runtime bundled with the add-in first (see src\CalcpadWord.Loader).
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>CalcpadWord.AddIn</RootNamespace>
+    <EnableComHosting>true</EnableComHosting>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>false</SelfContained>
+    <PlatformTarget>x64</PlatformTarget>
+    <!-- Office installs its primary interop assemblies in the GAC; their types are embedded, so nothing extra ships. -->
+    <OfficePiaDir Condition="'$(OfficePiaDir)' == ''">$(SystemRoot)\assembly\GAC_MSIL</OfficePiaDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="Microsoft.Office.Interop.Word">
+      <HintPath>$(OfficePiaDir)\Microsoft.Office.Interop.Word\15.0.0.0__71e9bce111e9429c\Microsoft.Office.Interop.Word.dll</HintPath>
+      <EmbedInteropTypes>true</EmbedInteropTypes>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="office">
+      <HintPath>$(OfficePiaDir)\office\15.0.0.0__71e9bce111e9429c\office.dll</HintPath>
+      <EmbedInteropTypes>true</EmbedInteropTypes>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CalcpadWord.Engine\CalcpadWord.Engine.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Ribbon.xml" LogicalName="CalcpadWord.AddIn.Ribbon.xml" />
+    <Compile Include="..\Shared\AddInIdentity.cs" Link="AddInIdentity.cs" />
+    <Compile Include="..\Shared\UserFonts.cs" Link="UserFonts.cs" />
+  </ItemGroup>
+</Project>

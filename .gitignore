@@ -1,0 +1,13 @@
+# Build output
+bin/
+obj/
+# The installer and end-to-end test output (root only: template folders have out/ folders with inputs)
+/out/
+*.user
+.vs/
+
+# Word's lock files for open documents
+~$*
+
+# Claude Code's per-machine settings
+.claude/settings.local.json

@@ -1,0 +1,15 @@
+# Text files are stored with LF and checked out with Windows line endings (CRLF).
+* text=auto eol=crlf
+
+# Word, pictures, fonts and binaries are never touched.
+*.docx binary
+*.dotx binary
+*.dotm binary
+*.emf binary
+*.png binary
+*.jpg binary
+*.otf binary
+*.ttf binary
+*.dll binary
+*.exe binary
+*.zip binary

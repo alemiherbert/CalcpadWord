@@ -1,0 +1,8 @@
+<Project>
+  <!-- Shared by the add-in, the engine and the installer (not by the Calcpad clone, which lives outside src). -->
+  <PropertyGroup>
+    <Version>0.8.0</Version>
+    <Product>Calcpad for Word</Product>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+  </PropertyGroup>
+</Project>
