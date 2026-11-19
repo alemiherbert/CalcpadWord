@@ -245,6 +245,18 @@ public sealed class Connect : IDTExtensibility2, IRibbonExtensibility
     public void OnAnglesChanged(IRibbonControl control, string selectedId, int selectedIndex) =>
         Run("Angles", () => Controller.ChangeSettings(s => s with { Angles = (AngleUnits)selectedIndex }));
 
+    public bool GetAutomaticPressed(IRibbonControl control) => SafeSettings().Automatic;
+
+    /// <summary>"Recalculate", or a reminder when the results are out of date (automatic calculation off).</summary>
+    public string GetRecalculateLabel(IRibbonControl control)
+    {
+        try { return _controller?.IsOutOfDate() == true ? "Recalculate (out of date)" : "Recalculate"; }
+        catch (COMException) { return "Recalculate"; }
+    }
+
+    public void OnAutomaticChanged(IRibbonControl control, bool pressed) =>
+        Run("Calculate automatically", () => Controller.ChangeSettings(s => s with { Automatic = pressed }));
+
     public bool GetSubstitutePressed(IRibbonControl control) => SafeSettings().Substitute;
 
     public void OnSubstituteChanged(IRibbonControl control, bool pressed) =>
@@ -334,7 +346,7 @@ public sealed class Connect : IDTExtensibility2, IRibbonExtensibility
         UiThread.Post(() =>
         {
             if (IsOpen(doc))
-                Run("Evaluate", () => Controller.Recalculate(doc, keepActiveSource: true));
+                Run("Evaluate", () => Controller.AfterExit(doc, cc));
         }, key: "evaluate-after-exit");
     }
 

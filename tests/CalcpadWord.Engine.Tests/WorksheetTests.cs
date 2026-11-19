@@ -313,6 +313,68 @@ public class BlockWorksheetTests
     }
 
     [Fact]
+    public void Bordered_tables_are_full_width_left_aligned_grid_table_1_light()
+    {
+        var block = Run(Block(
+            "a = 2",
+            "'<table class=\"bordered\">",
+            "'<tr><th>Check</th><th>Result</th></tr>",
+            "'<tr><td>Bending</td><td>'a'</td></tr>",
+            "'</table>"))[0];
+
+        Assert.Equal(0, block.ErrorCount);
+        var xml = XDocument.Parse(block.Block!.ToWordPackage());
+        XNamespace w = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
+        var table = Assert.Single(xml.Descendants(w + "tbl"));
+        var properties = table.Element(w + "tblPr")!;
+
+        Assert.Equal("GridTable1Light", properties.Element(w + "tblStyle")?.Attribute(w + "val")?.Value);
+        Assert.Equal("5000", properties.Element(w + "tblW")?.Attribute(w + "w")?.Value);
+        Assert.Equal("pct", properties.Element(w + "tblW")?.Attribute(w + "type")?.Value);
+        Assert.Equal("72", properties.Element(w + "tblCellMar")?.Element(w + "left")?.Attribute(w + "w")?.Value); // a tiny pad, 1.3 mm
+        // The block's defaults name no font or size, so the imported table style follows the document.
+        var defaults = xml.Descendants(w + "rPrDefault").Single().Descendants(w + "rFonts").Single();
+        Assert.Equal("minorHAnsi", defaults.Attribute(w + "asciiTheme")?.Value);
+        Assert.Null(defaults.Attribute(w + "ascii"));
+        Assert.Empty(xml.Descendants(w + "rPrDefault").Descendants(w + "sz"));
+        Assert.Empty(table.Descendants(w + "tcBorders"));
+        Assert.Empty(table.Descendants(w + "shd"));
+        Assert.Empty(table.Descendants(w + "jc"));
+        var rows = table.Elements(w + "tr").ToList();
+        Assert.NotNull(rows[0].Element(w + "trPr")?.Element(w + "tblHeader"));
+        Assert.Null(rows[1].Element(w + "trPr")?.Element(w + "tblHeader"));
+        // The style travels with the block, as Word defines it, for documents that don't have it yet.
+        var style = xml.Descendants(w + "style").Single(s => s.Attribute(w + "styleId")?.Value == "GridTable1Light");
+        Assert.Equal(BlockOutput.TableStyleName, style.Element(w + "name")?.Attribute(w + "val")?.Value);
+    }
+
+    [Fact]
+    public void A_simple_block_brings_no_styles_or_lists()
+    {
+        // Word imports whatever a package defines, each time: a PASS line needs neither.
+        var package = Run(Block("'<p class=\"ok\">PASS - fine</p>"))[0].Block!.ToWordPackage();
+
+        Assert.Contains("PASS - fine", XDocument.Parse(package).Root!.Value);
+        Assert.DoesNotContain("/word/styles.xml", package);
+        Assert.DoesNotContain("/word/numbering.xml", package);
+    }
+
+    [Fact]
+    public void A_drawing_broken_by_an_error_does_not_stop_the_calculation()
+    {
+        // w is undefined: Calcpad writes its error into the SVG's attribute, which is no longer XML.
+        // (In a document the undefined input is reported as such; here only the drawing is.)
+        // Its Word content says the drawing can't be shown, instead of failing the whole calculation.
+        var block = Run(Block(
+            "'<svg alt=\"sketch.svg\" width=\"'w'\" height=\"20\" xmlns=\"http://www.w3.org/2000/svg\">",
+            "'<rect width=\"10\" height=\"10\"/>",
+            "'</svg>"))[0];
+
+        var package = block.Block!.ToWordPackage();
+        Assert.Contains("couldn", XDocument.Parse(package).Root!.Value);
+    }
+
+    [Fact]
     public void Plots_become_pictures()
     {
         var block = Run(Block("$Plot{x^2 @ x = 0 : 2}"))[0];
@@ -321,6 +383,32 @@ public class BlockWorksheetTests
         var package = block.Block!.ToWordPackage();
         Assert.Contains("pkg:binaryData", package);
         Assert.Contains("image/", package);
+
+        // Titled for the add-in, which gives plots the width of the text; on a line of their own, centred.
+        var xml = XDocument.Parse(package);
+        XNamespace w = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
+        XNamespace wp = "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing";
+        var picture = Assert.Single(xml.Descendants(wp + "docPr"));
+        Assert.Equal(BlockOutput.PlotTitle, picture.Attribute("title")?.Value);
+        var paragraph = picture.Ancestors(w + "p").First();
+        Assert.Equal("center", paragraph.Element(w + "pPr")?.Element(w + "jc")?.Attribute(w + "val")?.Value);
+
+        // Given the text width (points), the plot fills it, keeping its proportions.
+        var original = xml.Descendants(wp + "extent").Single();
+        var wide = XDocument.Parse(block.Block.ToWordPackage(textWidth: 500)).Descendants(wp + "extent").Single();
+        Assert.Equal(500L * 12700, long.Parse(wide.Attribute("cx")!.Value));
+        Assert.Equal(long.Parse(original.Attribute("cy")!.Value) * 500 * 12700 / long.Parse(original.Attribute("cx")!.Value),
+            long.Parse(wide.Attribute("cy")!.Value));
+    }
+
+    [Fact]
+    public void A_title_above_a_plot_stays_on_its_page()
+    {
+        var xml = XDocument.Parse(Run(Block("'<p><b>Load, kPa</b></p>", "$Plot{x^2 @ x = 0 : 2}"))[0].Block!.ToWordPackage());
+        XNamespace w = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
+
+        var title = xml.Descendants(w + "p").First(p => p.Value.Contains("Load, kPa"));
+        Assert.NotNull(title.Element(w + "pPr")?.Element(w + "keepNext"));
     }
 
     [Fact]

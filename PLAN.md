@@ -83,6 +83,8 @@ Usage and build instructions are in [README.md](README.md). This file records th
   - Its heading styles are based on `Normal`, so they pick up the user's document styles. Only the "Calcpad" and "Calcpad Bordered" table styles are added.
   - Plots arrive as embedded pictures.
 - Rounding: Calcpad keeps significant figures for small values. With 2 decimals, 0.714 shows as `0.714`.
+  - Constants in an equation are shown at the current decimals too (from their value, not as typed): at 2 decimals 1.006 reads 1.01. `#round 6` shows them in full; trailing zeros are dropped.
+  - An inline format (`x = expr:0.##`) overrides `#round` and stays with the variable, so it is also used where x is substituted. It is kept as a unit, though: functions then refuse x (`ln()`: "Invalid units"; `$Root`: "Inconsistent units"), while arithmetic accepts it. A format on a shown expression only (`x:0.##`) is not kept. `1*x` gives x without its format.
 - `ToXml()`/`OpenXmlExpressions` produce OMML (Word's equation markup). Calcpad hard-codes 10–11 pt for units; dropping `w:sz` makes equations follow the paragraph.
 
 ## Environment notes
@@ -249,6 +251,84 @@ Gotchas:
   - 168 unit tests.
   - `Test-BeamTemplate` (10 checks): typing and leaving a field recalculates; a failing beam says FAIL with 0 calculation errors; C40/50 sets f_ck = 40; a typo is flagged and then cleared.
   - The full end-to-end test passed on 0.8.0. A first run failed once in step 4: its `WaitFor` treated a control being redrawn as missing. `WaitFor` now retries instead.
+
+## RC beam template v2 and block output (2026-11-18, second PC)
+
+The user: "taking inspiration from Tedds and Calcpad's examples, modify the Dokimos RC beam design calculation", then gave the styling decisions below. Still add-in 0.8.0: the user wants versions to move slowly.
+
+- **Tedds, through its API:** Tekla Tedds 28.1 is installed on the second PC. `Check-WithTedds.ps1` (beside the beam script) runs its "RC beam design (EN1992)" without the window through the `Tedds.Calculator` COM server. The recipe and variable names come from Tekton's parked Tedds integration (`Desktop\Tekton\.deliberation\removed-tedds-2026-10-11`). Its output gave v2's order of checks and its "PASS - sentence" wording.
+  - **Cross-check done:** for the default section, Tedds and the template agree: K = 0.075, z = 420, x = 80, As,req = 753, As,min = 204, bar spacing 82/200 ≥ 25, minimum links 263 mm²/m, s_l,max = 339. With the recommended values: K′ = 0.196, z = 425, As,req = 744. `BeamTemplateTests` holds these numbers.
+  - Tedds' library defaults to the UK annex (`NationalAnnex` "GB"). `NationalAnnex` "Recommended" with `_NationalAnnexItem` "NDP Recommended" gives the recommended values.
+  - Tedds differs on method in places: z for shear (flexural z, where v2 uses 0.9d) and crack control (Tedds uses the bar spacing tables of 7.3.3; v2 calculates w_k by 7.3.4).
+- **What v2 added:**
+  - From Tedds: bending by K and K′; V_Rd,max at θ = 45°, then θ from the shear; minimum steel for crack control (7.1); top and bottom bar spacing; fire resistance (EN 1992-1-2 Table 5.5, with interpolation and +10 mm for corner bars); the fuller Table 3.1 properties; characteristic support reactions; a section sketch (inline SVG).
+  - From Calcpad's examples: creep and shrinkage from Annex B; a calculated deflection (7.4.3, ζ interpolation with shrinkage curvature); ΔF_td and a_l.
+  - New: a cover check from the exposure class (S4, Table 4.4N), which also sets w_max. The exposure class drop-down therefore gives c_min,dur, and w_max follows from it. Defaults are XC1, RH 50 %, R60, no brittle partitions.
+  - Summary: 11 rows, a governing utilisation, and deflection passing on the better of 7.4.2 and 7.4.3.
+- **Block output, the user's decisions:**
+  - Bordered tables use Word's **Grid Table 1 Light** (the user: "default table style is grid table 1 light"), full width, left-aligned, with a tiny cell pad (72 twips); the heading row repeats on a new page.
+  - Calcpad's own grey borders, shading and centring are direct formatting and are removed. Word folds a package's default fonts into the styles it imports (the table came in as Calibri 12 pt), so a package with a table names theme fonts and no size.
+  - Plots fill the text width ("charts can be 100% width by default"): `BlockOutput` titles them "Calcpad plot" and `DocumentController.Write` sizes them once Word has inserted them. Word takes picture sizes in points only.
+  - A picture alone on a line is centred, such as the beam sketch, which has a light grey section.
+  - PASS and FAIL lines are a single run each: "PASS - reason" all green, "FAIL - reason" all red. Calcpad colours only unformatted runs in a `class="ok"` paragraph, so a `<b>PASS</b>` stayed black, and its capitals looked larger than the reason.
+- **Robustness:**
+  - A block whose output Calcpad's Word writer can't take now shows a red line instead of failing the whole calculation. For example, a mistyped input put Calcpad's error markup into the sketch's SVG attributes: "'<' is an invalid attribute character".
+  - `SourceNormalizer` treats `\r\n` as one break, so a `.cpd` checked out with Windows line endings no longer gains blank lines. Two tests had failed on the fresh checkout because of this.
+- **Speed:** a change of input redraws about 96 results, which takes about 17 s in Word. Calcpad itself takes 0.3 s and the Word content 0.7 s; the rest is Word's per-item redraw. v2 has more lines than v1, so it takes longer.
+- **Then (the user: "inputting should be snappy… user should be able to switch off autoevaluate… succinctness is golden"):**
+  - **Calculate automatically**, a document setting (`DocumentSettings.Automatic`, stored as `auto=0` only when off) with a ribbon checkbox. When it's off, leaving a changed field or edited expression calls `MarkOutOfDate`, which calculates nothing (see Speed below). Recalculate, Evaluate and Edit Source still calculate. Turning it back on recalculates.
+  - It is kept out of the results' fingerprint (`ResultKey`), so switching it redraws nothing. `Make-BeamTemplate` saves the beam template with it off.
+  - The beam script was trimmed from 173 to 153 items. Lines that echoed a drop-down are gone, constants are folded into the lines that use them, the sketch labels its bars instead of repeating the inputs, and the verdicts and the scope, codes and assumptions are shorter.
+  - **Speed, measured in a hidden Word on the v2 beam.** A full recalculation (84 results redrawn) went from about 20 s to about 4 s: Calcpad and the Word content take 1.2 s, and drawing takes 2–3 s. Leaving a field in manual mode takes 0.15 s. `Draw` logs where its time goes.
+    - `InsertXML` costs about 0.1 s each in a 10-page document, mostly fixed overhead. Equations and inline errors are therefore drawn together: one `InsertXML` of all their paragraphs into a hidden scratch document, then a `Range.FormattedText` copy into each control (about 15 ms each). Copies take the target's formatting.
+      - The scratch document is made per draw and closed, because an invisible document left open could keep Word running after its last window closes. `WordEvents` ignores it.
+      - Hidden expressions still use their own `InsertXML`: a copy of hidden text comes out empty, and the control showed its placeholder spaces.
+    - Calcpad's writer gives every block its whole style sheet and a numbering part, and Word imports both on each insert. That made a one-line PASS cost 0.2 s and added a list definition per draw, so redraws grew slower each time (15 s → 33 s). `BlockOutput` now keeps only the styles a block uses and the numbering only when it has a list.
+    - Resizing a plot in Word made it lay out the pages (1–3 s per draw). Plots are now sized in the package, from the text width that `TakeSnapshot` reads from the last section.
+    - Greying results costs about 25 ms each. The foreground wait went from 0.25 s to 1.5 s, so a calculation of about a second is drawn directly instead of being greyed first. In manual mode an input change only sets a document variable (`Calcpad.OutOfDate`, cleared by the next draw), and the Recalculate button reads "Recalculate (out of date)".
+    - Tried without effect: switching off spelling and grammar checking as you type, and Draft view during the draw. Clearing the undo history didn't help either.
+- **Tested 2026-11-18:** 174 unit tests, and `Test-BeamTemplate -Version 2` passed 10 of 10 checks. Its first check now waits for the recalculated text instead of looking after 0.8 s.
+
+## Psychrometric chart v2 (2026-11-19; the user: "give the psychrometric chart similar treatment")
+
+- **v1** (`Dokimos Psychrometric Chart v1.dotx`) was made by hand in Word. It had no source script: its working was about 20 hidden inline paragraphs plus three blocks (solver, chart, table), and the page showed one sentence for the calculations.
+- **v2 is built from a script,** `Template source\psychrometric\Psychrometric chart.cpd`, by `Make-PsychrometricTemplate.ps1`. The solver and functions are unchanged from v1.
+  - The working is hidden (solver and functions), followed by ASHRAE's relations as Calcpad equations, formula = result without substituted values (`#nosub`; the user: "the calculations must look like calculations from calcpad (in math font)"). The constants show in full (`#round 6`), and each result has its own format (`:0.##`). Only results that no function uses later get a format (see "Calcpad engine findings"); values found by functions (p_ws, t_d, t_wb) show as values, and p is calculated again without its format for the chart.
+  - No results table (the user: "I might not need the table"): it repeated the working, at other decimals and with W in g/kg, which read as differences. "Results and conclusions" is removed, so the calculation ends with the chart.
+  - Each known property is one line, "[property] = [value]" (`JoinInputs`). The red messages have no `<b>`, which Calcpad left uncoloured. Calculation is on Recalculate only.
+  - The headings are Site and Known properties (renamed from v3's Materials and Geometry; Loads is removed), then 4.1 State of the air and 4.2 Psychrometric chart.
+  - The chart's colours are explained by a small SVG legend under it (the user: "a small coloured line then the words. each property in their own line"), not by colour names in the text. The scope has no "fill in the blue fields" instruction, in either template (the user: "the user already knows how to use").
+  - 4 pages (2 body sheets). A blank 5th page came from the empty paragraphs after the (then) results table: the one left by converting the section (just after the block, so its range starts with the block's locked end mark) and Word's last. `Save-Template` makes them 1 pt through their paragraph marks. A block that ends in a table needs no fix: Word drops the package's trailing empty paragraph.
+- **Shared build helpers:** `Template source\TemplateBuild.ps1`, used by the beam's and the chart's Make and Test scripts. The unit tests share `TemplateScript`/`Calculation`; a probe is `1*name`, so a formatted variable is read in full.
+- **Word test:** an equation's text in Word has paragraph marks in it (fractions), so the test matches a result with `(?s)` and a short reach after its label.
+- **Checks** (`PsychrometricTests`, 31):
+  - the standard atmosphere (ASHRAE Table 1) and the saturation pressures (Table 3) within 0.05 %; Hyland and Wexler differ from IAPWS by about 0.02 % at 50 °C;
+  - air at 25 °C and 50 % at sea level against the chart: W 9.88 g/kg, h 50.3, t_wb 17.9, t_d 13.9, v 0.858;
+  - the same air found again from all 19 pairs of properties that fix it;
+  - the pairs that can't fix it, each with its own message.
+- **Tested 2026-11-19:** 207 unit tests; `Test-PsychrometricTemplate -Version 2` passed 8 of 8 checks and `Test-BeamTemplate -Version 2` 15 of 15 (both templates rebuilt with the shared helper). A beam recalculation draws in 4.4–5.1 s, of which the PASS/FAIL blocks take 2.5–3.5 s.
+- **Compared 2026-11-19** (the user: "compare the results against free online tools … 3 or 5 are enough"): five states against PsychroLib 2.5.0 (ASHRAE's own implementation) and CoolProp 8.0.0 (real-gas humid air, RP-1485). PsychroLib agrees to the last digit shown (t_wb within 0.0003 °C, the root's tolerance). CoolProp differs by up to 0.33 % in φ, 0.07 °C in t_d and 0.04 °C in t_wb: the ideal-gas relations without the enhancement factor.
+
+## Duct sizing v1 (2026-11-20; the user: "I have daikins duct sizer at D:\ductsizer\ductsizer write a template to replace it")
+
+- **DuctSizer** is McQuay's "DesignTools DuctSizer 6.4" (2001–2003, Visual Basic 6; `D:\ductsizer\ductsizer.exe` is a WinZip self-extractor of the same files). Any two of flow rate, head loss, velocity and equivalent diameter give the rest; one side of a rectangular duct gives the other. Its air is one of five presets (20 °C STP: 1.2014 kg/m³, 1.786·10⁻⁵ Pa·s, 1.0048 kJ/(kg·K)), all at 1 atm.
+- **What it does, found by driving it** (Win32 messages, pictures of its window; the scripts stay in the session's scratchpad): Darcy–Weisbach with Colebrook and a fixed roughness of about 0.213 mm (0.0007 ft; four cases give 0.2132–0.2137), not ASHRAE's 0.09 mm for galvanized steel. Rectangular ducts by Huebscher, side b rounded to the nearest 25 mm. For a rectangular duct it shows the velocity in the equivalent round duct, not q/(a·b). Its iteration stops near the target (0.995 Pa/m for 1).
+- **The template** (`Template source\duct\`): air from the temperature and the altitude (standard atmosphere, dry air, Sutherland viscosity), so a duct in Kampala (1190 m, air 13 % less dense: 1.044 against 1.204 kg/m³ at 20 °C) comes out smaller than at sea level; ASHRAE's roughness categories in a list (default 0.09 mm); size by friction rate, velocity or diameter; side b rounded up (the friction is then no more than the target), with the real velocity q/(a·b) and the velocity pressure for fittings. Shown like the psychrometric chart: formula = result, `#round` per line so that the constants are exact.
+- **Checks** (`DuctTests`, 13): DuctSizer's four results with its roughness (D within 0.3 %, f and Δp/L within 1 %), Huebscher for 500 × 200 mm (337.03 mm), b rounded up, altitude, bad inputs. `Test-DuctTemplate -Version 1` passed 7 of 7 checks; a recalculation takes 1.3 s.
+
+## Soil stresses and settlement v1 (2026-11-20; the user: "do the soil mechanics calculation in calcpad defaults", then "no need to mention where the docx was derived from")
+
+- **From Calcpad's example** `Examples\Mechanics\Soil mechanics\Soil stress and deformations.cpd`: Boussinesq's σz and τxz by a double integral over the loaded area, the settlement by integrating σz over the depth, maps and profiles. The document doesn't name the source.
+- **Speed: 59 s for the example, 7 s for the template** (in the engine). The settlement was a triple integral, and its adaptive plot (13 s alone) called it about 90 times. Now:
+  - the integral over z is done in closed form: ∫3z³/(2πR⁵)dz = (r²/R³ − 3/R)/(2π), which tends to Boussinesq's surface settlement, 1/(πr), at z = 0; it reproduces the example's 9.96 mm;
+  - the settlement is calculated at 25 points across the width and plotted through them with `spline()`;
+  - maps at `PlotStep = 10` (2.4 s each), precision 10⁻³.
+- **The example leaves out the top 1 % of H** (it integrates from 0.01·H): about 3 % of the settlement (9.96 against 10.23 mm). The template integrates from min(a; b)/10⁴. There the kernel peaks sharply under the point: `$Integral` (tanh-sinh) failed or was 1 % out, `$Area` (adaptive Gauss–Lobatto) converges (10.23 mm at 0.2 and 0.02 mm).
+- **Maps:** no taller than wide (a deep H under a narrow load made a map 50 000 px tall), `PlotShadows = 0` (flat colours). Plots in Word fill the text width, so the example's side-by-side layout became one below the other, depth profiles as charts of stress against −z.
+- **Sketches in the design inputs** (the user: "do a diagram showing a section maybe of the foundation, and one showing loads"): SVG blocks as in the beam, with plain numbers from the inputs (`a/1m`, `p_1/1kPa`; a unit in an SVG attribute or text would break it). Section (soil light grey, the loaded strip blue, axes x and z, a and H) and plan (a × b, axes x and y), both to scale, the section's soil at least 200 px wide; the load as a trapezoid with arrows, its height in proportion to the larger load. `Make-SoilTemplate` sets `KeepWithNext` on the input lines above the sketches (inputs aren't redrawn, so it lasts).
+- **Add-in changes (0.8.0, not bumped):** an input's unit (`a = ? {2}m`) is shown after its field, as in Calcpad; a title paragraph just above a plot keeps with it (`keepNext`).
+- **Checks** (`SoilTests`, 6): the example (9.96 mm, by its own formula and by the closed form); a uniform load on a deep half-space against the closed form for a flexible rectangle (Timoshenko and Goodier; Steinbrenner): 12.35 mm at the centre of 2 × 3 m, within 0.5 %; σz far below against a point load; the heavier edge settles more. `Test-SoilTemplate -Version 1` passed 5 of 5 checks; a uniform 50 kPa halves the centre settlement (the linear part adds nothing there).
+- **Recalculation in Word:** 20.5 s in the hidden test Word (calculation 19.1 s, drawing 0.3 s) against 7.2 s in the unit tests, with the same settings. Probably Windows throttling a process without a visible window; not measured in a visible Word.
 
 ## Installer
 

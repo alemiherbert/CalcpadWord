@@ -289,9 +289,72 @@ internal sealed class DocumentController(Word.Application app)
     public string ChangeSettings(Func<DocumentSettings, DocumentSettings> change)
     {
         var doc = ActiveDocument();
-        SaveSettings(doc, change(LoadSettings(doc)));
+        var before = LoadSettings(doc);
+        var after = change(before);
+        SaveSettings(doc, after);
+        if (!after.Automatic)
+        {
+            if (before.Automatic)
+                return LastStatus = "Calcpad: automatic calculation is off. Recalculate (Ctrl+Alt+F9) updates the results.";
+            return after.ResultKey() == before.ResultKey() ? LastStatus : MarkOutOfDate(doc, left: null);
+        }
         using var undo = new UndoScope(app, "Calcpad Settings");
         return RecalculateCore(doc, keepActiveSource: false);
+    }
+
+    /// <summary>
+    /// Leaving a changed input field or edited source: recalculates, or, with automatic
+    /// calculation off, only marks the document's results out of date.
+    /// </summary>
+    public string AfterExit(Word.Document doc, Word.ContentControl left) =>
+        LoadSettings(doc).Automatic ? Recalculate(doc, keepActiveSource: true) : MarkOutOfDate(doc, left);
+
+    private const string OutOfDateVariable = "Calcpad.OutOfDate";
+
+    /// <summary>
+    /// Automatic calculation off: the document's results are marked out of date (a document
+    /// variable, kept when it is saved; the Recalculate button says so) until the next
+    /// Recalculate draws them. Nothing in the text changes, so leaving a field is instant.
+    /// Greying each result instead took about 3 s on the v2 beam.
+    /// </summary>
+    private string MarkOutOfDate(Word.Document doc, Word.ContentControl? left)
+    {
+        if (left is not null && InputField.IsInput(left.Tag))
+            _inputValues[left.ID] = ReadInput(left); // leaving it again unchanged is no change
+        SetOutOfDate(doc, true);
+        return LastStatus = "Calcpad: results out of date. Recalculate (Ctrl+Alt+F9) updates them.";
+    }
+
+    /// <summary>The active document's results are out of date: changed with automatic calculation off, not recalculated since.</summary>
+    public bool IsOutOfDate() => TryActiveDocument() is { } doc && IsOutOfDate(doc);
+
+    private static bool IsOutOfDate(Word.Document doc)
+    {
+        try
+        {
+            return doc.Variables[OutOfDateVariable].Value == "1";
+        }
+        catch (COMException)
+        {
+            return false; // never marked
+        }
+    }
+
+    private static void SetOutOfDate(Word.Document doc, bool outOfDate)
+    {
+        if (IsOutOfDate(doc) == outOfDate)
+            return;
+        try
+        {
+            if (outOfDate)
+                doc.Variables.Add(OutOfDateVariable, "1");
+            else
+                doc.Variables[OutOfDateVariable].Delete();
+        }
+        catch (COMException ex)
+        {
+            Log.Error("Marking the results out of date failed", ex); // only a hint
+        }
     }
 
     // ---- Errors -------------------------------------------------------------------------
@@ -385,8 +448,12 @@ internal sealed class DocumentController(Word.Application app)
     // away (the usual case: one Undo step, no flicker). Otherwise Word stays usable and the
     // results are drawn when ready, provided the Calcpad items haven't changed meanwhile; if they
     // have, it recalculates. A newer recalculation cancels the one still running.
+    //
+    // 1.5 s, not less: greying the results first costs about 25 ms a result in Word, so for a
+    // calculation of a second or so, waiting and drawing straight away is quicker than greying
+    // and then drawing (the v2 beam: 0.7 s in Calcpad, 3 s to grey 110 results).
 
-    private const int ForegroundMilliseconds = 250;
+    private const int ForegroundMilliseconds = 1500;
 
     /// <summary>What a calculation started from: the controls and the sources they had.</summary>
     /// <param name="Controls">The Calcpad expressions and blocks (with <paramref name="Ids"/>, <paramref name="Tags"/>, <paramref name="Parsed"/>).</param>
@@ -396,7 +463,7 @@ internal sealed class DocumentController(Word.Application app)
     private sealed record Snapshot(
         Word.Document Doc, List<Word.ContentControl> Controls, List<string> Ids, List<string> Tags,
         List<ControlTag> Parsed, List<WorksheetItem> Items, List<int> ItemOf, List<InputSnapshot> Inputs,
-        DocumentSettings Settings, string? Folder);
+        DocumentSettings Settings, string? Folder, double? TextWidth);
 
     /// <param name="Changed">The value differs from the last calculation's (or this session hasn't calculated it yet).</param>
     private sealed record InputSnapshot(Word.ContentControl Control, string Id, InputField Field, string Value, int Item, bool Changed);
@@ -597,7 +664,25 @@ internal sealed class DocumentController(Word.Application app)
                 p.Kind == ControlKind.Block && !p.ShowsSource ? p.Fingerprint : null));
         }
         return new Snapshot(doc, controls, [.. controls.Select(cc => cc.ID)], tags, parsed, items, itemOf, inputs,
-            LoadSettings(doc), DocumentFolder(doc));
+            LoadSettings(doc), DocumentFolder(doc), TextWidthOf(doc));
+    }
+
+    /// <summary>
+    /// The text width in points, which plots are made to fill: the last section's page less its
+    /// margins and gutter, or its column width. Null if Word can't say: plots stay as drawn.
+    /// </summary>
+    private static double? TextWidthOf(Word.Document doc)
+    {
+        try
+        {
+            var setup = doc.Sections.Last.PageSetup;
+            var columns = setup.TextColumns;
+            return columns.Count > 1 ? columns.Width : setup.PageWidth - setup.LeftMargin - setup.RightMargin - setup.Gutter;
+        }
+        catch (COMException)
+        {
+            return null;
+        }
     }
 
     /// <summary>Background thread: Calcpad, then the Word content of blocks to draw. No Word calls here.</summary>
@@ -610,7 +695,7 @@ internal sealed class DocumentController(Word.Application app)
         foreach (var result in results)
         {
             token.ThrowIfCancellationRequested();
-            _ = result.Block?.WordPackage;
+            _ = result.Block?.WordPackageFor(snapshot.TextWidth);
         }
         if (timer.ElapsedMilliseconds > ForegroundMilliseconds)
             Log.Info($"Calculated in {calculated.TotalSeconds:F1} s, Word content ready in {timer.Elapsed.TotalSeconds:F1} s");
@@ -723,6 +808,9 @@ internal sealed class DocumentController(Word.Application app)
     {
         int errors = 0, redrawn = 0;
         string? firstError = null;
+        var timer = System.Diagnostics.Stopwatch.StartNew();
+        _insertTicks = _deleteTicks = 0;
+        var inline = new List<InlineResult>();
 
         // Input fields come first in the count: a wrong value explains the errors after it.
         foreach (var input in s.Inputs)
@@ -736,6 +824,8 @@ internal sealed class DocumentController(Word.Application app)
             }
             MarkInput(input.Control, failed);
         }
+        var inputsDone = timer.Elapsed;
+        long blockTicks = 0;
 
         for (var i = 0; i < controls.Count; ++i)
         {
@@ -764,13 +854,28 @@ internal sealed class DocumentController(Word.Application app)
                 continue;
             }
 
-            Render(cc, tag.Kind, result, fingerprint); // new content and title: not greyed
+            // New content and title: not greyed. Equations and inline errors are drawn together at
+            // the end. Not hidden expressions: a copy of hidden text comes out empty.
+            if (tag.Kind == ControlKind.Inline && result.Kind != ResultKind.Hidden)
+                inline.Add(new InlineResult(cc, result, fingerprint));
+            else
+            {
+                var start = System.Diagnostics.Stopwatch.GetTimestamp();
+                Render(cc, tag.Kind, result, fingerprint, s.TextWidth);
+                blockTicks += System.Diagnostics.Stopwatch.GetTimestamp() - start;
+            }
             ++redrawn;
         }
+        var scanned = timer.Elapsed;
+        WriteInline(s.Doc.Application, inline);
+        SetOutOfDate(s.Doc, false);
 
         var total = controls.Count;
         var fields = s.Inputs.Count;
-        Log.Info($"Recalculated '{s.Doc.Name}': {total} items, {fields} inputs, {errors} with errors, {redrawn} redrawn");
+        Log.Info($"Recalculated '{s.Doc.Name}': {total} items, {fields} inputs, {errors} with errors, {redrawn} redrawn " +
+                 $"in {timer.Elapsed.TotalSeconds:F1} s: inputs {inputsDone.TotalSeconds:F1} s, blocks {Seconds(blockTicks):F1} s, " +
+                 $"rest of the scan {(scanned - inputsDone).TotalSeconds - Seconds(blockTicks):F1} s, {inline.Count} equations {(timer.Elapsed - scanned).TotalSeconds:F1} s " +
+                 $"({Seconds(_insertTicks):F1} s in InsertXML, {Seconds(_deleteTicks):F1} s deleting tables)");
         if (total == 0 && fields == 0)
             return "Calcpad: nothing to calculate. Select text and press Evaluate (Alt+Shift+Enter), type {= expression } in the text, or add a Calcpad Block.";
 
@@ -812,26 +917,119 @@ internal sealed class DocumentController(Word.Application app)
         return text;
     }
 
-    private static void Render(Word.ContentControl cc, ControlKind kind, EvaluationResult result, string fingerprint)
+    private sealed record InlineResult(Word.ContentControl Control, EvaluationResult Result, string Fingerprint);
+
+    /// <summary>From this many equations on, they are drawn together; fewer are inserted one by one.</summary>
+    private const int DrawTogetherFrom = 6;
+
+    /// <summary>True while the scratch document is being made: <see cref="WordEvents"/> doesn't watch it.</summary>
+    public static bool MakingScratch { get; private set; }
+
+    /// <summary>
+    /// Draws equations and inline errors. Many at once go through a hidden scratch document:
+    /// one InsertXML of all their paragraphs, then a FormattedText copy into each control, which
+    /// takes the document's own formatting. In a long document an InsertXML costs about 0.1 s
+    /// and a copy about 15 ms (the v2 beam, 2026-11-18). The scratch document is closed at the
+    /// end: an invisible document left open could keep Word running after its last window closes.
+    /// If anything fails, the rest are inserted one by one.
+    /// </summary>
+    private static void WriteInline(Word.Application app, List<InlineResult> results)
+    {
+        var drawn = 0;
+        if (results.Count >= DrawTogetherFrom)
+        {
+            Word.Document? scratch = null;
+            try
+            {
+                MakingScratch = true;
+                try
+                {
+                    scratch = app.Documents.Add(Visible: false);
+                }
+                finally
+                {
+                    MakingScratch = false;
+                }
+
+                var start = System.Diagnostics.Stopwatch.GetTimestamp();
+                scratch.Content.InsertXML(WordMarkup.Package(string.Concat(results.Select(r => InlineParagraph(r.Result)))));
+                var inserted = System.Diagnostics.Stopwatch.GetTimestamp();
+                _insertTicks += inserted - start;
+                var paragraphs = scratch.Paragraphs;
+                if (paragraphs.Count != results.Count)
+                    throw new InvalidOperationException($"the scratch document has {paragraphs.Count} paragraphs for {results.Count} results");
+
+                long copyTicks = 0;
+                var paragraph = paragraphs.First;
+                foreach (var r in results)
+                {
+                    var content = paragraph.Range;
+                    content.MoveEnd(Word.WdUnits.wdCharacter, -1); // not the paragraph mark
+                    var copy = System.Diagnostics.Stopwatch.GetTimestamp();
+                    r.Control.LockContents = false;
+                    r.Control.Range.FormattedText = content.FormattedText;
+                    copyTicks += System.Diagnostics.Stopwatch.GetTimestamp() - copy;
+                    Label(r.Control, r.Result, r.Fingerprint);
+                    ++drawn;
+                    paragraph = paragraph.Next();
+                }
+                Log.Info($"Equations together: InsertXML {Seconds(inserted - start):F2} s, copies {Seconds(copyTicks):F2} s, " +
+                         $"labels and the rest {Seconds(System.Diagnostics.Stopwatch.GetTimestamp() - inserted - copyTicks):F2} s");
+            }
+            catch (Exception ex) when (ex is COMException or InvalidOperationException)
+            {
+                Log.Error($"Drawing {results.Count} equations together failed after {drawn}: drawing the rest one by one", ex);
+            }
+            finally
+            {
+                try { scratch?.Close(Word.WdSaveOptions.wdDoNotSaveChanges); }
+                catch (COMException ex) { Log.Error("Closing the scratch document failed", ex); }
+            }
+        }
+
+        foreach (var r in results.Skip(drawn))
+        {
+            Write(r.Control, WordMarkup.Package(InlineParagraph(r.Result)));
+            Label(r.Control, r.Result, r.Fingerprint);
+        }
+    }
+
+    /// <summary>An inline result's one paragraph: its equation, or for a hidden expression or an error, its source.</summary>
+    private static string InlineParagraph(EvaluationResult result) => result.Kind switch
+    {
+        ResultKind.Math => WordMarkup.MathParagraph(result.Omml),
+        ResultKind.Hidden => WordMarkup.TextParagraph(result.Source, TextLook.Hidden),
+        _ => WordMarkup.TextParagraph(result.Source, TextLook.Error),
+    };
+
+    /// <summary>
+    /// The title and tag of an inline result just drawn. Results are read-only (Edit Source or a
+    /// double-click changes them); an error stays editable source, with the message as its title.
+    /// </summary>
+    private static void Label(Word.ContentControl cc, EvaluationResult result, string fingerprint)
+    {
+        if (result.Kind == ResultKind.Error)
+        {
+            cc.Title = Clip(ErrorTitlePrefix + result.Error);
+            cc.Tag = new ControlTag(ControlState.Error, fingerprint, result.Source, ControlKind.Inline).ToString();
+            return;
+        }
+        cc.Title = Clip((result.Kind == ResultKind.Hidden ? "Calcpad (hidden): " : "Calcpad: ") + result.Source);
+        cc.Tag = new ControlTag(ControlState.Result, fingerprint, result.Source, ControlKind.Inline).ToString();
+        cc.LockContents = true;
+    }
+
+    private static void Render(Word.ContentControl cc, ControlKind kind, EvaluationResult result, string fingerprint, double? textWidth)
     {
         switch (result.Kind)
         {
-            case ResultKind.Math:
-                Write(cc, WordMarkup.Package(WordMarkup.MathParagraph(result.Omml)));
-                cc.Title = Clip("Calcpad: " + result.Source);
-                cc.Tag = new ControlTag(ControlState.Result, fingerprint, result.Source, kind).ToString();
-                cc.LockContents = true; // results are read-only; change them with Edit Source or a double-click
-                break;
-
-            case ResultKind.Hidden:
-                Write(cc, WordMarkup.Package(WordMarkup.TextParagraph(result.Source, TextLook.Hidden)));
-                cc.Title = Clip("Calcpad (hidden): " + result.Source);
-                cc.Tag = new ControlTag(ControlState.Result, fingerprint, result.Source, kind).ToString();
-                cc.LockContents = true;
+            case ResultKind.Math or ResultKind.Hidden:
+                Write(cc, WordMarkup.Package(InlineParagraph(result)));
+                Label(cc, result, fingerprint);
                 break;
 
             case ResultKind.Block:
-                Write(cc, result.Block!.WordPackage); // made on the background thread
+                Write(cc, result.Block!.WordPackageFor(textWidth), block: true); // made on the background thread
                 cc.Title = result.ErrorCount == 0
                     ? Clip("Calcpad block: " + FirstLine(result.Source))
                     : Clip($"{ErrorTitlePrefix}{result.Error} ({result.ErrorCount} error{(result.ErrorCount == 1 ? "" : "s")} in this block)");
@@ -852,18 +1050,34 @@ internal sealed class DocumentController(Word.Application app)
         var body = kind == ControlKind.Block
             ? WordMarkup.SourceParagraphs(source, look)
             : WordMarkup.TextParagraph(source, look);
-        Write(cc, WordMarkup.Package(body));
+        Write(cc, WordMarkup.Package(body), block: kind == ControlKind.Block);
         cc.Title = Clip(title);
         cc.Tag = new ControlTag(state, fingerprint, source, kind).ToString();
     }
 
-    /// <summary>Replaces the control's content. Always via InsertXML: see <see cref="WordMarkup"/>.</summary>
-    private static void Write(Word.ContentControl cc, string package)
+    /// <summary>
+    /// Replaces the control's content. Always via InsertXML: see <see cref="WordMarkup"/>.
+    /// Only a block can hold tables, which have to go first; inline results skip that lookup.
+    /// </summary>
+    private static void Write(Word.ContentControl cc, string package, bool block = false)
     {
         cc.LockContents = false;
-        DeleteTables(cc.Range);
-        cc.Range.InsertXML(package);
+        var range = cc.Range;
+        if (block)
+        {
+            var delete = System.Diagnostics.Stopwatch.GetTimestamp();
+            DeleteTables(range);
+            _deleteTicks += System.Diagnostics.Stopwatch.GetTimestamp() - delete;
+        }
+        var start = System.Diagnostics.Stopwatch.GetTimestamp();
+        range.InsertXML(package);
+        _insertTicks += System.Diagnostics.Stopwatch.GetTimestamp() - start;
     }
+
+    /// <summary>Time spent in InsertXML and deleting tables during the current <see cref="Draw"/> (Word's thread only), for the log.</summary>
+    private static long _insertTicks, _deleteTicks;
+
+    private static double Seconds(long ticks) => (double)ticks / System.Diagnostics.Stopwatch.Frequency;
 
     // ---- Out-of-date results ---------------------------------------------------------------
     //

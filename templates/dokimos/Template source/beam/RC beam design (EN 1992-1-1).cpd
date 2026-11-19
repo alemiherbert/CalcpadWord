@@ -1,174 +1,261 @@
 "Reinforced concrete beam design<hr/><small>Simply supported beam of rectangular section to EN 1992-1-1 (recommended values)</small>
 '<!--section:materials-->
-'<b>Concrete</b>
+'<b>Concrete</b> (Table 3.1)
 'Strength class'f_ck = ? {30}
-'Characteristic cylinder strength: 'f_ck'MPa
-'Long-term coefficient: 'α_cc = ? {0.85}' (EN 1992-1-1 recommends 1.0; 0.85 is conservative)
-'Partial factor: 'γ_c = 1.5
-'Design compressive strength: 'f_cd = α_cc*f_ck/γ_c'MPa
-'Mean axial tensile strength: 'f_ctm = 0.30*f_ck^(2/3)'MPa
-'Secant modulus of elasticity: 'E_cm = 22*((f_ck + 8)/10)^0.3'GPa
-'Final creep coefficient (Figure 3.1): 'φ = ? {2}
+'Mean strengths: 'f_cm = f_ck + 8'MPa, 'f_ctm = 0.30*f_ck^(2/3)'MPa
+'Modulus of elasticity: 'E_cm = 22*(f_cm/10)^0.3'GPa
+'Long-term coefficient (3.1.6): 'α_cc = ? {0.85}' (1.0 recommended; 0.85 conservative)
+'Design strength (3.15), with 'γ_c = 1.5': 'f_cd = α_cc*f_ck/γ_c'MPa
 'Maximum aggregate size: 'd_g = ? {20}'mm
 '<b>Reinforcement</b>
-'Characteristic yield strength: 'f_yk = ? {500}'MPa
-'Partial factor: 'γ_s = 1.15
-'Design yield strength: 'f_yd = f_yk/γ_s'MPa
-'Modulus of elasticity: 'E_s = 200'GPa
-'<b>Durability</b>
-'Exposure class'w_max = ? {0.3}
-'Limiting crack width (Table 7.1N): 'w_max'mm
+'Yield strength: 'f_yk = ? {500}'MPa
+'Design strength, with 'γ_s = 1.15': 'f_yd = f_yk/γ_s'MPa, modulus: 'E_s = 200'GPa
+'<b>Durability and fire</b>
+'Exposure class'c_min,dur = ? {15}
+'Environment'RH = ? {50}
+'Fire resistance'R = ? {60}
 '<!--section:geometry-->
 'Effective span: 'L = ? {6}'m
+'Partitions'P_b = ? {0}
 'Width: 'b = ? {300}'mm, overall depth: 'h = ? {500}'mm
 'Nominal cover to the links: 'c_nom = ? {30}'mm
-'<b>Reinforcement provided</b>
 'Bottom bars: 'n_t = ? {3}' bars, diameter 'Φ_t = ? {20}'mm
 'Top bars: 'n_c = ? {2}' bars, diameter 'Φ_c = ? {12}'mm
 'Links: 'n_w = ? {2}' legs, diameter 'Φ_w = ? {8}'mm, spacing 's = ? {200}'mm
-'<b>Section properties</b>
-'Effective depth: 'd = h - c_nom - Φ_w - Φ_t/2'mm
-'Depth to the top bars: 'd_2 = c_nom + Φ_w + Φ_c/2'mm
-'Area of the bottom bars: 'A_s1 = n_t*π*Φ_t^2/4'mm²
-'Area of the top bars: 'A_s2 = n_c*π*Φ_c^2/4'mm²
+'Effective depth: 'd = h - c_nom - Φ_w - Φ_t/2'mm, to the top bars: 'd_2 = c_nom + Φ_w + Φ_c/2'mm
+'Steel areas: 'A_s1 = n_t*π*Φ_t^2/4'mm², 'A_s2 = n_c*π*Φ_c^2/4'mm²
+'<div>
+#hide
+u_s = min(150/b; 210/h)
+u_B = b*u_s
+u_H = h*u_s
+u_x = 74
+u_y = 8
+u_c = (c_nom + Φ_w/2)*u_s
+u_w = max(Φ_w*u_s; 1)
+u_t = max(Φ_t*u_s/2; 2)
+u_r = max(Φ_c*u_s/2; 2)
+u_yt = u_y + (h - c_nom - Φ_w - Φ_t/2)*u_s
+u_yc = u_y + (c_nom + Φ_w + Φ_c/2)*u_s
+u_xt = u_x + (c_nom + Φ_w + Φ_t/2)*u_s + if(n_t ≡ 1; (b/2 - c_nom - Φ_w - Φ_t/2)*u_s; 0)
+u_dt = (b - 2*(c_nom + Φ_w) - Φ_t)*u_s/max(n_t - 1; 1)
+u_xc = u_x + (c_nom + Φ_w + Φ_c/2)*u_s + if(n_c ≡ 1; (b/2 - c_nom - Φ_w - Φ_c/2)*u_s; 0)
+u_dc = (b - 2*(c_nom + Φ_w) - Φ_c)*u_s/max(n_c - 1; 1)
+u_L = u_x + u_B + 12
+u_W = round(u_L + 80)
+u_V = round(u_y + u_H + 34)
+#show
+#val
+'<svg alt="section.svg" width="'u_W'" height="'u_V'" xmlns="http://www.w3.org/2000/svg" font-family="Libre Franklin, Arial, sans-serif" font-size="11" fill="#1C1710">
+'<rect x="'u_x'" y="'u_y'" width="'u_B'" height="'u_H'" fill="#E8E8E8" stroke="#1C1710" stroke-width="1.5"/>
+'<rect x="'u_x + u_c'" y="'u_y + u_c'" width="'u_B - 2*u_c'" height="'u_H - 2*u_c'" rx="'2*u_w'" fill="none" stroke="#2E63C4" stroke-width="'u_w'"/>
+#for j = 1 : n_t
+'<circle cx="'u_xt + (j - 1)*u_dt'" cy="'u_yt'" r="'u_t'" fill="#1C1710"/>
+#loop
+#if n_c ≥ 1
+#for j = 1 : n_c
+'<circle cx="'u_xc + (j - 1)*u_dc'" cy="'u_yc'" r="'u_r'" fill="#1C1710"/>
+#loop
+#end if
+'<line x1="'u_x'" y1="'u_y + u_H + 10'" x2="'u_x + u_B'" y2="'u_y + u_H + 10'" stroke="#1C1710" stroke-width="0.75"/>
+'<line x1="'u_x'" y1="'u_y + u_H + 6'" x2="'u_x'" y2="'u_y + u_H + 14'" stroke="#1C1710" stroke-width="0.75"/>
+'<line x1="'u_x + u_B'" y1="'u_y + u_H + 6'" x2="'u_x + u_B'" y2="'u_y + u_H + 14'" stroke="#1C1710" stroke-width="0.75"/>
+'<text x="'u_x + u_B/2'" y="'u_y + u_H + 27'" text-anchor="middle">'b'</text>
+'<line x1="'u_x - 10'" y1="'u_y'" x2="'u_x - 10'" y2="'u_y + u_H'" stroke="#1C1710" stroke-width="0.75"/>
+'<line x1="'u_x - 14'" y1="'u_y'" x2="'u_x - 6'" y2="'u_y'" stroke="#1C1710" stroke-width="0.75"/>
+'<line x1="'u_x - 14'" y1="'u_y + u_H'" x2="'u_x - 6'" y2="'u_y + u_H'" stroke="#1C1710" stroke-width="0.75"/>
+'<text x="'u_x - 16'" y="'u_y + u_H/2 + 4'" text-anchor="end">'h'</text>
+'<text x="'u_L'" y="'u_yc + 4'">'n_c' Ø'Φ_c'</text>
+'<text x="'u_L'" y="'u_y + u_H/2 + 4'">Ø'Φ_w' @ 's'</text>
+'<text x="'u_L'" y="'u_yt + 4'">'n_t' Ø'Φ_t'</text>
+'</svg>
+#equ
+'</div>
 '<!--section:loads-->
-'Superimposed permanent load: 'g_k,s = ? {10}'kN/m
-'Variable load: 'q_k = ? {8}'kN/m
+'Superimposed permanent load: 'g_k,s = ? {10}'kN/m, variable load: 'q_k = ? {8}'kN/m
 'Category of use'ψ_2 = ? {0.3}
-'Quasi-permanent factor (EN 1990, Table A1.1): 'ψ_2
-'Self-weight at 25 kN/m³: 'g_k,sw = 25*b*h*10^-6'kN/m
-'Total permanent load: 'g_k = g_k,s + g_k,sw'kN/m
-'<b>Combinations</b> (EN 1990)
-'Partial factors: 'γ_G = 1.35', 'γ_Q = 1.5
-'Ultimate limit state (6.10): 'w_Ed = γ_G*g_k + γ_Q*q_k'kN/m
-'Quasi-permanent (6.16): 'w_qp = g_k + ψ_2*q_k'kN/m
+'Permanent load, with self-weight at 25 kN/m³: 'g_k = g_k,s + 25*b*h*10^-6'kN/m
+'Ultimate (6.10): 'w_Ed = 1.35*g_k + 1.5*q_k'kN/m, quasi-permanent (6.16): 'w_qp = g_k + ψ_2*q_k'kN/m
 '<!--section:calculations-->
 '<h4>Analysis</h4>
-'The beam is simply supported and uniformly loaded.
-'Design bending moment at mid-span: 'M_Ed = w_Ed*L^2/8'kNm
-'Design shear force at the supports: 'V_Ed = w_Ed*L/2'kN
-'Quasi-permanent bending moment: 'M_qp = w_qp*L^2/8'kNm
+'Mid-span moment: 'M_Ed = w_Ed*L^2/8'kNm, quasi-permanent: 'M_qp = w_qp*L^2/8'kNm
+'Support shear: 'V_Ed = w_Ed*L/2'kN
+'Characteristic reactions: 'R_G = g_k*L/2'kN, 'R_Q = q_k*L/2'kN
 #hide
-PlotWidth = 400
-PlotHeight = 110
+PlotWidth = 680
+PlotHeight = 150
 #show
-'Bending moment (kNm) and shear force (kN) along the span:
+'Bending moment (kNm) and shear force (kN):
 $Plot{w_Ed*x*(L - x)/2 @ x = 0 : L}
 $Plot{w_Ed*(L/2 - x) @ x = 0 : L}
+'<h4>Cover (4.4.1)</h4>
+'Minimum cover, bond and durability (S4, Table 4.4N): links 'c_min,w = max(Φ_w; c_min,dur; 10)'mm, bars 'c_min,b = max(Φ_t; Φ_c; c_min,dur; 10)'mm
+'Required nominal cover, with Δc<sub>dev</sub> = 10 mm (4.1): 'c_nom,req = max(c_min,w; c_min,b - Φ_w) + 10'mm
+'Utilisation: 'η_cov = c_nom,req/c_nom
+#if η_cov ≤ 1
+	'<p class="ok">PASS - Cover provided exceeds cover required</p>
+#else
+	'<p style="color:#C00000;background-color:#FFEEEE">FAIL - Cover too small</p>
+#end if
+'<h4>Fire resistance (EN 1992-1-2, 5.6)</h4>
+#hide
+i_R = if(R ≤ 30; 1; if(R ≤ 60; 2; if(R ≤ 90; 3; if(R ≤ 120; 4; if(R ≤ 180; 5; 6)))))
+#show
+#val
+'Table 5.5, widths: 'b_1 = take(i_R; 80; 120; 150; 200; 240; 280)', 'b_2 = take(i_R; 120; 160; 200; 240; 300; 350)', 'b_3 = take(i_R; 160; 200; 300; 300; 400; 500)', 'b_4 = take(i_R; 200; 300; 400; 500; 600; 700)'mm
+'axis distances: 'a_1 = take(i_R; 25; 40; 55; 65; 80; 90)', 'a_2 = take(i_R; 20; 35; 45; 60; 70; 80)', 'a_3 = take(i_R; 15; 30; 40; 55; 65; 75)', 'a_4 = take(i_R; 15; 25; 35; 50; 60; 70)'mm
+'Minimum axis distance for b = 'b' mm, interpolated: 'a_min = if(b ≤ b_2; a_1 + (a_2 - a_1)*(max(b; b_1) - b_1)/(b_2 - b_1); if(b ≤ b_3; a_2 + (a_3 - a_2)*(b - b_2)/(b_3 - b_2); if(b ≤ b_4; a_3 + (a_4 - a_3)*(b - b_3)/(b_4 - b_3); a_4)))'mm
+#equ
+'Corner bars, one layer (5.6.3(3)): 'a_sd,min = a_min + 10*(b ≤ b_3)'mm
+'Axis distance: 'a = c_nom + Φ_w + Φ_t/2'mm
+'Utilisation: 'η_fi = max(b_1/b; a_sd,min/a)
+#if η_fi ≤ 1
+	'<p class="ok">PASS - Width and axis distance meet Table 5.5</p>
+#else
+	'<p style="color:#C00000;background-color:#FFEEEE">FAIL - Too narrow, or bars too close to the surface</p>
+#end if
 '<h4>Bending (6.1)</h4>
-'Rectangular stress block (3.1.7): 'λ = 0.8', 'η = 1', ultimate strain: 'ε_cu3 = 0.0035
-'Limit of the compression zone for ductility, without redistribution (5.5): 'ξ_lim = 0.45
-'Relative design moment: 'm_Ed = M_Ed*10^6/(b*d^2*η*f_cd)
-'Limit for a singly reinforced section: 'm_lim = λ*ξ_lim*(1 - λ*ξ_lim/2)', 'M_lim = m_lim*b*d^2*η*f_cd*10^-6'kNm
-'Depth of the compression zone: 'x = d/λ*(1 - sqr(1 - 2*min(m_Ed; m_lim)))'mm
-'Lever arm: 'z = min(d - λ*x/2; 0.95*d)'mm
-#if M_Ed ≤ M_lim
-	'Compression reinforcement is not required: 'M_Ed'kNm ≤ 'M_lim'kNm
-	'Tension reinforcement required: 'A_s1,req = M_Ed*10^6/(f_yd*z)'mm²
-	'Compression reinforcement required: 'A_s2,req = 0'mm²
-	'Utilisation: 'η_M = A_s1,req/A_s1
+'Neutral axis limit without redistribution (5.10a): 'ξ_lim = (1 - 0.44)/1.25
+'Moment ratio: 'K = M_Ed*10^6/(b*d^2*f_ck)', limit: 'K′ = α_cc/γ_c*0.8*ξ_lim*(1 - 0.4*ξ_lim)
+#if K ≤ K′
+	'No compression steel needed (K ≤ K′).
+	'Lever arm: 'z = min(d/2*(1 + sqr(1 - 2*K/(α_cc/γ_c))); 0.95*d)'mm, neutral axis: 'x = 2.5*(d - z)'mm
+	'Steel required: 'A_s1,req = M_Ed*10^6/(f_yd*z)'mm², 'A_s2,req = 0'mm²
 #else
-	'Compression reinforcement is required: 'M_Ed'kNm > 'M_lim'kNm
-	'Strain in the top bars: 'ε_s2 = ε_cu3*(x - d_2)/x
-	'Stress in the top bars: 'σ_s2 = min(E_s*10^3*ε_s2; f_yd)'MPa
-	'Compression reinforcement required: 'A_s2,req = (M_Ed - M_lim)*10^6/(σ_s2*(d - d_2))'mm²
-	'Tension reinforcement required: 'A_s1,req = (M_lim/z + (M_Ed - M_lim)/(d - d_2))*10^6/f_yd'mm²
-	'Utilisation: 'η_M = max(A_s1,req/A_s1; A_s2,req/A_s2)
+	'Compression steel needed (K > K′).
+	'Lever arm: 'z = d/2*(1 + sqr(1 - 2*K′/(α_cc/γ_c)))'mm, neutral axis: 'x = ξ_lim*d'mm
+	'Stress in the top bars: 'σ_s2 = min(E_s*10^3*0.0035*(x - d_2)/x; f_yd)'MPa
+	'Steel required: 'A_s2,req = (K - K′)*f_ck*b*d^2/(σ_s2*(d - d_2))'mm², 'A_s1,req = K′*f_ck*b*d^2/(f_yd*z) + A_s2,req*σ_s2/f_yd'mm²
 #end if
+'Utilisation: 'η_M = max(A_s1,req/A_s1; A_s2,req/max(A_s2; 1))
 #if η_M ≤ 1
-	'<p class="ok"><b>PASS</b>: the reinforcement provided exceeds the reinforcement required.</p>
+	'<p class="ok">PASS - Steel provided exceeds steel required</p>
 #else
-	'<p style="color:#C00000;background-color:#FFEEEE"><b>FAIL</b>: provide more reinforcement, or make the section deeper.</p>
+	'<p style="color:#C00000;background-color:#FFEEEE">FAIL - Too little steel: add bars or deepen the section</p>
 #end if
-'<h4>Reinforcement limits (9.2.1.1) and bar spacing (8.2)</h4>
-'Minimum tension reinforcement: 'A_s,min = max(0.26*f_ctm/f_yk; 0.0013)*b*d'mm²
-'Maximum reinforcement: 'A_s,max = 0.04*b*h'mm²
+'<h4>Steel limits (9.2.1.1) and bar spacing (8.2)</h4>
+'Limits: 'A_s,min = max(0.26*f_ctm/f_yk; 0.0013)*b*d'mm², 'A_s,max = 0.04*b*h'mm²
 'Utilisation: 'η_lim = max(A_s,min/A_s1; (A_s1 + A_s2)/A_s,max)
-'Clear spacing of the bottom bars: 's_b = (b - 2*(c_nom + Φ_w) - n_t*Φ_t)/(n_t - 1)'mm
-'Minimum clear spacing: 's_b,min = max(Φ_t; d_g + 5; 20)'mm
-'Utilisation: 'η_sb = s_b,min/s_b
 #if η_lim ≤ 1
-	'<p class="ok"><b>PASS</b>: the area of reinforcement is within the limits.</p>
+	'<p class="ok">PASS - Steel area within limits</p>
 #else
-	'<p style="color:#C00000;background-color:#FFEEEE"><b>FAIL</b>: the area of reinforcement is outside the limits.</p>
+	'<p style="color:#C00000;background-color:#FFEEEE">FAIL - Steel area outside limits</p>
 #end if
+'Clear spacing, bottom: 's_b = (b - 2*(c_nom + Φ_w) - n_t*Φ_t)/(n_t - 1)'mm, minimum: 's_b,min = max(Φ_t; d_g + 5; 20)'mm
+'Clear spacing, top: 's_c = (b - 2*(c_nom + Φ_w) - n_c*Φ_c)/(n_c - 1)'mm, minimum: 's_c,min = max(Φ_c; d_g + 5; 20)'mm
+'Utilisation, layers of two bars or more: 'η_sb = max((n_t ≥ 2)*s_b,min/max(s_b; 1); (n_c ≥ 2)*s_c,min/max(s_c; 1))
 #if η_sb ≤ 1
-	'<p class="ok"><b>PASS</b>: the bottom bars are far enough apart.</p>
+	'<p class="ok">PASS - Bar spacing exceeds the minimum</p>
 #else
-	'<p style="color:#C00000;background-color:#FFEEEE"><b>FAIL</b>: the bottom bars are too close: use fewer, larger bars, or two layers.</p>
+	'<p style="color:#C00000;background-color:#FFEEEE">FAIL - Bars too close: fewer, larger bars or two layers</p>
 #end if
 '<h4>Shear (6.2)</h4>
-'<b>Without shear reinforcement (6.2.2)</b>
-'Size factor: 'k = min(1 + sqr(200/d); 2)
-'Reinforcement ratio: 'ρ_l = min(A_s1/(b*d); 0.02)
-'Minimum shear strength: 'v_min = 0.035*k^(3/2)*sqr(f_ck)'MPa
-'Shear resistance: 'V_Rd,c = max(0.18/γ_c*k*(100*ρ_l*f_ck)^(1/3); v_min)*b*d*10^-3'kN
-'<b>With vertical links (6.2.3)</b>
-'Lever arm: 'z_v = 0.9*d'mm
-'Strength reduction factor (6.6N): 'ν_1 = 0.6*(1 - f_ck/250)
-'Strut capacity relative to the shear force: 'r_v = b*z_v*ν_1*f_cd/(V_Ed*10^3)
-'Strut inclination, with 1 ≤ cot θ ≤ 2.5: 'cot_θ = max(1; min(2.5; (r_v + sqr(max(r_v^2 - 4; 0)))/2))', 'θ = atan(1/cot_θ)'°
-'Maximum shear resistance (6.9): 'V_Rd,max = b*z_v*ν_1*f_cd/(cot_θ + 1/cot_θ)*10^-3'kN
-'Links required (6.8): 'A_sw,req = if(V_Ed > V_Rd,c; V_Ed*10^3/(z_v*f_yd*cot_θ); 0)'mm²/mm
-'Minimum links (9.4, 9.5N): 'A_sw,min = 0.08*sqr(f_ck)/f_yk*b'mm²/mm
-'Links provided: 'A_sw = n_w*π*Φ_w^2/4/s'mm²/mm
-'Maximum link spacing (9.6N): 's_max = min(0.75*d; 600)'mm
-'Utilisation of the strut: 'η_V = V_Ed/V_Rd,max
-'Utilisation of the links: 'η_w = max(A_sw,req; A_sw,min)/A_sw', spacing: 'η_s = s/s_max
+'Without links (6.2.2): 'k = min(1 + sqr(200/d); 2)', 'ρ_l = min(A_s1/(b*d); 0.02)', 'v_min = 0.035*k^(3/2)*sqr(f_ck)'MPa
+'Resistance without links (6.2): 'V_Rd,c = max(0.18/γ_c*k*(100*ρ_l*f_ck)^(1/3); v_min)*b*d*10^-3'kN
+'Struts (6.2.3), with 'z_v = 0.9*d'mm and 'ν_1 = 0.6*(1 - f_ck/250)': 'V_Rd,max,45 = b*z_v*ν_1*f_cd/2*10^-3'kN at 45°
+'Strut angle, 21.8° to 45°: 'θ = max(21.8; min(0.5*asin(min(V_Ed/V_Rd,max,45; 1)); 45))'°, so 'V_Rd,max = V_Rd,max,45*sin(2*θ)'kN
+'Utilisation: 'η_V = V_Ed/V_Rd,max
 #if η_V ≤ 1
-	'<p class="ok"><b>PASS</b>: the concrete struts resist the shear force.</p>
+	'<p class="ok">PASS - Shear force below strut capacity</p>
 #else
-	'<p style="color:#C00000;background-color:#FFEEEE"><b>FAIL</b>: the shear force crushes the struts: make the section wider or deeper, or use stronger concrete.</p>
+	'<p style="color:#C00000;background-color:#FFEEEE">FAIL - Struts crushed: widen or deepen the section, or use stronger concrete</p>
 #end if
-#if max(η_w; η_s) ≤ 1
-	'<p class="ok"><b>PASS</b>: the links provided are enough, and close enough together.</p>
+'Links (6.8, 9.5N): required 'A_sw,req = if(V_Ed > V_Rd,c; V_Ed*10^3/(z_v*f_yd*cot(θ)); 0)'mm²/mm, minimum 'A_sw,min = 0.08*sqr(f_ck)/f_yk*b'mm²/mm
+'Provided: 'A_sw = n_w*π*Φ_w^2/4/s'mm²/mm
+'Utilisation: 'η_w = max(A_sw,req; A_sw,min)/A_sw
+#if η_w ≤ 1
+	'<p class="ok">PASS - Links provided exceed links required</p>
 #else
-	'<p style="color:#C00000;background-color:#FFEEEE"><b>FAIL</b>: provide more links, or put them closer together.</p>
+	'<p style="color:#C00000;background-color:#FFEEEE">FAIL - Too few links: closer spacing or larger links</p>
 #end if
-'<h4>Crack control (7.3.4)</h4>
-'Effective modulus of the concrete: 'E_c,eff = E_cm/(1 + φ)'GPa
-'Modular ratio: 'α_e = E_s/E_c,eff
-'Neutral axis depth of the cracked section: 'x_cr = (sqr((A_s1 + A_s2)^2 + 2*b*(d*A_s1 + d_2*A_s2)/α_e) - (A_s1 + A_s2))*α_e/b'mm
-'Second moment of area of the cracked section: 'I_cr = b*x_cr^3/3 + α_e*(A_s1*(d - x_cr)^2 + A_s2*(x_cr - d_2)^2)'mm⁴
-'Stress in the bottom bars, quasi-permanent: 'σ_s = α_e*M_qp*10^6*(d - x_cr)/I_cr'MPa
-'Depth of the effective tension area: 'h_c,ef = min(2.5*(h - d); (h - x_cr)/3; h/2)'mm
-'Effective reinforcement ratio: 'ρ_p,eff = A_s1/(b*h_c,ef)
-'Cover to the bottom bars: 'c = c_nom + Φ_w'mm
-'Maximum crack spacing (7.11, 7.14): 's_r,max = if(s_b + Φ_t ≤ 5*(c + Φ_t/2); 3.4*c + 0.8*0.5*0.425*Φ_t/ρ_p,eff; 1.3*(h - x_cr))'mm
-'Mean strain difference (7.9), with <i>k</i><sub>t</sub> = 0.4: 'Δε = max(σ_s - 0.4*f_ctm/ρ_p,eff*(1 + E_s/E_cm*ρ_p,eff); 0.6*σ_s)/(E_s*10^3)
-'Crack width (7.8): 'w_k = s_r,max*Δε'mm
+'Spacing limits (9.6N, 9.8N): 's_l,max = 0.75*d'mm along, 's_t,max = min(0.75*d; 600)'mm across, legs at 's_t = (b - 2*c_nom - Φ_w)/max(n_w - 1; 1)'mm
+'Utilisation: 'η_s = max(s/s_l,max; s_t/s_t,max)
+#if η_s ≤ 1
+	'<p class="ok">PASS - Link spacing within limits</p>
+#else
+	'<p style="color:#C00000;background-color:#FFEEEE">FAIL - Links too far apart</p>
+#end if
+'For curtailment: 'ΔF_td = 0.5*V_Ed*cot(θ)'kN (6.18), shift 'a_l = z_v*cot(θ)/2'mm (9.2.1.3)
+'<h4>Creep and shrinkage (Annex B)</h4>
+'Notional size: 'h_0 = b*h/(b + h)'mm
+'Creep (B.2–B.8), loaded at 28 days: 'φ_RH = (1 + (1 - RH/100)/(0.1*h_0^(1/3))*min((35/f_cm)^0.7; 1))*min((35/f_cm)^0.2; 1)', 'φ = φ_RH*16.8/sqr(f_cm)/(0.1 + 28^0.2)
+#val
+'k<sub>h</sub> interpolated in Table 3.3: 'k_h = if(h_0 ≤ 100; 1; if(h_0 ≤ 200; 1 - 0.0015*(h_0 - 100); if(h_0 ≤ 300; 0.85 - 0.001*(h_0 - 200); if(h_0 ≤ 500; 0.75 - 0.00025*(h_0 - 300); 0.7))))
+#equ
+'Shrinkage, cement class N (B.11, 3.8–3.12): 'ε_cd = k_h*0.85*660*exp(-0.012*f_cm)*1.55*(1 - (RH/100)^3)*10^-6', 'ε_cs = ε_cd + 2.5*(f_ck - 10)*10^-6
+'Long-term modulus (7.20): 'E_c,eff = E_cm/(1 + φ)'GPa, 'α_e = E_s/E_c,eff
+'<h4>Crack control (7.3)</h4>
+'Minimum steel (7.1), with k<sub>c</sub> = 0.4 and σ<sub>s</sub> = f<sub>yk</sub>: 'k = min(max(1 - 0.35*(h - 300)/500; 0.65); 1)', 'A_s,min,cr = 0.4*k*f_ctm*b*h/2/f_yk'mm²
+'Utilisation: 'η_cm = A_s,min,cr/A_s1
+#if η_cm ≤ 1
+	'<p class="ok">PASS - Steel exceeds the minimum for crack control</p>
+#else
+	'<p style="color:#C00000;background-color:#FFEEEE">FAIL - Too little steel for crack control</p>
+#end if
+'Cracked section, quasi-permanent load: 'x_cr = (sqr((A_s1 + A_s2)^2 + 2*b*(d*A_s1 + d_2*A_s2)/α_e) - (A_s1 + A_s2))*α_e/b'mm
+'Second moment: 'I_cr = b*x_cr^3/3 + α_e*(A_s1*(d - x_cr)^2 + A_s2*(x_cr - d_2)^2)'mm⁴, steel stress: 'σ_s = α_e*M_qp*10^6*(d - x_cr)/I_cr'MPa
+'Effective tension area (7.3.2(3)): 'h_c,ef = min(2.5*(h - d); (h - x_cr)/3; h/2)'mm, 'ρ_p,eff = A_s1/(b*h_c,ef)
+'Crack spacing (7.11, 7.14), cover 'c = c_nom + Φ_w'mm: 's_r,max = if(s_b + Φ_t ≤ 5*(c + Φ_t/2); 3.4*c + 0.17*Φ_t/ρ_p,eff; 1.3*(h - x_cr))'mm
+'Strain (7.9), k<sub>t</sub> = 0.4: 'Δε = max(σ_s - 0.4*f_ctm/ρ_p,eff*(1 + E_s/E_cm*ρ_p,eff); 0.6*σ_s)/(E_s*10^3)
+'Crack width (7.8): 'w_k = s_r,max*Δε'mm, limit (Table 7.1N): 'w_max = if(c_min,dur ≤ 15; 0.4; 0.3)'mm
 'Utilisation: 'η_cr = w_k/w_max
 #if η_cr ≤ 1
-	'<p class="ok"><b>PASS</b>: the crack width is within the limit.</p>
+	'<p class="ok">PASS - Crack width within limit</p>
 #else
-	'<p style="color:#C00000;background-color:#FFEEEE"><b>FAIL</b>: the cracks are too wide: use more, smaller bars, or lower the steel stress.</p>
+	'<p style="color:#C00000;background-color:#FFEEEE">FAIL - Cracks too wide: more, smaller bars</p>
 #end if
-'<h4>Deflection: span to effective depth ratio (7.4.2)</h4>
-'Reference reinforcement ratio: 'ρ_0 = sqr(f_ck)*10^-3
-'Reinforcement ratios required at mid-span: 'ρ = A_s1,req/(b*d)', 'ρ_c = A_s2,req/(b*d)
-'Structural system factor, simply supported (Table 7.4N): 'K_s = 1
-'Basic limit (7.16): 'l_d,0 = K_s*if(ρ ≤ ρ_0; 11 + 1.5*sqr(f_ck)*ρ_0/ρ + 3.2*sqr(f_ck)*max(ρ_0/ρ - 1; 0)^1.5; 11 + 1.5*sqr(f_ck)*ρ_0/(ρ - ρ_c) + sqr(f_ck)*sqr(ρ_c/ρ_0)/12)
-'Factor for the steel stress (7.17), at most 1.5: 'β_s = min(500/(f_yk*A_s1,req/A_s1); 1.5)
-'Limiting ratio: 'l_d,lim = β_s*l_d,0
-'Actual ratio: 'l_d = L*10^3/d
-'Utilisation: 'η_δ = l_d/l_d,lim
+'<h4>Deflection (7.4)</h4>
+'Steel ratios: 'ρ_0 = sqr(f_ck)*10^-3', 'ρ = A_s1,req/(b*d)', 'ρ′ = A_s2,req/(b*d)
+'Basic span/depth, simply supported (7.16a, b): 'l_d,a = 11 + 1.5*sqr(f_ck)*ρ_0/ρ + 3.2*sqr(f_ck)*max(ρ_0/ρ - 1; 0)^1.5', 'l_d,b = 11 + 1.5*sqr(f_ck)*ρ_0/(ρ - ρ′) + sqr(f_ck)*sqr(ρ′/ρ_0)/12', so 'l_d,0 = if(ρ ≤ ρ_0; l_d,a; l_d,b)
+'Limit, with 7.17 (at most 1.5) and 7/L for partitions over 7 m: 'l_d,lim = min(500/(f_yk*A_s1,req/A_s1); 1.5)*if(P_b ≡ 1; min(7/L; 1); 1)*l_d,0
+'Actual: 'l_d = L*10^3/d', utilisation: 'η_ld = l_d/l_d,lim
+#if η_ld ≤ 1
+	'<p class="ok">PASS - Span/depth ratio within limit</p>
+#else
+	'<p>Span/depth ratio exceeds its limit: deflection calculated below (7.4.2(1)).</p>
+#end if
+'Calculated (7.4.3), quasi-permanent load. Uncracked section: 'A_I = b*h + (α_e - 1)*(A_s1 + A_s2)'mm², 'y_I = (b*h^2/2 + (α_e - 1)*(A_s1*d + A_s2*d_2))/A_I'mm
+'Second moment: 'I_I = b*h^3/12 + b*h*(h/2 - y_I)^2 + (α_e - 1)*(A_s1*(d - y_I)^2 + A_s2*(y_I - d_2)^2)'mm⁴, cracking moment: 'M_cr = f_ctm*I_I/(h - y_I)*10^-6'kNm
+'Distribution (7.19), sustained load: 'ζ = if(M_qp > M_cr; 1 - 0.5*(M_cr/M_qp)^2; 0)
+'Curvatures with shrinkage (7.21): 'κ_I = M_qp*10^6/(E_c,eff*10^3*I_I) + ε_cs*α_e*(A_s1*(d - y_I) - A_s2*(y_I - d_2))/I_I'1/mm
+'Cracked: 'κ_II = M_qp*10^6/(E_c,eff*10^3*I_cr) + ε_cs*α_e*(A_s1*(d - x_cr) - A_s2*(x_cr - d_2))/I_cr'1/mm, mean (7.18): 'κ = ζ*κ_II + (1 - ζ)*κ_I'1/mm
+'Deflection: 'δ_qp = 5/48*κ*(L*10^3)^2'mm, limit span/250 (7.4.1(4)): 'δ_lim = L*10^3/250'mm
+'Utilisation: 'η_δ = δ_qp/δ_lim
 #if η_δ ≤ 1
-	'<p class="ok"><b>PASS</b>: the span to depth ratio is within the limit.</p>
+	'<p class="ok">PASS - Deflection within span/250</p>
+#else if η_ld ≤ 1
+	'<p>Calculated deflection exceeds span/250; the span/depth ratio is within its limit (7.4.2(1)).</p>
 #else
-	'<p style="color:#C00000;background-color:#FFEEEE"><b>FAIL</b>: the beam may deflect too much: make it deeper, or calculate the deflection.</p>
+	'<p style="color:#C00000;background-color:#FFEEEE">FAIL - Deflection too large: deepen or add steel</p>
 #end if
+'Deflection utilisation, the better of the two: 'η_def = min(η_ld; η_δ)
 '<!--section:results-->
+'<div>
 #val
 '<table class="bordered">
-'<tr><th>Check</th><th>EN 1992-1-1</th><th>Utilisation</th><th>Result</th></tr>
-'<tr><td>Bending reinforcement</td><td>6.1</td><td>'η_M'</td><td>
+'<tr><th>Check</th><th>Clause</th><th>Utilisation</th><th>Result</th></tr>
+'<tr><td>Cover</td><td>4.4.1</td><td>'η_cov'</td><td>
+#if η_cov ≤ 1
+	'<b class="ok">PASS</b>
+#else
+	'<b style="color:#C00000">FAIL</b>
+#end if
+'</td></tr>
+'<tr><td>Fire resistance</td><td>EN 1992-1-2, 5.6</td><td>'η_fi'</td><td>
+#if η_fi ≤ 1
+	'<b class="ok">PASS</b>
+#else
+	'<b style="color:#C00000">FAIL</b>
+#end if
+'</td></tr>
+'<tr><td>Bending</td><td>6.1</td><td>'η_M'</td><td>
 #if η_M ≤ 1
 	'<b class="ok">PASS</b>
 #else
 	'<b style="color:#C00000">FAIL</b>
 #end if
 '</td></tr>
-'<tr><td>Reinforcement limits</td><td>9.2.1.1</td><td>'η_lim'</td><td>
+'<tr><td>Steel limits</td><td>9.2.1.1</td><td>'η_lim'</td><td>
 #if η_lim ≤ 1
 	'<b class="ok">PASS</b>
 #else
@@ -189,8 +276,22 @@ $Plot{w_Ed*(L/2 - x) @ x = 0 : L}
 	'<b style="color:#C00000">FAIL</b>
 #end if
 '</td></tr>
-'<tr><td>Shear: links</td><td>6.2.3, 9.2.2</td><td>'max(η_w; η_s)'</td><td>
-#if max(η_w; η_s) ≤ 1
+'<tr><td>Shear: links</td><td>6.2.3, 9.2.2</td><td>'η_w'</td><td>
+#if η_w ≤ 1
+	'<b class="ok">PASS</b>
+#else
+	'<b style="color:#C00000">FAIL</b>
+#end if
+'</td></tr>
+'<tr><td>Shear: link spacing</td><td>9.2.2</td><td>'η_s'</td><td>
+#if η_s ≤ 1
+	'<b class="ok">PASS</b>
+#else
+	'<b style="color:#C00000">FAIL</b>
+#end if
+'</td></tr>
+'<tr><td>Cracking: minimum steel</td><td>7.3.2</td><td>'η_cm'</td><td>
+#if η_cm ≤ 1
 	'<b class="ok">PASS</b>
 #else
 	'<b style="color:#C00000">FAIL</b>
@@ -203,17 +304,19 @@ $Plot{w_Ed*(L/2 - x) @ x = 0 : L}
 	'<b style="color:#C00000">FAIL</b>
 #end if
 '</td></tr>
-'<tr><td>Deflection</td><td>7.4.2</td><td>'η_δ'</td><td>
-#if η_δ ≤ 1
+'<tr><td>Deflection</td><td>7.4.2, 7.4.3</td><td>'η_def'</td><td>
+#if η_def ≤ 1
 	'<b class="ok">PASS</b>
 #else
 	'<b style="color:#C00000">FAIL</b>
 #end if
 '</td></tr>
 '</table>
+'<p>Governing utilisation: 'η_max = max(η_cov; η_fi; η_M; η_lim; η_sb; η_V; η_w; η_s; η_cm; η_cr; η_def)'</p>
 #equ
-#if max(η_M; η_lim; η_sb; η_V; η_w; η_s; η_cr; η_δ) ≤ 1
-	'<p class="ok"><b>The beam passes every check.</b></p>
+#if η_max ≤ 1
+	'<p class="ok"><b class="ok">The beam passes every check.</b></p>
 #else
-	'<p style="color:#C00000;background-color:#FFEEEE"><b>The beam fails at least one check: see the table above.</b></p>
+	'<p style="color:#C00000;background-color:#FFEEEE"><b style="color:#C00000">The beam fails at least one check: see the table above.</b></p>
 #end if
+'</div>

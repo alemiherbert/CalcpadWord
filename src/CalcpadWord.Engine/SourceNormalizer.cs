@@ -13,14 +13,15 @@ public static class SourceNormalizer
 
     /// <summary>
     /// A block's script as read from Word: paragraphs (\r), line breaks (\v) and newlines
-    /// separate lines. Trailing blank lines are dropped; indentation is kept.
+    /// separate lines. A Windows line ending (\r\n, as in a .cpd file on disk) is one break.
+    /// Trailing blank lines are dropped; indentation is kept.
     /// </summary>
     public static string NormalizeBlock(string? text)
     {
         if (string.IsNullOrEmpty(text))
             return string.Empty;
 
-        var lines = text.Split(['\r', '\n', '\v', '\f'])
+        var lines = text.Replace("\r\n", "\n").Split(['\r', '\n', '\v', '\f'])
             .Select(line => NormalizeLine(line).TrimEnd())
             .ToList();
         while (lines.Count > 0 && lines[^1].Length == 0)

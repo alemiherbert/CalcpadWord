@@ -8,7 +8,7 @@
                   onAction="OnEvaluate"
                   screentip="Evaluate (Alt+Shift+Enter)"
                   supertip="Turns the selected text, or the current paragraph, into a Calcpad expression and shows its result. Each selected paragraph becomes one expression. Text written as {= ... } anywhere in the document is picked up too. With the keyboard shortcut on a result, it shows the source instead." />
-          <button id="Recalculate" label="Recalculate" size="large" imageMso="CalculateNow" keytip="R"
+          <button id="Recalculate" getLabel="GetRecalculateLabel" size="large" imageMso="CalculateNow" keytip="R"
                   onAction="OnRecalculate"
                   screentip="Recalculate document (Ctrl+Alt+F9)"
                   supertip="Recalculates every Calcpad expression: main text first, then text boxes, notes, headers and footers. Later expressions use variables defined earlier." />
@@ -41,6 +41,9 @@
                   supertip="Moves the cursor to the next expression that failed. Its error message is shown in the status bar and as the expression's title." />
         </group>
         <group id="SettingsGroup" label="Document settings">
+          <checkBox id="Automatic" label="Calculate automatically" keytip="U"
+                    getPressed="GetAutomaticPressed" onAction="OnAutomaticChanged"
+                    supertip="On: leaving a changed input or expression recalculates. Off: nothing calculates until you click Recalculate (Ctrl+Alt+F9), which then reads Recalculate (out of date), so typing inputs is fast. Saved with the document: a template can start with it off." />
           <dropDown id="Decimals" label="Decimals" keytip="N" sizeString="00"
                     getSelectedItemIndex="GetDecimalsIndex" onAction="OnDecimalsChanged"
                     supertip="Number of decimals in results. Calcpad keeps significant figures for small values.">

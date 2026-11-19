@@ -1,0 +1,182 @@
+"Soil stresses and settlement<hr/><small>Rectangular surface load on an elastic half-space: Boussinesq integrated over the loaded area</small>
+'<!--section:soil-->
+'Modulus of elasticity: 'E_0 = ? {20}MPa
+'Poisson ratio: 'ν = ? {0.3}
+'<!--section:area-->
+'Width (x): 'a = ? {2}m', length (y): 'b = ? {3}m
+'Depth considered: 'H = ? {6}m
+'<div>
+#hide
+'Sketch in px: the section (left) to scale, its soil drawn at least 200 px wide; the plan (right) to scale
+g_a = a/1m
+g_b = b/1m
+g_H = H/1m
+g_s = min(110/g_a; 150/g_H)
+g_l = g_a*g_s
+g_d = g_H*g_s
+g_w = max(2*g_l; 200)
+g_x = 78
+g_y = 44
+g_c = g_x + g_w/2
+g_t = min(110/g_a; 150/g_b)
+g_pa = g_a*g_t
+g_pb = g_b*g_t
+g_px = g_x + g_w + 60
+g_pc = g_px + g_pa/2
+g_pm = g_y + g_pb/2
+g_W = round(g_px + g_pa + 84)
+g_B = g_y + max(g_d + 10; g_pb + 30)
+g_V = round(g_B + 22)
+#show
+#val
+'<svg alt="area.svg" width="'g_W'" height="'g_V'" xmlns="http://www.w3.org/2000/svg" font-family="Libre Franklin, Arial, sans-serif" font-size="11" fill="#1C1710">
+'<rect x="'g_x'" y="'g_y'" width="'g_w'" height="'g_d'" fill="#E8E8E8"/>
+'<line x1="'g_x'" y1="'g_y'" x2="'g_x + g_w'" y2="'g_y'" stroke="#1C1710" stroke-width="1.5"/>
+'<line x1="'g_x'" y1="'g_y + g_d'" x2="'g_x + g_w'" y2="'g_y + g_d'" stroke="#1C1710" stroke-width="0.75" stroke-dasharray="5 3"/>
+'<rect x="'g_c - g_l/2'" y="'g_y - 6'" width="'g_l'" height="6" fill="#2E63C4"/>
+'<line x1="'g_c'" y1="'g_y - 30'" x2="'g_c'" y2="'g_y + g_d + 6'" stroke="#1C1710" stroke-width="0.5" stroke-dasharray="8 3 2 3"/>
+'<line x1="'g_c'" y1="'g_y'" x2="'g_c + 30'" y2="'g_y'" stroke="#1C1710" stroke-width="1"/>
+'<polygon points="'g_c + 36','g_y' 'g_c + 29','g_y - 3' 'g_c + 29','g_y + 3'" fill="#1C1710"/>
+'<text x="'g_c + 30'" y="'g_y + 14'" font-style="italic">x</text>
+'<line x1="'g_c'" y1="'g_y'" x2="'g_c'" y2="'g_y + 30'" stroke="#1C1710" stroke-width="1"/>
+'<polygon points="'g_c','g_y + 36' 'g_c - 3','g_y + 29' 'g_c + 3','g_y + 29'" fill="#1C1710"/>
+'<text x="'g_c + 6'" y="'g_y + 36'" font-style="italic">z</text>
+'<line x1="'g_c - g_l/2'" y1="'g_y - 18'" x2="'g_c + g_l/2'" y2="'g_y - 18'" stroke="#1C1710" stroke-width="0.75"/>
+'<line x1="'g_c - g_l/2'" y1="'g_y - 22'" x2="'g_c - g_l/2'" y2="'g_y - 14'" stroke="#1C1710" stroke-width="0.75"/>
+'<line x1="'g_c + g_l/2'" y1="'g_y - 22'" x2="'g_c + g_l/2'" y2="'g_y - 14'" stroke="#1C1710" stroke-width="0.75"/>
+'<text x="'g_c'" y="'g_y - 25'" text-anchor="middle"><tspan font-style="italic">a</tspan> = 'g_a' m</text>
+'<line x1="'g_x - 10'" y1="'g_y'" x2="'g_x - 10'" y2="'g_y + g_d'" stroke="#1C1710" stroke-width="0.75"/>
+'<line x1="'g_x - 14'" y1="'g_y + g_d'" x2="'g_x - 6'" y2="'g_y + g_d'" stroke="#1C1710" stroke-width="0.75"/>
+'<text x="'g_x - 14'" y="'g_y + g_d/2 + 4'" text-anchor="end"><tspan font-style="italic">H</tspan> = 'g_H' m</text>
+'<rect x="'g_px'" y="'g_y'" width="'g_pa'" height="'g_pb'" fill="#2E63C4" fill-opacity="0.18" stroke="#2E63C4" stroke-width="1.5"/>
+'<line x1="'g_px - 8'" y1="'g_pm'" x2="'g_px + g_pa + 8'" y2="'g_pm'" stroke="#1C1710" stroke-width="0.5" stroke-dasharray="8 3 2 3"/>
+'<line x1="'g_pc'" y1="'g_y - 8'" x2="'g_pc'" y2="'g_y + g_pb + 8'" stroke="#1C1710" stroke-width="0.5" stroke-dasharray="8 3 2 3"/>
+'<line x1="'g_pc'" y1="'g_pm'" x2="'g_pc + 24'" y2="'g_pm'" stroke="#1C1710" stroke-width="1"/>
+'<polygon points="'g_pc + 30','g_pm' 'g_pc + 23','g_pm - 3' 'g_pc + 23','g_pm + 3'" fill="#1C1710"/>
+'<text x="'g_pc + 24'" y="'g_pm + 14'" font-style="italic">x</text>
+'<line x1="'g_pc'" y1="'g_pm'" x2="'g_pc'" y2="'g_pm - 24'" stroke="#1C1710" stroke-width="1"/>
+'<polygon points="'g_pc','g_pm - 30' 'g_pc - 3','g_pm - 23' 'g_pc + 3','g_pm - 23'" fill="#1C1710"/>
+'<text x="'g_pc + 6'" y="'g_pm - 22'" font-style="italic">y</text>
+'<line x1="'g_px'" y1="'g_y + g_pb + 12'" x2="'g_px + g_pa'" y2="'g_y + g_pb + 12'" stroke="#1C1710" stroke-width="0.75"/>
+'<line x1="'g_px'" y1="'g_y + g_pb + 8'" x2="'g_px'" y2="'g_y + g_pb + 16'" stroke="#1C1710" stroke-width="0.75"/>
+'<line x1="'g_px + g_pa'" y1="'g_y + g_pb + 8'" x2="'g_px + g_pa'" y2="'g_y + g_pb + 16'" stroke="#1C1710" stroke-width="0.75"/>
+'<text x="'g_pc'" y="'g_y + g_pb + 27'" text-anchor="middle"><tspan font-style="italic">a</tspan> = 'g_a' m</text>
+'<line x1="'g_px + g_pa + 12'" y1="'g_y'" x2="'g_px + g_pa + 12'" y2="'g_y + g_pb'" stroke="#1C1710" stroke-width="0.75"/>
+'<line x1="'g_px + g_pa + 8'" y1="'g_y'" x2="'g_px + g_pa + 16'" y2="'g_y'" stroke="#1C1710" stroke-width="0.75"/>
+'<line x1="'g_px + g_pa + 8'" y1="'g_y + g_pb'" x2="'g_px + g_pa + 16'" y2="'g_y + g_pb'" stroke="#1C1710" stroke-width="0.75"/>
+'<text x="'g_px + g_pa + 20'" y="'g_pm + 4'"><tspan font-style="italic">b</tspan> = 'g_b' m</text>
+'<text x="'g_c'" y="'g_B + 16'" text-anchor="middle" font-weight="bold">Section</text>
+'<text x="'g_pc'" y="'g_B + 16'" text-anchor="middle" font-weight="bold">Plan</text>
+'</svg>
+#equ
+'</div>
+'<!--section:loads-->
+'Surface load, linear across the width: 'p_1 = ? {50}kPa' at x = −a/2, 'p_2 = ? {150}kPa' at x = a/2
+'<div>
+#hide
+'Sketch in px: the load across the width, its height in proportion to the larger load
+l_1 = p_1/1kPa
+l_2 = p_2/1kPa
+l_m = max(abs(l_1); abs(l_2); 1)
+l_L = 300
+l_x = 96
+l_h = 70
+l_g = 24 + l_h
+l_1y = l_g - l_1/l_m*l_h
+l_2y = l_g - l_2/l_m*l_h
+#show
+#val
+'<svg alt="load.svg" width="'l_x + l_L + 110'" height="'l_g + 44'" xmlns="http://www.w3.org/2000/svg" font-family="Libre Franklin, Arial, sans-serif" font-size="11" fill="#1C1710">
+'<rect x="'l_x - 30'" y="'l_g'" width="'l_L + 60'" height="10" fill="#E8E8E8"/>
+'<polygon points="'l_x','l_g' 'l_x','l_1y' 'l_x + l_L','l_2y' 'l_x + l_L','l_g'" fill="#2E63C4" fill-opacity="0.18" stroke="#2E63C4" stroke-width="1.5"/>
+#for j = 1 : 9
+#if (l_g - (l_1y + (l_2y - l_1y)*(j - 1)/8)) > 12
+'<line x1="'l_x + (j - 1)*l_L/8'" y1="'l_1y + (l_2y - l_1y)*(j - 1)/8'" x2="'l_x + (j - 1)*l_L/8'" y2="'l_g - 6'" stroke="#2E63C4" stroke-width="1"/>
+'<polygon points="'l_x + (j - 1)*l_L/8','l_g' 'l_x + (j - 1)*l_L/8 - 3','l_g - 7' 'l_x + (j - 1)*l_L/8 + 3','l_g - 7'" fill="#2E63C4"/>
+#end if
+#loop
+'<line x1="'l_x - 30'" y1="'l_g'" x2="'l_x + l_L + 30'" y2="'l_g'" stroke="#1C1710" stroke-width="1.5"/>
+'<text x="'l_x - 8'" y="'l_1y + 4'" text-anchor="end"><tspan font-style="italic">p</tspan><tspan font-size="8" dy="3">1</tspan><tspan dy="-3"> = 'l_1' kPa</tspan></text>
+'<text x="'l_x + l_L + 8'" y="'l_2y + 4'"><tspan font-style="italic">p</tspan><tspan font-size="8" dy="3">2</tspan><tspan dy="-3"> = 'l_2' kPa</tspan></text>
+'<line x1="'l_x'" y1="'l_g + 22'" x2="'l_x + l_L'" y2="'l_g + 22'" stroke="#1C1710" stroke-width="0.75"/>
+'<line x1="'l_x'" y1="'l_g + 18'" x2="'l_x'" y2="'l_g + 26'" stroke="#1C1710" stroke-width="0.75"/>
+'<line x1="'l_x + l_L'" y1="'l_g + 18'" x2="'l_x + l_L'" y2="'l_g + 26'" stroke="#1C1710" stroke-width="0.75"/>
+'<text x="'l_x + l_L/2'" y="'l_g + 37'" text-anchor="middle"><tspan font-style="italic">a</tspan> = 'a/1m' m</text>
+'</svg>
+#equ
+'</div>
+'<!--section:stresses-->
+'<div>
+#hide
+'Integrals to 0.1 %
+Precision = 10^-3
+#show
+'<p>Origin at the centre of the loaded area; <i>x</i> across the width, <i>y</i> along the length, <i>z</i> down.</p>
+'<p>Surface load: 'p(x; y) = p_1 + (p_2 - p_1)*(x/a + 0.5)'</p>
+'<p>Distance: 'R(x; y; z) = sqrt(x^2 + y^2 + z^2)'</p>
+'<p>Vertical stress: 'σ_z(x; y; z) = 3/(2*π)*$Integral{$Integral{p(x_p; y_p)*z^3/R(x - x_p; y - y_p; z)^5 @ x_p = -a/2 : a/2} @ y_p = -b/2 : b/2}|kPa'</p>
+'<p>Shear stress: 'τ_xz(x; y; z) = 3/(2*π)*$Integral{$Integral{p(x_p; y_p)*(x - x_p)*z^2/R(x - x_p; y - y_p; z)^5 @ x_p = -a/2 : a/2} @ y_p = -b/2 : b/2}|kPa'</p>
+'</div>
+'<!--section:settlement-->
+'<div>
+#hide
+'From just below the surface, where the stresses under the edges of the load are singular. $Area
+'(adaptive Gauss-Lobatto) copes with the sharp peak under the point; $Integral (tanh-sinh) can fail there.
+z_s = min(a; b)/10^4
+#show
+'<p>The vertical strain (1 − <i>ν</i><sup>2</sup>)·<i>σ</i><sub>z</sub>/<i>E</i><sub>0</sub>, integrated over the depth from <i>z</i><sub>s</sub> = min(<i>a</i>; <i>b</i>)/10<sup>4</sup> to <i>H</i>. Over <i>z</i>, the integral of the kernel 3<i>z</i><sup>3</sup>/(2π<i>R</i><sup>5</sup>) is:</p>
+'<p>'K(u; v; z) = ((u^2 + v^2)/R(u; v; z)^3 - 3/R(u; v; z))/(2*π)'</p>
+'<p>Settlement: 'd(x; y) = (1 - ν^2)/E_0*$Area{$Area{p(x_p; y_p)*(K(x - x_p; y - y_p; H) - K(x - x_p; y - y_p; z_s)) @ x_p = -a/2 : a/2} @ y_p = -b/2 : b/2}|mm'</p>
+#hide
+'Across the width (y = 0), 1.5 times the width each side: 25 points, for the plot and the largest
+n = 25
+Δx = 3*a/(n - 1)
+d_v = vector(n)
+#for i = 1 : n
+ d_v.i = d(-1.5*a + (i - 1)*Δx; 0m)
+#loop
+d_max = max(d_v)
+#show
+#nosub
+'<p>At the centre 'd(0m; 0m)', at the edges 'd(-a/2; 0m)' and 'd(a/2; 0m)', at a corner 'd(a/2; b/2)'</p>
+'<p>Largest across the width (at 25 points): 'd_max'</p>
+#varsub
+'<p><b>Settlement across the width (y = 0), mm</b></p>
+#hide
+PlotWidth = 300
+PlotHeight = 60
+#show
+$Plot{-spline(1 + (x + 1.5*a)/Δx; d_v) & 0mm @ x = -1.5*a : 1.5*a}
+'</div>
+'<!--section:plane-->
+'<div>
+#hide
+'The plane y = 0, 1.5 times the width each side, from z_0 = H/100 (the stresses are singular at the surface)
+k = 1.5
+z_0 = 0.01*H
+PlotWidth = 300
+PlotStep = 10
+'Flat colours, without the 3D lighting
+PlotShadows = 0
+#show
+'<p><b>Surface load, kPa</b></p>
+#hide
+PlotHeight = 60
+#show
+$Plot{p(x; 0m)*(abs(x) < a/2) @ x = -k*a : k*a}
+'<p><b>Vertical stress <i>σ</i><sub>z</sub>, kPa</b></p>
+#hide
+'True to scale, but no taller than wide (a deep H under a narrow load stretches the width)
+PlotHeight = PlotWidth*min((H - z_0)/(2*k*a); 1)
+#show
+$Map{σ_z(x; 0m; z) @ x = -k*a : k*a & z = H : z_0}
+'<p><b>Shear stress <i>τ</i><sub>xz</sub>, kPa</b></p>
+$Map{τ_xz(x; 0m; z) @ x = -k*a : k*a & z = H : z_0}
+'<p><b>Under the centre: <i>σ</i><sub>z</sub>, kPa, against the depth, m</b></p>
+#hide
+PlotHeight = 150
+#show
+$Plot{σ_z(0m; 0m; z)|-z @ z = z_0 : H}
+'<p><b>Under the edge x = a/2: <i>τ</i><sub>xz</sub>, kPa, against the depth, m</b></p>
+$Plot{τ_xz(a/2; 0m; z)|-z @ z = z_0 : H}
+'</div>

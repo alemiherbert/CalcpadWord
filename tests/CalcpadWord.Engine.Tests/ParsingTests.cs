@@ -83,6 +83,19 @@ public class DocumentSettingsTests
     [Fact]
     public void Decimals_are_clamped() =>
         Assert.Equal(15, DocumentSettings.Parse("decimals=99").Decimals);
+
+    [Fact]
+    public void Manual_calculation_round_trips_without_changing_the_results()
+    {
+        var manual = new DocumentSettings { Automatic = false };
+
+        Assert.False(DocumentSettings.Parse(manual.Serialize()).Automatic);
+        Assert.True(DocumentSettings.Parse("decimals=2").Automatic);
+        // Documents that calculate automatically store what they always did,
+        Assert.DoesNotContain("auto", new DocumentSettings().Serialize());
+        // and switching it doesn't make the results look different (no redraw).
+        Assert.Equal(new DocumentSettings().ResultKey(), manual.ResultKey());
+    }
 }
 
 public class ControlTagTests
@@ -169,6 +182,16 @@ public class BlockSourceTests
         var source = SourceNormalizer.NormalizeBlock("\r“Title\rx = 1\v  y = 2 \r\r");
 
         Assert.Equal("\"Title\nx = 1\n  y = 2", source);
+    }
+
+    [Fact]
+    public void A_windows_line_ending_is_one_break()
+    {
+        // A .cpd file checked out on Windows (CRLF): no blank line between its lines, so
+        // ScriptConverter doesn't split blocks or add empty paragraphs. A blank line stays one.
+        var source = SourceNormalizer.NormalizeBlock("\"Title\r\n'<hr/>\r\nx = 1\r\n\r\ny = 2\r\n");
+
+        Assert.Equal("\"Title\n'<hr/>\nx = 1\n\ny = 2", source);
     }
 }
 

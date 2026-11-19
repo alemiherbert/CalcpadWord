@@ -112,7 +112,8 @@ internal sealed class WordEvents : IDisposable
 
     private void Watch(Word.Document doc)
     {
-        if (!_watched.Add(doc))
+        // The add-in's own scratch document lives for a moment: nothing to watch.
+        if (DocumentController.MakingScratch || !_watched.Add(doc))
             return;
 
         Try("ContentControlOnExit", () =>

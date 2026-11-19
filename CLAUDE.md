@@ -16,15 +16,16 @@ This file also carries what Claude Code remembered on the first PC (its memory f
 
 ```powershell
 git submodule update --init                      # once, after cloning: Calcpad's source
-dotnet test tests\CalcpadWord.Engine.Tests       # unit tests, no Word needed (168 on 2026-11-18)
+dotnet test tests\CalcpadWord.Engine.Tests       # unit tests, no Word needed (227 on 2026-11-20)
 tools\Build-Installer.ps1                        # out\installer\CalcpadWord-Setup-<version>.exe
 out\installer\CalcpadWord-Setup-<version>.exe /quiet   # install it (per user) to test the real thing
 tools\Register.ps1                               # or: register the development build directly
 tools\Test-InWord.ps1                            # end-to-end test in a hidden Word (ask the user to keep Word closed)
 tools\Build-Loader.ps1                           # only after changing src\CalcpadWord.Loader (downloads Zig once)
+templates\dokimos\Template source\beam\Check-WithTedds.ps1 -OutDir <dir> [-Recommended]   # Tedds' own beam calc, for cross-checks
 ```
 
-The version is set in `src\Directory.Build.props`. Bump it when the installer changes.
+The version is set in `src\Directory.Build.props`. **Versions move slowly** (the user, 2026-11-18): don't bump for small fixes. Batch changes into the next meaningful release, and make one new template version per piece of work, rebuilt in place until it's done.
 
 ## Rules
 
@@ -48,7 +49,16 @@ The version is set in `src\Directory.Build.props`. Bump it when the installer ch
   - A faint geometric corner pattern at the top right, inside the margins (office printers can't print edge to edge), with triangles on the mesh's 60° lines.
   - Contents numbered i, ii; the body numbered 1, 2 ("Sheet x of y" counts the body only). No footers.
   - Brand colours: ink `1C1710`, paper `F7F4EE`, blue `2E63C4`, green `2FA968`.
-- **Calculations:** the user chose Eurocodes (EN 1992-1-1 for the RC beam), with recommended values unless stated. In block output, PASS uses `class="ok"` and FAIL an inline red (`style="color:#C00000"`). Calcpad's `class="err"` counts as a calculation error.
+- **Calculations:** the user chose Eurocodes (EN 1992-1-1 for the RC beam), with recommended values unless stated. Calcpad's `class="err"` counts as a calculation error, so a failing design must not use it.
+  - A check ends in one line, Tedds style, the verdict and the reason in one colour and size: `'<p class="ok">PASS - reason</p>` (green), or `'<p style="color:#C00000;background-color:#FFEEEE">FAIL - reason</p>` (red).
+  - Don't wrap the verdict in `<b>`: Calcpad leaves a formatted run uncoloured, and bold capitals look larger than the reason.
+- **Snappy and succinct (the user, 2026-11-18):** input must feel instant, and templates say things once: no lines that echo an input, no repeated assumptions, short labels and verdicts. **Calculate automatically** (`DocumentSettings.Automatic`, stored as `auto=0`) can be switched off, and calculation templates ship with it off.
+- **Block output (the user's decisions, made in `BlockOutput`):**
+  - Tables use Word's Grid Table 1 Light, full width, left-aligned, with a tiny cell pad.
+  - Plots fill the text width.
+  - A picture alone on a line is centred.
+  - The beam sketch has a light grey section.
+- **Tekla Tedds** (installed on the second PC) has an API: see PLAN.md, "RC beam template v2". Never touch a Tedds the user has open. A script stops only the TeddsCalc process it started.
 - **Windows PowerShell 5.1 pitfalls:**
   - A script with non-ASCII text (Greek letters) needs a UTF-8 BOM.
   - A COM collection returned through `InvokeMember` has no `.Item()`; walk collections through properties instead (`$doc.ContentControls.Item($i)`).
@@ -65,9 +75,16 @@ The version is set in `src\Directory.Build.props`. Bump it when the installer ch
   - **one-file Setup:** the add-in, Calcpad's engine, a private .NET runtime started by the native loader DLL, and the fonts. It needs no .NET and no administrator rights.
 - **Templates:**
   - `Dokimos Design Calculation v3.dotx` is the general template.
-  - `Dokimos RC Beam Design (EC2) v1.dotx` is a complete beam calculation with input fields, PASS/FAIL checks and a summary. It needs add-in 0.8.0 or later.
+  - `Dokimos Psychrometric Chart v2.dotx`: moist air from two known properties (ASHRAE Fundamentals ch. 1) with a chart, built from `psychrometric\Psychrometric chart.cpd` and checked against ASHRAE's tables (`PsychrometricTests`). v1 was made by hand.
+  - `Dokimos Duct Sizing v1.dotx`: replaces McQuay's DuctSizer (`D:\ductsizer\ductsizer\DuctSizer.exe`, runs on this PC). Round and rectangular ducts by friction rate, velocity or diameter (ASHRAE Fundamentals ch. 21), built from `duct\Duct sizing.cpd` and checked against DuctSizer (`DuctTests`). DuctSizer uses a roughness of about 0.21 mm; the template's default is ASHRAE's 0.09 mm.
+  - `Dokimos Soil Stresses and Settlement v1.dotx`: Boussinesq stresses and settlement under a rectangular load varying across its width (after Calcpad's soil example), built from `soil\Soil stresses and settlement.cpd` and checked in `SoilTests`. About 7 s to calculate.
+  - Templates don't say where their calculation came from (the user, 2026-11-20).
+  - Calculation templates share `Template source\TemplateBuild.ps1` (hidden Word, sections, drop-downs, save).
+  - `Dokimos RC Beam Design (EC2) v2.dotx` is the current beam calculation, modelled on Tedds and Calcpad's examples. It covers cover, fire, bending, limits, spacing, shear, crack control and deflection (by ratio and by calculation), with a sketch and a summary. It is cross-checked against Tedds. v1 is kept. It needs add-in 0.8.0 or later; built on the second PC with 0.8.0 plus the block output changes.
   - Both are built and tested by the scripts in `templates/dokimos/Template source/`.
+- **Second PC (2026-11-18):** the project arrived as a zip. Python and git are also in WSL; use Windows git for this repo. Word is Microsoft 365 x64. Add-in 0.8.0 is installed here.
 - **Open:**
   - An intermittent hang of the hidden test Word after the first background draw ("Open issue" in PLAN.md).
   - Setup isn't code-signed, so antivirus or policy can block it on other PCs. The error "Windows cannot access the specified device…" is fixed with Properties → Unblock, or by allowing it in Windows Security. Code signing (Azure Trusted Signing) was proposed but not set up.
-  - Offered but not done: Setup could also install the Dokimos templates into Word's personal templates. A Tedds cross-check of the beam template is also pending: the Tedds Engineering Library wasn't installed or licensed on the first PC.
+  - Offered but not done: Setup could also install the Dokimos templates into Word's personal templates.
+  - Speed: a full recalculation of the v2 beam takes about 4 s (it was about 20 s; PLAN.md, "Speed"). The next speed-up would be drawing the PASS/FAIL blocks together, as equations already are (about 1.5 s of the draw).

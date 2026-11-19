@@ -69,7 +69,7 @@ public static partial class Worksheet
 
         // Hash of everything emitted so far (markers excluded: they only number the items).
         using var inputs = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-        Hash(inputs, RenderVersion, typeof(ExpressionParser).Assembly.GetName().Version?.ToString(), settings.Serialize());
+        Hash(inputs, RenderVersion, typeof(ExpressionParser).Assembly.GetName().Version?.ToString(), settings.ResultKey());
         var repeatable = true;
 
         AppendLines(script, reset);

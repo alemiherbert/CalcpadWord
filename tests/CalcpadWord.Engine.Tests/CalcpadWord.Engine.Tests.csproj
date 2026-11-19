@@ -25,6 +25,12 @@
     <None Include="Fixtures\**" CopyToOutputDirectory="PreserveNewest" />
     <!-- The Dokimos RC beam template's calculation, tested as it is (BeamTemplateTests). -->
     <None Include="..\..\templates\dokimos\Template source\beam\RC beam design (EN 1992-1-1).cpd" Link="Fixtures\RcBeamEc2.cpd" CopyToOutputDirectory="PreserveNewest" />
+    <!-- The Dokimos psychrometric chart's calculation (PsychrometricTests). -->
+    <None Include="..\..\templates\dokimos\Template source\psychrometric\Psychrometric chart.cpd" Link="Fixtures\Psychrometric.cpd" CopyToOutputDirectory="PreserveNewest" />
+    <!-- The Dokimos duct sizing calculation (DuctTests). -->
+    <None Include="..\..\templates\dokimos\Template source\duct\Duct sizing.cpd" Link="Fixtures\Duct.cpd" CopyToOutputDirectory="PreserveNewest" />
+    <!-- The Dokimos soil stresses and settlement calculation (SoilTests). -->
+    <None Include="..\..\templates\dokimos\Template source\soil\Soil stresses and settlement.cpd" Link="Fixtures\Soil.cpd" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

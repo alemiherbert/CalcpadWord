@@ -66,6 +66,10 @@ Rules for blocks:
 - A block must close every `#if`, loop and `#def` it opens.
 - State such as `#hide` or `#round` set inside a block applies only to that block.
 - Errors appear in red in the block's output, as in Calcpad.
+- **How output looks in Word:**
+  - Tables with `class="bordered"` take Word's *Grid Table 1 Light*, the full width of the text, left-aligned. A document that defines that style its own way keeps its version.
+  - Plots fill the width of the text.
+  - A picture alone on a line, such as an inline `<svg>` drawing, is centred. Give an SVG `alt="name.svg"` so that Word shows it as a vector picture.
 - **Slow blocks are drawn once.** A block whose inputs (everything above it, and its own lines) haven't changed is not drawn again. Editing text or expressions *below* a long-running block, such as one with integral maps, is instant. Changing something above it recalculates it.
 
 | Ribbon (Calcpad tab) | Shortcut | What it does |
@@ -123,6 +127,8 @@ Setup installs all the free fonts. If one has been removed since, the list marks
 - **Results that may change are greyed meanwhile:** a light grey background, washed-out plots, and *Out of date:* in front of their title. Only results from the first new or edited expression on are greyed, since the worksheet runs top to bottom. When the results come in, the grey goes. A result that turned out unchanged is not redrawn: only its grey is removed. After **Cancel** the grey stays, also in the saved document, until the next Recalculate.
 - Results that arrive late are one Undo step of their own.
 - Calcpad is loaded when Word starts, so the first calculation isn't slowed down.
+
+**Calculate automatically** (Document settings) is on by default: leaving a changed input field or expression recalculates. Turn it off for fast input. Leaving a field then changes nothing on the page, and the Recalculate button reads *Recalculate (out of date)* until you click it (Ctrl+Alt+F9). The setting is saved with the document, so a template can start with it off, as the Dokimos beam template does.
 
 How the add-in behaves:
 - **Results are read-only.** Double-click one (or use Edit Source) to change it. When you click outside, it is evaluated again, along with everything after it.

@@ -1,0 +1,195 @@
+"Psychrometric chart<hr/><small>Properties of moist air from two known properties, ASHRAE Handbook – Fundamentals (SI), chapter 1</small>
+'<!--section:site-->
+'Altitude of the site: 'z = ? {1190}'m
+'<!--section:known-->
+'Known'P_1 = ? {1}' = 'x_1 = ? {25}
+'and'P_2 = ? {2}' = 'x_2 = ? {60}
+'<!--section:calculations-->
+'<div>
+#hide
+'Atmospheric pressure, kPa (standard atmosphere)
+p = 101.325*(1 - 2.25577*10^-5*z)^5.2559
+'Saturation pressure of water vapour, kPa (Hyland and Wexler), T in K: over ice below 0 °C, over water above
+p_ws,i(T) = exp(-5674.5359/T + 6.3925247 - 9.677843*10^-3*T + 6.2215701*10^-7*T^2 + 2.0747825*10^-9*T^3 - 9.484024*10^-13*T^4 + 4.1635019*ln(T))/1000
+p_ws,w(T) = exp(-5800.2206/T + 1.3914993 - 4.8640239*10^-2*T + 4.1764768*10^-5*T^2 - 1.4452093*10^-8*T^3 + 6.5459673*ln(T))/1000
+p_sat(t) = if(t < 0; p_ws,i(t + 273.15); p_ws,w(t + 273.15))
+t_sat(P) = $Root{p_sat(τ) = P @ τ = -100 : 200}
+'Humidity ratio, kg/kg dry air, at relative humidity r (0 to 1) and at saturation; vapour pressure for W
+W_r(t; r) = 0.621945*r*p_sat(t)/(p - r*p_sat(t))
+W_sat(t) = W_r(t; 1)
+p_v(W) = p*W/(0.621945 + W)
+'Psychrometric equation (over ice below 0 °C): W of air at t with wet-bulb τ, and t for W
+W_wb(τ; t) = if(τ < 0; ((2830 - 0.24*τ)*W_sat(τ) - 1.006*(t - τ))/(2830 + 1.86*t - 2.1*τ); ((2501 - 2.326*τ)*W_sat(τ) - 1.006*(t - τ))/(2501 + 1.86*t - 4.186*τ))
+t_WB(τ; W) = if(τ < 0; ((2830 - 0.24*τ)*W_sat(τ) + 1.006*τ - W*(2830 - 2.1*τ))/(1.006 + 1.86*W); ((2501 - 2.326*τ)*W_sat(τ) + 1.006*τ - W*(2501 - 4.186*τ))/(1.006 + 1.86*W))
+'W of air at t whose property k has the value x; t of air with W whose property k is x; property k of air at t, W
+W_k(k; x; t) = if(k ≡ 2; W_r(t; x/100); if(k ≡ 3; W_wb(x; t); if(k ≡ 4; W_sat(x); if(k ≡ 5; x/1000; if(k ≡ 6; (x - 1.006*t)/(2501 + 1.86*t); (x*p/(0.287042*(t + 273.15)) - 1)/1.607858)))))
+t_k(k; x; W) = if(k ≡ 2; t_sat(min(p_v(W)/(x/100); 1500)); if(k ≡ 3; t_WB(x; W); if(k ≡ 6; (x - 2501*W)/(1.006 + 1.86*W); x*p/(0.287042*(1 + 1.607858*W)) - 273.15)))
+x_k(k; t; W) = if(k ≡ 2; 100*p_v(W)/p_sat(t); if(k ≡ 6; 1.006*t + W*(2501 + 1.86*t); 0.287042*(t + 273.15)*(1 + 1.607858*W)/p))
+ok_x(k; x) = if(k ≡ 2; and(x > 0; x ≤ 100); if(or(k ≡ 5; k ≡ 7); x > 0; 1))
+'The known properties in the order of their numbers, i_1 < i_2, with values a and b
+i_1 = min(P_1; P_2)
+i_2 = max(P_1; P_2)
+a = if(P_1 < P_2; x_1; x_2)
+b = if(P_1 < P_2; x_2; x_1)
+'Input error: 0 none; 1 not a property; 2 the same twice; 3 dew point with humidity ratio; 4 wet bulb with enthalpy; 5 no such air
+n_err = 0
+#if or(or(i_1 < 1; i_2 > 7); or(i_1 ≠ round(i_1); i_2 ≠ round(i_2)))
+ n_err = 1
+#else if i_1 ≡ i_2
+ n_err = 2
+#else if and(i_1 ≡ 4; i_2 ≡ 5)
+ n_err = 3
+#else if and(i_1 ≡ 3; i_2 ≡ 6)
+ n_err = 4
+#else if and(ok_x(i_1; a); ok_x(i_2; b)) ≡ 0
+ n_err = 5
+#else if i_1 ≡ 1
+ 'The dry-bulb temperature is known; the other property gives W
+ t = a
+ W = W_k(i_2; b; t)
+#else if or(or(i_1 ≡ 4; i_1 ≡ 5); or(i_2 ≡ 4; i_2 ≡ 5))
+ 'W is known (or the dew point, which fixes it); the other property gives t
+ #if or(i_1 ≡ 4; i_1 ≡ 5)
+  W = W_k(i_1; a; 0)
+  t = t_k(i_2; b; W)
+ #else
+  W = W_k(i_2; b; 0)
+  t = t_k(i_1; a; W)
+ #end if
+#else
+ 'Two of 2, 3, 6 and 7: follow the line of constant A (the wet bulb, if known) to where B has its value
+ k_A = if(i_2 ≡ 3; 3; i_1)
+ x_A = if(i_2 ≡ 3; b; a)
+ k_B = if(i_2 ≡ 3; 2; i_2)
+ x_B = if(i_2 ≡ 3; a; b)
+ f_B(τ) = x_k(k_B; τ; W_k(k_A; x_A; τ))
+ τ_1 = if(k_A ≡ 3; x_A - 1; -60)
+ τ_2 = if(k_A ≡ 2; min(90; t_sat(min(0.8*p/(x_A/100); 1500))); if(k_A ≡ 3; t_WB(x_A; 0); x_A/1.006))
+ #if (f_B(τ_1) - x_B)*(f_B(τ_2) - x_B) > 0
+  n_err = 5
+ #else
+  t = $Root{f_B(τ) = x_B @ τ = τ_1 : τ_2}
+  W = W_k(k_A; x_A; t)
+ #end if
+#end if
+#if n_err ≡ 0
+ 'The air holds some water, and no more than saturated air
+ #if or(W ≤ 0; W > 1.0001*W_sat(t))
+  n_err = 5
+ #end if
+#end if
+#if n_err ≡ 0
+ 'Properties found with functions (shown by value); W in g/kg for the chart
+ p_ws = p_sat(t)
+ t_d = t_sat(p_v(W))
+ t_wb = $Root{W_wb(τ; t) = W @ τ = t_d - 1 : t + 1}
+ W_g = 1000*W
+#end if
+'Shown: formula = result, with the constants of ASHRAE in full (#round 6) and each result in its
+'own format. A format stays with its variable as a unit, which functions refuse: only results that
+'no function uses later are formatted.
+#show
+#nosub
+#round 6
+#if n_err ≡ 0
+ '<p>Atmospheric pressure, standard atmosphere: 'p = 101.325*(1 - 2.25577*10^-5*z)^5.2559:0.##'kPa</p>
+ '<p>From the two known properties: 't:0.##'°C, 'W:0.#####'kg/kg dry air</p>
+ '<p>Saturation pressure (Hyland and Wexler): 'p_ws:0.##'kPa</p>
+ '<p>Vapour pressure: 'p_w = p*W/(0.621945 + W):0.##'kPa</p>
+ '<p>Relative humidity: 'φ = 100*p_w/p_ws:0.#'%</p>
+ '<p>Specific enthalpy: 'h = 1.006*t + W*(2501 + 1.86*t):0.##'kJ/kg dry air</p>
+ '<p>Specific volume: 'v = 0.287042*(t + 273.15)*(1 + 1.607858*W)/p:0.####'m³/kg dry air</p>
+ '<p>Density: 'ρ = (1 + W)/v:0.####'kg/m³</p>
+ '<p>Saturated air: 'W_s = 0.621945*p_ws/(p - p_ws):0.#####'kg/kg dry air; degree of saturation 'μ = W/W_s:0.####'</p>
+ '<p>Dew point: 't_d:0.##'°C; wet-bulb temperature (psychrometric equation): 't_wb:0.##'°C</p>
+#else if n_err ≡ 1
+ '<p style="color:#C00000;background-color:#FFEEEE">Choose each known property from the list.</p>
+#else if n_err ≡ 2
+ '<p style="color:#C00000;background-color:#FFEEEE">Choose two different known properties.</p>
+#else if n_err ≡ 3
+ '<p style="color:#C00000;background-color:#FFEEEE">The dew point and the humidity ratio fix only the moisture: choose another pair.</p>
+#else if n_err ≡ 4
+ '<p style="color:#C00000;background-color:#FFEEEE">The wet-bulb temperature and the enthalpy follow almost the same lines: choose another pair.</p>
+#else
+ '<p style="color:#C00000;background-color:#FFEEEE">No air has these values: relative humidity above 0 and up to 100 %, wet bulb between dew point and dry bulb.</p>
+#end if
+#round default
+#equ
+#hide
+'p again without its format, for the functions of the chart
+p = 101.325*(1 - 2.25577*10^-5*z)^5.2559
+#show
+'</div>
+'<!--section:chart-->
+'<div>
+#if n_err ≡ 0
+ #hide
+ 'Limits: 0 to 50 °C and up to 30 g/kg, widened in steps of 5 if the air needs it
+ t_min = min(0; 5*floor(t_d/5))
+ t_max = max(50; 5*ceiling(t/5))
+ W_max = max(30; 5*ceiling(W_g/5))
+ PlotWidth = 600
+ PlotHeight = 360
+ PlotAdaptive = 0
+ 'Each family of lines is one curve, so it has one colour: over s = 0 to 1, line k = 0 … n - 1 is traced
+ 'out and back from the edge of the chart, so the curve moves from one line to the next along the edge.
+ lim(x; a; b) = min(max(x; a); b)
+ k_L(s; n) = min(floor(s*n); n - 1)
+ q_L(s; n) = 0.5 - abs(s*n - k_L(s; n) - 0.5)
+ λ_L(s; n) = lim((q_L(s; n) - 0.06)/0.41; 0; 1)
+ 'Vapour pressure at the top of the chart; saturation curve, ending at the top
+ p_top = p*W_max/(621.945 + W_max)
+ t_top = min(t_max; t_sat(p_top))
+ x_s(s) = t_min + s*(t_top - t_min)
+ y_s(s) = 1000*W_sat(x_s(s))
+ 'Relative humidity 10 % to 90 %, from the left edge to the top or right edge
+ r_L(s) = 0.1*(k_L(s; 9) + 1)
+ t_r(r) = min(t_max; t_sat(p_top/r))
+ x_r(s) = t_min + λ_L(s; 9)*(t_r(r_L(s)) - t_min)
+ y_r(s) = 1000*W_r(x_r(s); r_L(s))
+ 'Specific enthalpy every 10 kJ/kg: from the bottom right corner along the edge, up to saturation (or the top or left edge) and back
+ h_1 = 10*(floor(1.006*t_min/10) + 1)
+ h_n = 10*floor((1.006*t_max + W_max/1000*(2501 + 1.86*t_max))/10)
+ n_h = round((h_n - h_1)/10) + 1
+ h_L(s) = h_1 + 10*k_L(s; n_h)
+ W_h(t; h) = (h - 1.006*t)/(2501 + 1.86*t)
+ h_sat(t) = 1.006*t + W_sat(t)*(2501 + 1.86*t)
+ t_h2(h) = min(t_max; h/1.006)
+ t_h1(h) = min(t_h2(h); max(t_min; $Root{h_sat(τ) = h @ τ = -60 : 60}; (h - 2.501*W_max)/(1.006 + 0.00186*W_max)))
+ x_h(s) = if(q_L(s; n_h) < 0.03; t_max; t_h2(h_L(s)) + λ_L(s; n_h)*(t_h1(h_L(s)) - t_h2(h_L(s))))
+ y_h(s) = if(q_L(s; n_h) < 0.03; 0; max(1000*W_h(x_h(s); h_L(s)); 0))
+ 'Specific volume every 0.02 m³/kg, drawn the same way
+ v_1 = 0.02*ceiling(0.287042*(t_min + 273.15)/p/0.02)
+ v_n = 0.02*floor(0.287042*(t_max + 273.15)*(1 + 1.607858*W_max/1000)/p/0.02)
+ n_v = round((v_n - v_1)/0.02) + 1
+ v_L(s) = v_1 + 0.02*k_L(s; n_v)
+ W_v(t; v) = (v*p/(0.287042*(t + 273.15)) - 1)/1.607858
+ v_sat(t) = 0.287042*(t + 273.15)*(1 + 1.607858*W_sat(t))/p
+ t_v2(v) = min(t_max; v*p/0.287042 - 273.15)
+ t_v1(v) = min(t_v2(v); max(t_min; $Root{v_sat(τ) = v @ τ = -60 : 60}; v*p/(0.287042*(1 + 1.607858*W_max/1000)) - 273.15))
+ x_v(s) = if(q_L(s; n_v) < 0.03; t_max; t_v2(v_L(s)) + λ_L(s; n_v)*(t_v1(v_L(s)) - t_v2(v_L(s))))
+ y_v(s) = if(q_L(s; n_v) < 0.03; 0; max(1000*W_v(x_v(s); v_L(s)); 0))
+ 'The air: up from the temperature axis, round a circle, left to the dew point and back, then along the wet-bulb line to saturation
+ seg(s; a; b) = lim(1.25*(s - a)/(b - a) - 0.125; 0; 1)
+ r_x = 5*(t_max - t_min)/PlotWidth
+ r_y = 5*W_max/PlotHeight
+ x_p(s) = switch(s < 0.1; t; s < 0.15; t - r_x*seg(s; 0.1; 0.15); s < 0.55; t - r_x*cos(360°*seg(s; 0.15; 0.55)); s < 0.65; t - r_x + (t_d - t + r_x)*seg(s; 0.55; 0.65); s < 0.75; t_d + (t - t_d)*seg(s; 0.65; 0.75); t + (t_wb - t)*seg(s; 0.75; 1))
+ y_p(s) = switch(s < 0.1; W_g*seg(s; 0; 0.1); s < 0.15; W_g; s < 0.55; W_g - r_y*sin(360°*seg(s; 0.15; 0.55)); s < 0.75; W_g; 1000*W_wb(t_wb; x_p(s)))
+ #show
+ '<p><b>Humidity ratio <var>W</var>, g/kg dry air</b></p>
+ $Plot{x_s(s)|y_s(s) & x_r(s)|y_r(s) & x_h(s)|y_h(s) & x_v(s)|y_v(s) & x_p(s)|y_p(s) @ s = 0 : 1}
+ '<p><b>Dry-bulb temperature <var>t</var>, °C</b></p>
+ #val
+ '<svg alt="legend.svg" width="380" height="98" xmlns="http://www.w3.org/2000/svg" font-family="Libre Franklin, Arial, sans-serif" font-size="11" fill="#1C1710">
+ '<line x1="2" y1="9" x2="26" y2="9" stroke="#FF6347" stroke-width="2.5"/><text x="34" y="13">Saturation, 100 %</text>
+ '<line x1="2" y1="25" x2="26" y2="25" stroke="#7FA82A" stroke-width="2.5"/><text x="34" y="29">Relative humidity, 10 to 90 %</text>
+ '<line x1="2" y1="41" x2="26" y2="41" stroke="#6495ED" stroke-width="2.5"/><text x="34" y="45">Specific enthalpy, 'h_1' to 'h_n' kJ/kg dry air, every 10</text>
+ '<line x1="2" y1="57" x2="26" y2="57" stroke="#C8A800" stroke-width="2.5"/><text x="34" y="61">Specific volume, 'v_1' to 'v_n' m³/kg dry air, every 0.02</text>
+ '<line x1="2" y1="73" x2="26" y2="73" stroke="#C71585" stroke-width="2.5"/><text x="34" y="77">The air, with its dew point (left) and wet-bulb line</text>
+ '<text x="34" y="93">Atmospheric pressure 'p' kPa</text>
+ '</svg>
+ #equ
+#else
+ '<p>No chart: correct the inputs.</p>
+#end if
+'</div>

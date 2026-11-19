@@ -105,7 +105,8 @@ public class InputFieldTests
     {
         var p = Assert.IsType<ParagraphPart>(Assert.Single(ScriptConverter.Convert("'Width -'b = ? {300}'mm, height'h_w = ?{500}', length'L = ? {6}m").Parts));
 
-        Assert.Equal("Width - *b* = [b: 300] mm, height *h*~w~ = [h_w: 500], length *L* = [L: 6m]", Render(p));
+        // The unit of L is shown after its field, as Calcpad does.
+        Assert.Equal("Width - *b* = [b: 300] mm, height *h*~w~ = [h_w: 500], length *L* = [L: 6m] m", Render(p));
     }
 
     [Fact]

@@ -1,0 +1,121 @@
+"Duct sizing<hr/><small>Round and rectangular air ducts, ASHRAE Handbook – Fundamentals (SI), chapter 21</small>
+'<!--section:air-->
+'Air temperature: 't = ? {20}'°C
+'Altitude of the site: 'z = ? {1190}'m
+'<!--section:duct-->
+'Material, roughness in mm'ε = ? {0.09}
+'Airflow: 'q = ? {500}'L/s
+'Size by'P_s = ? {1}' = 'x_s = ? {1}
+'Rectangular duct, one side: 'a = ? {500}'mm
+'<!--section:properties-->
+'<div>
+#hide
+'Units: q L/s; D, a, b and ε mm; V m/s; p kPa; p_v Pa; Δp_L Pa/m; ρ kg/m³; μ Pa·s
+'Air: standard atmosphere and ideal gas (dry air); viscosity by Sutherland
+p = 101.325*(1 - 2.25577*10^-5*z)^5.2559
+ρ = 1000*p/(287.055*(t + 273.15))
+μ = 1.458*10^-6*(t + 273.15)^1.5/(t + 273.15 + 110.4)
+c_p = 1.006
+'Colebrook friction factor for Reynolds number R and relative roughness r
+f_C(R; r) = $Root{1/sqr(φ) + 2*log(r/3.7 + 2.51/(R*sqr(φ))) = 0 @ φ = 0.004 : 0.2}
+'Round duct of diameter d at the airflow q: velocity, Reynolds number, friction loss
+V_d(d) = 4000*q/(π*d^2)
+Re_d(d) = 4*ρ*q/(π*d*μ)
+Δp_d(d) = 1000*f_C(Re_d(d); ε/d)/d*ρ*V_d(d)^2/2
+'Equivalent diameter of a rectangular duct a × b (Huebscher)
+D_eq(a; b) = 1.3*(a*b)^0.625/(a + b)^0.25
+'Input error: 0 none; 1 no way of sizing chosen; 2 a value that is not above 0
+n_err = 0
+#if or(or(P_s < 1; P_s > 3); P_s ≠ round(P_s))
+ n_err = 1
+#else if or(or(q ≤ 0; x_s ≤ 0); or(a ≤ 0; ε < 0))
+ n_err = 2
+#end if
+#if n_err ≡ 0
+ 'The round duct: sized by friction rate or by velocity, or given
+ #if P_s ≡ 1
+  Δp_L = x_s
+  D = $Root{Δp_d(d) = Δp_L @ d = 10 : 10000}
+ #else if P_s ≡ 2
+  V = x_s
+  D = sqrt(4000*q/(π*V))
+ #else
+  D = x_s
+ #end if
+ f = f_C(Re_d(D); ε/D)
+ 'The rectangular duct: side b for the same friction, rounded up to 25 mm, and its friction loss
+ b_0 = $Root{D_eq(a; β) = D @ β = 1 : 100*D}
+ b = 25*ceiling(b_0/25)
+ D_e = D_eq(a; b)
+ Δp_L,r = Δp_d(D_e)
+#end if
+'Shown: formula = result. #round keeps the constants of each line exact; some results have a format
+'of their own (:0.##). A format stays with its variable as a unit, which functions refuse: only
+'results that no function uses later are formatted.
+#show
+#nosub
+#if n_err ≡ 0
+ #round 6
+ '<p>Atmospheric pressure, standard atmosphere: 'p = 101.325*(1 - 2.25577*10^-5*z)^5.2559:0.##'kPa</p>
+ '<p>Density: 'ρ = 1000*p/(287.055*(t + 273.15)):0.###'kg/m³</p>
+ '<p>Dynamic viscosity (Sutherland): 'μ = 1.458*10^-6*(t + 273.15)^1.5/(t + 273.15 + 110.4):0.000E+0'Pa·s</p>
+ '<p>Sensible heat factor: 'ρc_p = ρ*c_p:0.##'W/(L/s·K), with 'c_p'kJ/(kg·K)</p>
+#else if n_err ≡ 1
+ '<p style="color:#C00000;background-color:#FFEEEE">Choose how to size the duct from the list.</p>
+#else
+ '<p style="color:#C00000;background-color:#FFEEEE">The airflow, the sizing value and the side must be above 0.</p>
+#end if
+#round default
+#equ
+'</div>
+'<!--section:round-->
+'<div>
+#nosub
+#if n_err ≡ 0
+ #if P_s ≡ 1
+  #round 1
+  '<p>Diameter for this friction rate (Darcy–Weisbach and Colebrook, iterated): 'D'mm</p>
+ #else if P_s ≡ 2
+  #round 1
+  '<p>Diameter for this velocity: 'D = sqrt(4000*q/(π*V))'mm</p>
+ #end if
+ #round 2
+ '<p>Area: 'A = π*D^2/(4*10^6)'m²</p>
+ #if P_s ≠ 2
+  #round 3
+  '<p>Velocity: 'V = q/(1000*A)'m/s</p>
+ #end if
+ #round 2
+ '<p>Velocity pressure: 'p_v = ρ*V^2/2'Pa</p>
+ #round 0
+ '<p>Reynolds number: 'Re = ρ*V*D/(1000*μ)'</p>
+ #round 3
+ '<p>Friction factor (Colebrook): 'f:0.####': '1/sqr(f)' and '-2*log(ε/(3.7*D) + 2.51/(Re*sqr(f)))'</p>
+ #round 2
+ '<p>Friction loss (Darcy–Weisbach): 'Δp_L = 1000*f*p_v/D'Pa/m</p>
+ #if Re < 4000
+  '<p style="color:#C00000;background-color:#FFEEEE">The flow is not fully turbulent (Re below 4000): Colebrook does not apply.</p>
+ #end if
+#else
+ '<p>No size: correct the inputs.</p>
+#end if
+#round default
+#equ
+'</div>
+'<!--section:rectangular-->
+'<div>
+#nosub
+#if n_err ≡ 0
+ #round 0
+ '<p>Other side for the same friction (Huebscher), rounded up to 25 mm: 'b'mm</p>
+ #round 3
+ '<p>Equivalent diameter: 'D_e = 1.3*(a*b)^0.625/(a + b)^0.25:0.#'mm</p>
+ #round 2
+ '<p>Velocity: 'V_r = 1000*q/(a*b)'m/s; velocity pressure 'p_v,r = ρ*V_r^2/2'Pa</p>
+ '<p>Friction loss, from the equivalent diameter: 'Δp_L,r:0.##'Pa/m</p>
+#else
+ '<p>No size: correct the inputs.</p>
+#end if
+#round default
+#equ
+'</div>

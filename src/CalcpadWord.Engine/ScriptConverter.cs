@@ -342,6 +342,9 @@ public static partial class ScriptConverter
             runs.AddRange(NameRuns(name));
             runs.Add(new TextRun(" = "));
             runs.Add(new InputRun(name, value, unit));
+            // As in Calcpad, the field's unit follows it.
+            if (unit.Length > 0)
+                runs.Add(new TextRun(" " + unit.Replace("^2", "²").Replace("^3", "³")));
         }
 
         void Flush()
