@@ -455,6 +455,16 @@ internal sealed class DocumentController(Word.Application app)
 
     private const int ForegroundMilliseconds = 1500;
 
+    /// <summary>
+    /// Results are greyed only if Calcpad is still running this long after the calculation went
+    /// to the background. One that finishes sooner (the soil template, 1.7 s in all) is drawn
+    /// without greying: grey that came and went within half a second flashed the page.
+    /// </summary>
+    private const int GreyAfterMilliseconds = 1000;
+
+    /// <summary>The background calculation's results, until they are greyed, drawn or cancelled. Word's thread.</summary>
+    private Snapshot? _toGrey;
+
     /// <summary>What a calculation started from: the controls and the sources they had.</summary>
     /// <param name="Controls">The Calcpad expressions and blocks (with <paramref name="Ids"/>, <paramref name="Tags"/>, <paramref name="Parsed"/>).</param>
     /// <param name="Items">What the worksheet runs, in document order: the controls and the input fields.</param>
@@ -538,6 +548,7 @@ internal sealed class DocumentController(Word.Application app)
         if (what.Count == 0)
             return "Calcpad: nothing to cancel.";
 
+        GreyNow(); // cancelled before they were greyed: they may be out of date all the same
         Log.Info($"Cancelled {string.Join(" and ", what)}");
         var hint = what.Contains("the calculation")
             ? " Results that may be out of date stay greyed: Recalculate (Ctrl+Alt+F9) to calculate them."
@@ -557,6 +568,7 @@ internal sealed class DocumentController(Word.Application app)
             return "Calcpad is busy.";
 
         _calculation?.Cancel(); // its results would be out of date
+        _toGrey = null;
         Snapshot snapshot;
         _busy = true;
         try
@@ -584,7 +596,12 @@ internal sealed class DocumentController(Word.Application app)
         if (Task.WaitAny([calculation], ForegroundMilliseconds) == 0)
             return Finish(snapshot, calculation, cancel, keepActiveSource, inBackground: false) ?? LastStatus;
 
-        GreyWhileCalculating(snapshot);
+        _toGrey = snapshot;
+        UiThread.WhenDone(Task.WhenAny(calculation, Task.Delay(GreyAfterMilliseconds)), () =>
+        {
+            if (ReferenceEquals(_toGrey, snapshot) && !calculation.IsCompleted)
+                GreyNow();
+        });
         app.StatusBar = "Calcpad: calculating… you can keep working.";
         Log.Info($"Calculating '{doc.Name}' in the background ({snapshot.Items.Count} items)");
         UiThread.WhenDone(calculation, () =>
@@ -594,6 +611,18 @@ internal sealed class DocumentController(Word.Application app)
                 BackgroundFinished?.Invoke(status);
         });
         return "Calcpad: calculating in the background…";
+    }
+
+    /// <summary>Greys the results waiting for it (<see cref="_toGrey"/>), as one Undo step: the user may have typed meanwhile.</summary>
+    private void GreyNow()
+    {
+        if (_toGrey is not { } snapshot)
+            return;
+        _toGrey = null;
+        if (!IsOpen(snapshot.Doc))
+            return;
+        using var undo = new UndoScope(app, "Calcpad: out of date");
+        GreyWhileCalculating(snapshot);
     }
 
     /// <summary>The results may change while Calcpad runs: grey them until they are drawn again (or for good, if cancelled).</summary>
@@ -612,10 +641,17 @@ internal sealed class DocumentController(Word.Application app)
             var marked = 0;
             foreach (var cc in stale)
             {
-                if (IsStale(cc))
-                    continue;
-                SetStale(cc, stale: true);
-                ++marked;
+                try
+                {
+                    if (IsStale(cc))
+                        continue;
+                    SetStale(cc, stale: true);
+                    ++marked;
+                }
+                catch (COMException) when (!IsAlive(cc))
+                {
+                    // Deleted since the calculation started (greying waits a moment): nothing to grey.
+                }
             }
             if (marked > 0)
                 Log.Info($"Greyed {marked} result{(marked == 1 ? "" : "s")} until the calculation finishes");
@@ -712,6 +748,8 @@ internal sealed class DocumentController(Word.Application app)
                 Log.Info("A background calculation was cancelled, or replaced by a newer one");
             return null;
         }
+        if (ReferenceEquals(_toGrey, s))
+            _toGrey = null; // done before it was greyed
         // This calculation counts as running (IsWorking) until its results are drawn and LastStatus is set.
         var drawLater = false;
         try
@@ -1134,11 +1172,13 @@ internal sealed class DocumentController(Word.Application app)
         {
             var range = cc.Range;
             range.Font.Shading.BackgroundPatternColor = stale ? Word.WdColor.wdColorGray10 : Word.WdColor.wdColorAutomatic;
+            // Pictures in grey, not washed out (watermark): a drawing that faded almost to white
+            // and came back flashed.
             var pictures = range.InlineShapes;
             for (var i = 1; i <= pictures.Count; ++i)
             {
                 pictures[i].PictureFormat.ColorType = stale
-                    ? Microsoft.Office.Core.MsoPictureColorType.msoPictureWatermark
+                    ? Microsoft.Office.Core.MsoPictureColorType.msoPictureGrayscale
                     : Microsoft.Office.Core.MsoPictureColorType.msoPictureAutomatic;
             }
             cc.Title = stale ? Clip(StaleTitlePrefix + title) : title;
@@ -1538,6 +1578,13 @@ internal sealed class DocumentController(Word.Application app)
     private static bool IsOpen(Word.Document doc)
     {
         try { _ = doc.Name; return true; }
+        catch (COMException) { return false; }
+    }
+
+    /// <summary>The control is still in its document (Word throws for one that was deleted).</summary>
+    private static bool IsAlive(Word.ContentControl cc)
+    {
+        try { _ = cc.ID; return true; }
         catch (COMException) { return false; }
     }
 

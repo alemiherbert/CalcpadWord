@@ -180,7 +180,8 @@ Also done:
 
 - **Out-of-date results are greyed** (0.6.0) while a background calculation runs, and after Cancel.
   - What is greyed: results already drawn, from the first new or edited item on (evaluation order), or all of them for Recalculate or a settings change.
-  - The mark: light grey character shading (`wdColorGray10`), pictures in watermark mode (`msoPictureWatermark`), and the title prefixed "Out of date: ". The title keeps the mark in saved documents.
+  - The mark: light grey character shading (`wdColorGray10`), pictures in grey (`msoPictureGrayscale`), and the title prefixed "Out of date: ". The title keeps the mark in saved documents.
+  - When (2026-11-20; the user: "it sort of flash bangs"): only if Calcpad is still running 1 s after the calculation went to the background (2.5 s after the click), or on Cancel. Before, results were greyed at once, and pictures were washed out (`msoPictureWatermark`): on the soil template (1.7 s in all) the drawings faded almost to white and came back within half a second. Greying is one Undo step, since the user may have typed meanwhile.
   - Unchanged results are not redrawn: only the mark is undone. That restores the document exactly, apart from Word's own bookkeeping (`wp14:editId`/`anchorId`, and `wp:effectExtent` on some pictures, 0.75 pt).
   - Fading the text (`Font.Fill.Transparency`) was tried and rejected: undoing it merges runs and loses Calcpad's per-run colours.
 - **Scientific notation** (0.6.0): Calcpad's Word output writes the × of 5.7×10⁻⁹ as a bold, small, superscript run, and the exponent's minus as a hyphen in normal text. `WordMarkup.ApplyStyle` turns both into ordinary math characters (×, U+2212). `RenderVersion` went to 2, so blocks are redrawn once.

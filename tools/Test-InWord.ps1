@@ -482,11 +482,13 @@ try {
     $settings = Call $api 'GetSettings'
     $results = @(1..$doc.ContentControls.Count | Where-Object { $doc.ContentControls.Item($_).Tag -like 'calcpad*:r:*' }).Count
     $started = Call $api 'SetSettings' @($settings -replace 'decimals=\d+', 'decimals=4')
+    Check ($started -match 'background' -and (Stale $doc).Count -eq 0) 'not greyed at once: a calculation that ends soon after going to the background is drawn without greying'
+    [void](WaitFor { (Stale $doc).Count -eq $results } 5000)
     $grey = Stale $doc
     $plot = @($grey | Where-Object { $_.Range.InlineShapes.Count -gt 0 })[0]
     $value = @($grey | Where-Object { $_.Tag -like 'calcpad:*' })[0]
-    Check ($started -match 'background' -and $grey.Count -eq $results) "a settings change greys all $results results while it calculates ($($grey.Count))"
-    Check ($null -ne $plot -and $plot.Range.InlineShapes.Item(1).PictureFormat.ColorType -eq 4 -and $null -ne $value -and $value.Range.Font.Shading.BackgroundPatternColor -eq 15132390) 'greyed: washed-out plots, light grey behind values'
+    Check ((Prop $api 'IsWorking') -and $grey.Count -eq $results) "still calculating a moment later, all $results results are greyed ($($grey.Count))"
+    Check ($null -ne $plot -and $plot.Range.InlineShapes.Item(1).PictureFormat.ColorType -eq 2 -and $null -ne $value -and $value.Range.Font.Shading.BackgroundPatternColor -eq 15132390) 'greyed: plots in grey, light grey behind values'
     Check ((Prop $api 'ErrorCount') -eq 0) 'greying does not touch the error list'
     [void](Call $api 'Cancel')
     [void](WaitFor { -not (Prop $api 'IsWorking') } 15000)
@@ -494,6 +496,10 @@ try {
     $summary = Command 'SetSettings' @($settings)
     Check ((Stale $doc).Count -eq 0 -and $summary -match ' 0 errors') "recalculating removes the grey ($summary)"
     Check ((Body $doc) -eq $original) 'results that did not change are exactly as before (not redrawn, only ungreyed)'
+    [void](Call $api 'SetSettings' @($settings -replace 'decimals=\d+', 'decimals=4'))
+    [void](Call $api 'Cancel')
+    [void](WaitFor { -not (Prop $api 'IsWorking') } 15000)
+    Check ((Stale $doc).Count -eq $results) 'cancelled before the grey came, the results are greyed all the same'
     [void](Call $doc 'Close' @(0))
 
     Say 'Step 16: Block to Text on an existing block'
