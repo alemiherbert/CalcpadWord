@@ -57,7 +57,7 @@ The version is set in `src\Directory.Build.props`. **Public numbering starts at 
 - **Calculations:** the user chose Eurocodes (EN 1992-1-1 for the RC beam), with recommended values unless stated. Calcpad's `class="err"` counts as a calculation error, so a failing design must not use it.
   - A check ends in one line, Tedds style, the verdict and the reason in one colour and size: `'<p class="ok">PASS - reason</p>` (green), or `'<p style="color:#C00000;background-color:#FFEEEE">FAIL - reason</p>` (red).
   - Don't wrap the verdict in `<b>`: Calcpad leaves a formatted run uncoloured, and bold capitals look larger than the reason.
-- **Snappy and succinct (the user, 2026-11-18):** input must feel instant, and templates say things once: no lines that echo an input, no repeated assumptions, short labels and verdicts. **Calculate automatically** (`DocumentSettings.Automatic`, stored as `auto=0`) can be switched off, and calculation templates ship with it off.
+- **Snappy and succinct (the user, 2026-11-18):** input must feel instant, and templates say things once: no lines that echo an input, no repeated assumptions, short labels and verdicts. **Calculate automatically** (`DocumentSettings.Automatic`, stored as `auto=0` when off) **must be on by default, templates included** (the user, 2026-11-21; templates shipped with it off until then). Off works like Excel's manual mode: a changed input waits for Calculate; an expression written or edited is calculated and drawn on its own (Calcpad runs only as far as it), and what follows waits.
 - **Block output (the user's decisions, made in `BlockOutput`):**
   - Tables use Word's Grid Table 1 Light, full width, left-aligned, with a tiny cell pad.
   - Plots fill the text width.
@@ -71,9 +71,10 @@ The version is set in `src\Directory.Build.props`. **Public numbering starts at 
   - Quote arguments that contain commas, such as `'-Wl,--entry=DllMain'`.
   - `2>&1` on native programs turns stderr into errors.
 
-## State on 2026-11-20 (version 0.1.0)
+## State on 2026-11-21 (version 0.1.1)
 
 - **Released:** 0.1.0 is the first public release on GitHub (tag `v0.1.0`, with Setup attached), 2026-11-20. It is the internal 0.8.0 plus the second PC's block output and Recalculate-only mode.
+- **0.1.1 (2026-11-21), committed, not yet released on GitHub:** the SVG drawing fix for Word 2019, out-of-date results greyed later and in grey, the buttons renamed (Calculate, Convert to Calcpad), Calculate automatically on by default with Excel-style manual mode, and the templates without guidance lines.
 - **Done in the internal 0.8.0, which is installed on the first PC:**
   - inline and block evaluation, script conversion and background calculation;
   - a math font chooser, Cancel, and greying of out-of-date results;
@@ -88,7 +89,7 @@ The version is set in `src\Directory.Build.props`. **Public numbering starts at 
   - Calculation templates share `Template source\TemplateBuild.ps1` (hidden Word, sections, drop-downs, save).
   - `Dokimos RC Beam Design (EC2) v3.dotx` is the current beam calculation, modelled on Tedds and Calcpad's examples. It covers cover, fire, bending, limits, spacing, shear, crack control and deflection (by ratio and by calculation), with a sketch and a summary. It is cross-checked against Tedds. v1 and v2 are kept (v2 was built on the second PC). It needs add-in 0.1.0 or later.
   - All are built and tested by the scripts in `templates/dokimos/Template source/`.
-- **First PC:** the original PC, with Office Professional Plus 2019 (Word 16.0.10417), not Microsoft 365. Add-in 0.1.0 is installed from Setup, rebuilt 2026-11-20 with the SVG drawing fix (PLAN.md, "Calcpad engine findings") and again on 2026-11-21 with the renamed buttons (Calculate, Convert to Calcpad) and edited source that closes when left in manual mode; not yet released or committed. The Tedds Engineering Library isn't installed or licensed here. Git reaches GitHub over SSH with `~\.ssh\id_ed25519` (2026-11-20).
+- **First PC:** the original PC, with Office Professional Plus 2019 (Word 16.0.10417), not Microsoft 365. Add-in 0.1.1 is installed from Setup (2026-11-21). The Tedds Engineering Library isn't installed or licensed here. Git reaches GitHub over SSH with `~\.ssh\id_ed25519` (2026-11-20).
 - **Second PC (2026-11-18):** the project arrived as a zip. Python and git are also in WSL; use Windows git for this repo. Word is Microsoft 365 x64. Add-in 0.8.0 is installed here.
 - **Open:**
   - An intermittent hang of the hidden test Word after the first background draw ("Open issue" in PLAN.md).
