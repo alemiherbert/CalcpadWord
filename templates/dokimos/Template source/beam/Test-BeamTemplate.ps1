@@ -16,6 +16,7 @@ try {
 
     # 1. Calculate automatically is on: leaving a changed field recalculates.
     Check 'automatic calculation is on' ((Call $api 'GetSettings') -notmatch 'auto=0')
+    Check 'the calculation is locked, the inputs open' (CalculationLocked)
     (Tagged 'calcpad-input:h').Range.Select()
     $word.Selection.TypeText('350')
     $timer = [Diagnostics.Stopwatch]::StartNew()

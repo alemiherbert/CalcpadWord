@@ -80,6 +80,17 @@ function WaitUntil([scriptblock]$condition, [int]$seconds = 60) {
     return $false
 }
 
+<# True when every Calcpad expression and block is locked and no input field is. #>
+function CalculationLocked {
+    $all = $script:doc.ContentControls
+    for ($i = 1; $i -le $all.Count; $i++) {
+        $c = $all.Item($i)
+        if ($c.Tag -like 'calcpad-input:*') { if ($c.LockContentControl) { return $false } }
+        elseif ($c.Tag -like 'calcpad*' -and -not $c.LockContentControl) { return $false }
+    }
+    return $true
+}
+
 function HeadingParagraph([string]$text) {
     $paragraphs = $script:doc.Paragraphs
     for ($i = 1; $i -le $paragraphs.Count; $i++) {
@@ -210,6 +221,10 @@ function Save-Template([string]$target, [string]$pictures, [string]$prefix) {
     Step ("errors: {0}" -f (Prop $script:api 'ErrorCount'))
     # Calculate automatically stays on, the default (the user, 2026-11-21).
     Step ("settings: {0}" -f (Call $script:api 'GetSettings'))
+    # The calculation is locked; only the input fields are filled in (the user, 2026-11-21).
+    $script:doc.Content.Select()
+    Step ("locked: {0}" -f (Call $script:api 'Lock'))
+    Step ("calculation locked, inputs open: {0}" -f (CalculationLocked))
 
     if ($script:doc.TablesOfContents.Count -gt 0) { [void](Call $script:doc.TablesOfContents.Item(1) 'Update') }
     $window = $script:doc.ActiveWindow; $window.View.Type = 3

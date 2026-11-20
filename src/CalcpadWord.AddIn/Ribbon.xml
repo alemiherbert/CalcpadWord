@@ -24,6 +24,14 @@
                   onAction="OnEditSource"
                   screentip="Edit source (or double-click a result)"
                   supertip="Shows the Calcpad source of the result at the cursor so you can change it. Click outside it, or press Alt+Shift+Enter, to calculate." />
+          <button id="Lock" label="Lock" imageMso="Lock" keytip="K"
+                  onAction="OnLock"
+                  screentip="Lock calculations"
+                  supertip="Locks the Calcpad expressions and blocks in the selection (Ctrl+A for the whole document): they still calculate, but can't be opened, converted or deleted. Input fields stay open. A guard against accidental changes; Unlock lifts it." />
+          <button id="Unlock" label="Unlock" imageMso="AdpPrimaryKey" keytip="O"
+                  onAction="OnUnlock"
+                  screentip="Unlock calculations"
+                  supertip="Unlocks the Calcpad expressions and blocks in the selection, so they can be edited again." />
           <button id="CancelCalculation" label="Cancel" size="large" imageMso="Cancel" keytip="C"
                   onAction="OnCancel" getEnabled="GetCancelEnabled"
                   screentip="Cancel calculation (Esc)"

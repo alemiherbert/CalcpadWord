@@ -15,6 +15,7 @@ try {
     if (-not (Open-Template $OutDir (Join-Path $PSScriptRoot "out\Dokimos Soil Stresses and Settlement v$Version.dotx"))) { return }
     Check 'the template arrives calculated: 10.23 mm at the centre' ((Shows 'At the centre' '10\.23') -and (Prop $api 'ErrorCount') -eq 0)
     Check 'automatic calculation is on' ((Call $api 'GetSettings') -notmatch 'auto=0')
+    Check 'the calculation is locked, the inputs open' (CalculationLocked)
     $plots = 0; $shapes = $doc.InlineShapes
     for ($k = 1; $k -le $shapes.Count; $k++) { if ($shapes.Item($k).Title -eq 'Calcpad plot') { $plots++ } }
     Check "the plots and maps are there ($plots)" ($plots -eq 6)

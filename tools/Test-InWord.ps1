@@ -258,6 +258,28 @@ try {
     Check ((Edit-L 'L = 8m') -and (Command 'Recalculate') -and (& $m) -match '96') 'back to 8m, and Calculate: M = 96 kNm'
     [void](Call $api 'SetSettings' @($settings))
 
+    Say 'Step 3c: Lock and Unlock'
+    $doc.Content.Select()
+    Say ('  -> ' + (Call $api 'Lock'))
+    Check ($l.LockContentControl -and (Control $doc.Content '#val M').LockContentControl) 'Lock on the whole document locks every expression'
+    $r = $l.Range; $r.Collapse(1); $r.Select()
+    $refused = try { [void](Call $api 'EditSource'); '' } catch { $_.Exception.GetBaseException().Message }
+    Check ($refused -match 'locked' -and $l.Range.OMaths.Count -eq 1) "a locked result won't open its source ($refused)"
+    $deleted = try { $l.Delete($false); $true } catch { $false }
+    if ($deleted) { [void](Call $doc 'Undo' @(1)); $l = Control $doc.Content 'L = ' } # keep the later steps going
+    Check (-not $deleted) 'nor be deleted'
+    [void](Call $api 'SetSettings' @(($settings -replace 'decimals=\d+', 'decimals=3')))
+    $root = Control $doc.Content 'x_r = '
+    Check ((WaitFor { $root.Range.Text -match '1\.414' }) -and $root.LockContentControl -and $root.LockContents) 'locked results still calculate (3 decimals: x_r = 1.414), and stay locked'
+    [void](Call $api 'SetSettings' @($settings))
+    $doc.Content.Select()
+    Say ('  -> ' + (Call $api 'Unlock'))
+    $r = $l.Range; $r.Collapse(1); $r.Select()
+    [void](Command 'EditSource')
+    Check (-not $l.LockContentControl -and $l.Range.OMaths.Count -eq 0) 'Unlock: the source opens again'
+    $doc.Paragraphs.Item(1).Range.Select()
+    Check (WaitFor { $l.Range.OMaths.Count -eq 1 }) 'and closes on leaving'
+
     Say 'Step 4: fix the error in place, then click elsewhere'
     $broken = Control $doc.Content 'y = '
     $r = $broken.Range; $r.Collapse(0); $r.Select()
@@ -536,6 +558,14 @@ try {
     Check ($doc.Paragraphs.Item(2).Range.Text -match '^Width ' -and (Control $doc.Content 'w = ').Range.OMaths.Count -eq 1) 'the text line is a Word paragraph with w inline'
     Check ($blocks.Count -eq 1 -and $blocks[0].Range.InlineShapes.Count -eq 1 -and $blocks[0].Range.Tables.Count -eq 1 -and $summary -match ' 0 errors') 'only the plot and the table are still a block (it had a table: Word refuses to replace those directly)'
     Check ($doc.Paragraphs.Last.Range.Text -match '^End\.') 'the text after the block is untouched'
+
+    Say 'Step 16b: a locked block holding a table is redrawn (its old table has to go first)'
+    $doc.Content.Select()
+    [void](Call $api 'Lock')
+    $settings = Call $api 'GetSettings'
+    $summary = Command 'SetSettings' @(($settings -replace 'decimals=\d+', 'decimals=4'))
+    $block = @(1..$doc.ContentControls.Count | ForEach-Object { $doc.ContentControls.Item($_) } | Where-Object { $_.Tag -like 'calcpad-block:*' })[0]
+    Check ($summary -match ' 0 errors' -and $block.LockContentControl -and $block.Range.Tables.Count -eq 1) "it redraws with its table and stays locked ($summary)"
     [void](Call $doc 'Close' @(0))
 
     Say 'Step 17: math fonts (free ones are downloaded and installed for the current user)'

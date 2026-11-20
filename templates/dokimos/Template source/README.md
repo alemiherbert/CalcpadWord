@@ -42,11 +42,11 @@ A section sketch follows the geometry. Each check ends in a "PASS - …" or "FAI
 |---|---|
 | v1 | Bending, limits, spacing, shear, crack width, span to depth ratio. |
 | v2 | Modelled on Tekla Tedds' "RC beam design (EN1992)" and Calcpad's EC2 examples: cover, fire, K and K′, top bar spacing, minimum steel for cracking, calculated deflection, the sketch, reactions. Tables use Grid Table 1 Light; plots fill the width. The exposure class sets the cover and w_max. Calculates on Recalculate only (automatic calculation off), so input is fast. |
-| v3 | Built on the general template v4: no guidance lines. References is left empty for the designer. *Calculate automatically* is on. |
+| v3 | Built on the general template v4: no guidance lines. References is left empty for the designer. *Calculate automatically* is on, and the calculation is locked (inputs open). |
 
 **Checked against Tedds:** `Check-WithTedds.ps1 -OutDir <dir> [-Recommended]` runs Tedds' own calculation for the default section through its API (Tedds must be installed; it saves Tedds' output as text). The numbers agree. They are in `BeamTemplateTests` (`Agrees_with_Tedds_…`).
 
-**Using it:** fill in the blue fields under Design inputs, by typing a value or picking one from a list. Each field you leave recalculates (*Calculate automatically*, on by default). For fast input, untick it on the Calcpad tab and click Calculate (Ctrl+Alt+F9) when done.
+**Using it:** fill in the blue fields under Design inputs, by typing a value or picking one from a list. Each field you leave recalculates (*Calculate automatically*, on by default). For fast input, untick it on the Calcpad tab and click Calculate (Ctrl+Alt+F9) when done. The calculation itself is locked; to change it, select it and click Unlock.
 
 ## Calculation templates (psychrometric/)
 
@@ -56,7 +56,7 @@ A section sketch follows the geometry. Each check ends in a "PASS - …" or "FAI
 |---|---|
 | v1 | Built on the first PC by an earlier script (2026-11-18), with drop-downs for the two properties and a results table. The working was about 20 hidden paragraphs; Calculations showed one sentence. |
 | v2 | Built from `Psychrometric chart.cpd`. The working is hidden; ASHRAE's relations follow as Calcpad equations (formula = result), with their constants in full. Each known property is one line: "[property] = [value]". The chart has a small legend (a coloured line and its words, one per line) and ends the calculation: no results table, which repeated the working. Red messages for pairs that can't fix the air. Calculates on Recalculate only. |
-| v3 | Built on the general template v4: no guidance lines. References is left empty for the designer. *Calculate automatically* is on. |
+| v3 | Built on the general template v4: no guidance lines. References is left empty for the designer. *Calculate automatically* is on, and the calculation is locked (inputs open). |
 
 **Checked:** `PsychrometricTests` compares the standard atmosphere and the saturation pressures with ASHRAE's tables, and the air at 25 °C and 50 % with its chart. It also finds that air again from each of the 19 pairs of properties that fix it.
 
@@ -67,7 +67,7 @@ A section sketch follows the geometry. Each check ends in a "PASS - …" or "FAI
 | Version | What changed |
 |---|---|
 | v1 | Built from `Duct sizing.cpd`. Calculates on Recalculate only. |
-| v2 | Built on the general template v4: no guidance lines. References is left empty for the designer. *Calculate automatically* is on. |
+| v2 | Built on the general template v4: no guidance lines. References is left empty for the designer. *Calculate automatically* is on, and the calculation is locked (inputs open). |
 
 **Checked against DuctSizer:** `DuctTests` holds four of its results (three by friction rate, one by velocity) and its equivalent diameter for 500 × 200 mm. With DuctSizer's roughness the diameters agree within 0.3 % (see PLAN.md, "Duct sizing v1").
 
@@ -78,7 +78,7 @@ A section sketch follows the geometry. Each check ends in a "PASS - …" or "FAI
 | Version | What changed |
 |---|---|
 | v1 | Built from `Soil stresses and settlement.cpd`, after Calcpad's example "Soil stress and deformations" (not named in the document, at the user's request). Calculates on Recalculate only. |
-| v2 | Built on the general template v4: no guidance lines. References is left empty for the designer. *Calculate automatically* is on. |
+| v2 | Built on the general template v4: no guidance lines. References is left empty for the designer. *Calculate automatically* is on, and the calculation is locked (inputs open). |
 
 **Checked:** `SoilTests` against Calcpad's example (9.96 mm), the classical settlement of a flexible rectangle on a deep half-space (12.35 mm for 2 × 3 m at 100 kPa) and Boussinesq's point load far below.
 
@@ -92,7 +92,7 @@ A section sketch follows the geometry. Each check ends in a "PASS - …" or "FAI
   2. it fills the cover, scope, codes and assumptions, and adjusts the headings if need be;
   3. it puts each part of the script under its heading and lets Calcpad for Word convert it;
   4. it turns some inputs into drop-down lists;
-  5. it calculates, makes a section left empty (References) plain so no lone bullet prints, makes the empty paragraphs after the last block 1 pt (so they never add a blank page), leaves *Calculate automatically* on (the default; the user, 2026-11-21), renders the pages to `out\vN-pageM.png` and saves it.
+  5. it calculates, makes a section left empty (References) plain so no lone bullet prints, makes the empty paragraphs after the last block 1 pt (so they never add a blank page), leaves *Calculate automatically* on (the default; the user, 2026-11-21), locks the calculation (Lock on the whole document; input fields stay open), renders the pages to `out\vN-pageM.png` and saves it.
 - **No guidance lines:** a calculation template is assumed to be for submission, so it holds no instructions to the designer (the user, 2026-11-20).
 - **`Test-…Template.ps1 -OutDir <dir> -Version N`** uses the template as a designer would and logs ok or FAIL for each check.
 - **The unit tests** (`BeamTemplateTests`, `PsychrometricTests`, `DuctTests`, `SoilTests`) read the `.cpd` from here and calculate it without Word.

@@ -19,6 +19,7 @@ try {
     if (-not (Open-Template $OutDir (Join-Path $PSScriptRoot "out\Dokimos Psychrometric Chart v$Version.dotx"))) { return }
     Check 'the template arrives calculated: 25 °C and 60 % at 1190 m' ((Text) -match 'Relative humidity' -and (Prop $api 'ErrorCount') -eq 0)
     Check 'automatic calculation is on' ((Call $api 'GetSettings') -notmatch 'auto=0')
+    Check 'the calculation is locked, the inputs open' (CalculationLocked)
 
     # 1. Typing a value and leaving the field recalculates.
     $x2 = Tagged 'calcpad-input:x_2'

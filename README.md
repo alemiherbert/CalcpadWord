@@ -79,6 +79,7 @@ Rules for blocks:
 | Calcpad Block | | Keeps the selected paragraphs (or an empty line) together as one block |
 | Block to Text | right-click a block | Turns a block into Word text, as for a pasted script |
 | Edit Source | **double-click** a result, or right-click → **Edit Calcpad Source** | Shows the source so you can change it. **Click outside to calculate** |
+| Lock, Unlock | | Lock the Calcpad expressions and blocks in the selection (Ctrl+A for all): they still calculate, but can't be opened, converted or deleted. Input fields stay open. A guard against accidents, not a password: Unlock lifts it. The Dokimos calculation templates ship locked |
 | Cancel | **Esc**, while a calculation runs | Stops a background calculation or a math font download. Results keep their old values until you calculate again |
 | Errors (n) | | Lists what failed. Pick one to go to it |
 | Next Error | **Ctrl+Alt+F8** | Moves to the next error and shows its message in the status bar |

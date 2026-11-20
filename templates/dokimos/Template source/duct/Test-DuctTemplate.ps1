@@ -21,6 +21,7 @@ try {
     if (-not (Open-Template $OutDir (Join-Path $PSScriptRoot "out\Dokimos Duct Sizing v$Version.dotx"))) { return }
     Check 'the template arrives calculated: 500 L/s at 1 Pa/m, 1190 m' ((Shows 'Diameter for this friction rate' '331.9') -and (Prop $api 'ErrorCount') -eq 0)
     Check 'automatic calculation is on' ((Call $api 'GetSettings') -notmatch 'auto=0')
+    Check 'the calculation is locked, the inputs open' (CalculationLocked)
 
     # 1. Typing a value and leaving the field recalculates the sizes.
     $q = Tagged 'calcpad-input:q'

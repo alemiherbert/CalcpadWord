@@ -142,6 +142,10 @@ public sealed class Connect : IDTExtensibility2, IRibbonExtensibility
 
     public void OnEditSource(IRibbonControl control) => Run("Edit Source", () => Controller.ToggleEditSource());
 
+    public void OnLock(IRibbonControl control) => Run("Lock", () => Controller.SetLocked(true));
+
+    public void OnUnlock(IRibbonControl control) => Run("Unlock", () => Controller.SetLocked(false));
+
     public void OnCancel(IRibbonControl control) => Run("Cancel", () => Controller.Cancel());
 
     public bool GetCancelEnabled(IRibbonControl control) { Log.Trace("ribbon GetCancelEnabled"); return _controller?.CanCancel == true; }
@@ -281,6 +285,11 @@ public sealed class Connect : IDTExtensibility2, IRibbonExtensibility
     public string Recalculate() => Api(() => Controller.Recalculate());
 
     public string EditSource() => Api(() => Controller.ToggleEditSource());
+
+    /// <summary>Lock and Unlock: the Calcpad expressions and blocks in the selection.</summary>
+    public string Lock() => Api(() => Controller.SetLocked(true));
+
+    public string Unlock() => Api(() => Controller.SetLocked(false));
 
     /// <summary>What the Enter key does (the keyboard hook can't be driven by automation).</summary>
     public string PressEnter() => Api(PressEnterCore);

@@ -91,6 +91,8 @@ internal sealed class DocumentController(Word.Application app)
         var cc = FindCalcpadControl(app.Selection.Range);
         if (cc is null || ControlTag.Parse(cc.Tag) is not { Kind: ControlKind.Block } tag)
             throw new UserMessageException("Put the cursor in a Calcpad block first.");
+        if (IsLocked(cc))
+            throw new UserMessageException(LockedMessage);
 
         var source = tag.ShowsSource ? ReadEditedSource(cc, ControlKind.Block) : tag.Source;
         var conversion = ScriptConverter.Convert(source);
@@ -176,6 +178,8 @@ internal sealed class DocumentController(Word.Application app)
         var cc = FindCalcpadControl(app.Selection.Range)
             ?? throw new UserMessageException("Put the cursor in a Calcpad result first.");
         var tag = ControlTag.Parse(cc.Tag)!;
+        if (!tag.ShowsSource && IsLocked(cc))
+            throw new UserMessageException(LockedMessage);
 
         using var undo = new UndoScope(app, "Calcpad Edit Source");
         if (tag.ShowsSource)
@@ -1120,6 +1124,7 @@ internal sealed class DocumentController(Word.Application app)
         {
             cc.Title = Clip(ErrorTitlePrefix + result.Error);
             cc.Tag = new ControlTag(ControlState.Error, fingerprint, result.Source, ControlKind.Inline).ToString();
+            cc.LockContents = IsLocked(cc); // fixed in place, unless locked
             return;
         }
         cc.Title = Clip((result.Kind == ResultKind.Hidden ? "Calcpad (hidden): " : "Calcpad: ") + result.Source);
@@ -1161,6 +1166,60 @@ internal sealed class DocumentController(Word.Application app)
         Write(cc, WordMarkup.Package(body), block: kind == ControlKind.Block);
         cc.Title = Clip(title);
         cc.Tag = new ControlTag(state, fingerprint, source, kind).ToString();
+        if (IsLocked(cc))
+            cc.LockContents = true; // a locked error is shown, not edited
+    }
+
+    // ---- Locking --------------------------------------------------------------------------
+    //
+    // A locked expression or block still calculates, but can't be opened, converted or deleted:
+    // a template's calculation stays as written while its input fields are filled in. The mark
+    // is Word's own "content control cannot be deleted" (LockContentControl), so Word itself
+    // refuses deletion, and the lock survives saving, copying and templates. It guards against
+    // accidents, not tampering: Unlock lifts it.
+
+    private static bool IsLocked(Word.ContentControl cc) => cc.LockContentControl;
+
+    private const string LockedMessage = "This calculation is locked. Select it and click Unlock (Calcpad tab) to change it.";
+
+    /// <summary>
+    /// Locks or unlocks every Calcpad expression and block in the selection, or the one at the
+    /// cursor. Input fields always stay open.
+    /// </summary>
+    public string SetLocked(bool locked)
+    {
+        ActiveDocument();
+        var selection = app.Selection.Range;
+        var controls = new List<Word.ContentControl>();
+        if (FindCalcpadControl(selection) is { } at)
+            controls.Add(at);
+        var inside = selection.ContentControls;
+        for (int i = 1, n = inside.Count; i <= n; ++i)
+        {
+            var cc = inside[i];
+            if (ControlTag.IsCalcpad(cc.Tag) && controls.TrueForAll(c => c.ID != cc.ID))
+                controls.Add(cc);
+        }
+        if (controls.Count == 0)
+            throw new UserMessageException($"Select the Calcpad expressions and blocks to {(locked ? "lock" : "unlock")} (Ctrl+A for the whole document).");
+
+        using var undo = new UndoScope(app, locked ? "Calcpad Lock" : "Calcpad Unlock");
+        _busy = true;
+        try
+        {
+            foreach (var cc in controls)
+            {
+                cc.LockContentControl = locked;
+                // A result is read-only either way; source (edited, or an error) is editable once unlocked.
+                cc.LockContents = locked || ControlTag.Parse(cc.Tag)?.State == ControlState.Result;
+            }
+        }
+        finally
+        {
+            _busy = false;
+        }
+        var what = controls.Count == 1 ? "1 Calcpad expression or block" : $"{controls.Count} Calcpad expressions and blocks";
+        return $"Calcpad: {(locked ? "locked" : "unlocked")} {what}.{(locked ? " Input fields stay open." : "")}";
     }
 
     /// <summary>
@@ -1170,16 +1229,29 @@ internal sealed class DocumentController(Word.Application app)
     private static void Write(Word.ContentControl cc, string package, bool block = false)
     {
         cc.LockContents = false;
-        var range = cc.Range;
-        if (block)
+        // Word won't delete a table in a control that can't be deleted (a locked block's output):
+        // that lock is lifted while the block is written.
+        var locked = block && IsLocked(cc);
+        if (locked)
+            cc.LockContentControl = false;
+        try
         {
-            var delete = System.Diagnostics.Stopwatch.GetTimestamp();
-            DeleteTables(range);
-            _deleteTicks += System.Diagnostics.Stopwatch.GetTimestamp() - delete;
+            var range = cc.Range;
+            if (block)
+            {
+                var delete = System.Diagnostics.Stopwatch.GetTimestamp();
+                DeleteTables(range);
+                _deleteTicks += System.Diagnostics.Stopwatch.GetTimestamp() - delete;
+            }
+            var start = System.Diagnostics.Stopwatch.GetTimestamp();
+            range.InsertXML(package);
+            _insertTicks += System.Diagnostics.Stopwatch.GetTimestamp() - start;
         }
-        var start = System.Diagnostics.Stopwatch.GetTimestamp();
-        range.InsertXML(package);
-        _insertTicks += System.Diagnostics.Stopwatch.GetTimestamp() - start;
+        finally
+        {
+            if (locked)
+                cc.LockContentControl = true;
+        }
     }
 
     /// <summary>Time spent in InsertXML and deleting tables during the current <see cref="Draw"/> (Word's thread only), for the log.</summary>
@@ -1303,7 +1375,7 @@ internal sealed class DocumentController(Word.Application app)
         foreach (var cc in CalcpadControls(doc))
         {
             var tag = ControlTag.Parse(cc.Tag)!;
-            if (tag.Kind != ControlKind.Inline || !tag.ShowsSource || cc.ID == activeId)
+            if (tag.Kind != ControlKind.Inline || !tag.ShowsSource || cc.ID == activeId || IsLocked(cc))
                 continue;
 
             var content = cc.Range;
