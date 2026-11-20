@@ -42,10 +42,10 @@ The version is set in `src\Directory.Build.props`. **Public numbering starts at 
 - **Per user, no administrator rights:** the installer, fonts and registration all go to HKCU and `%LOCALAPPDATA%`. The same applies to tools you install while developing; ask first.
 - **Calcpad stays unmodified:** use only its public APIs (`ExpressionParser`, `MacroParser`, `OpenXmlWriter`, `Messages`). Updating it means moving the submodule to a newer commit and running all the tests.
 - **Templates:**
-  - Every new template is a new version, `<Name> vN.dotx`. Never overwrite an earlier version.
+  - Every new template is a new version, `<Name> vN.dotx`. Don't overwrite a version once it's finished; while one is being made, rebuild it in place.
   - The user's hand-adjusted document is the base. Change its XML with a script and keep their positions exactly; don't regenerate it. The base is "Calculation title.docx", from which v2 and v3 were made.
   - New versions go to `templates/dokimos/`. Also copy them to the user's own Dokimos folder, if they have one outside the repository (on the first PC: `Desktop\Alemi Herbert\Dokimos`).
-  - **Only the latest version of each template is on GitHub** (the user, 2026-11-21). When a new version is made, untrack the one it replaces (`git rm --cached`, with its build output and page pictures) and add it to `.gitignore`: it stays on disk, in the Dokimos folder and in git history. Keep the current base document (`Template source\user\v4.docx`).
+  - **Only the latest version of each template is kept** (the user, 2026-11-21: "delete the old versions of templates"). When a new version is finished, delete the one it replaces: in `templates/dokimos/`, its build output and page pictures, its old base document, and its copy in the Dokimos folder. Git history keeps them. Keep the current base document (`Template source\user\v4.docx`) and the user's `Calculation title.docx` in the Dokimos folder.
 - **Dokimos template design (the user's decisions):**
   - A4, 0.6 in margins.
   - Libre Franklin, SemiBold for headings. They rejected Cambria, Bahnschrift and Tahoma.

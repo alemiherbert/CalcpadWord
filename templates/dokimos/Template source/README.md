@@ -6,8 +6,8 @@ Each Word script runs its own hidden Word: your open documents are left alone. E
 
 ## Rules
 
-- Every new template is a new version: `Dokimos Design Calculation vN.dotx`. Never overwrite an earlier one.
-- Only the latest version of each template is on GitHub (2026-11-21). Earlier versions, their pictures and the old base documents (`user\v3.docx` and before) stay on the first PC and in git history; the steps below that use them are a record.
+- Every new template is a new version: `Dokimos Design Calculation vN.dotx`. Don't overwrite a finished one.
+- Only the latest version of each template is kept (2026-11-21): when a new one is finished, the one it replaces is deleted, with its pictures and old base document. Git history keeps them; the steps below that use them are a record.
 - The latest version is the base. When you adjust a document by hand (nudge the logo or pattern), that document becomes the base. Change it; don't regenerate it.
 
 ## How each version was made
