@@ -4,7 +4,7 @@
   are left alone): a value typed, another way of sizing picked, a value that can't work. Logs ok or
   FAIL for each check to OutDir\steps.log.
 #>
-param([Parameter(Mandatory)][string]$OutDir, [int]$Version = 1)
+param([Parameter(Mandatory)][string]$OutDir, [int]$Version = 2)
 . (Join-Path $PSScriptRoot '..\TemplateBuild.ps1')
 $failures = 0
 function Check([string]$what, [bool]$ok) { if (-not $ok) { $script:failures++ }; Step ("{0} {1}" -f $(if ($ok) { 'ok  ' } else { 'FAIL' }), $what) }

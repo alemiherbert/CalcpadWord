@@ -7,7 +7,7 @@
   stresses, the settlement and the stresses in the plane through the centre. See
   ..\TemplateBuild.ps1. Writes steps.log and pid.txt to OutDir, the template and page pictures to out\.
 #>
-param([Parameter(Mandatory)][string]$OutDir, [int]$Version = 1)
+param([Parameter(Mandatory)][string]$OutDir, [int]$Version = 2)
 . (Join-Path $PSScriptRoot '..\TemplateBuild.ps1')
 $name = "Dokimos Soil Stresses and Settlement v$Version"
 try {
@@ -15,12 +15,12 @@ try {
 
     (Tagged 'dokimos:title').Range.Text = 'Soil stresses and settlement'
     (Tagged 'dokimos:codes').Range.Text = 'EN 1997-1, Annex F'
-    [void](ReplaceGuidance 'Scope' @(
+    [void](FillSection 'Scope' @(
         'Stresses and settlement under a rectangular surface load that varies linearly across its width.'))
-    [void](ReplaceGuidance 'Codes and standards' @(
+    [void](FillSection 'Codes and standards' @(
         'EN 1997-1:2004, Annex F.1: settlement by the stress–strain method.',
         'Boussinesq: stresses under a point load on an elastic half-space, integrated over the loaded area.'))
-    [void](ReplaceGuidance 'Assumptions' @(
+    [void](FillSection 'Assumptions' @(
         'Homogeneous, isotropic, linear elastic soil (a half-space); flexible load on the surface.',
         'Settlement from the vertical strain (1 − ν²)·σ/E₀ of the vertical stress σ alone, down to the depth H.'))
 

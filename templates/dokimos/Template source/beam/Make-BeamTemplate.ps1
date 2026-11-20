@@ -3,13 +3,13 @@
   Builds "Dokimos RC Beam Design (EC2) v<N>.dotx" from the Dokimos design calculation template
   and the Calcpad script "RC beam design (EN 1992-1-1).cpd".
 .DESCRIPTION
-  Each section of the script replaces the guidance under its heading and is converted by
+  Each section of the script goes under its heading and is converted by
   Calcpad for Word: text becomes Word paragraphs, calculations inline equations, checks small
   Calcpad blocks, and every "name = ? {default}" a blue input field. Some inputs then become
   drop-down lists. See ..\TemplateBuild.ps1. Writes steps.log and pid.txt to OutDir, the template
   and page pictures to out\.
 #>
-param([Parameter(Mandatory)][string]$OutDir, [int]$Version = 2)
+param([Parameter(Mandatory)][string]$OutDir, [int]$Version = 3)
 . (Join-Path $PSScriptRoot '..\TemplateBuild.ps1')
 $name = "Dokimos RC Beam Design (EC2) v$Version"
 try {
@@ -17,14 +17,14 @@ try {
 
     (Tagged 'dokimos:title').Range.Text = 'Reinforced concrete beam design'
     (Tagged 'dokimos:codes').Range.Text = 'EN 1990, EN 1991-1-1, EN 1992-1-1, EN 1992-1-2'
-    [void](ReplaceGuidance 'Scope' @(
+    [void](FillSection 'Scope' @(
         'Simply supported rectangular RC beam under uniform load, to EN 1992-1-1: cover, fire, bending, shear, cracking and deflection.'))
-    [void](ReplaceGuidance 'Codes and standards' @(
+    [void](FillSection 'Codes and standards' @(
         'EN 1990:2002 + A1:2005: combinations (6.10) and (6.16).',
         'EN 1991-1-1:2002: self-weight and imposed loads.',
         'EN 1992-1-1:2004 + A1:2014: recommended values unless stated.',
         'EN 1992-1-2:2004: tabulated data for beams (5.6).'))
-    [void](ReplaceGuidance 'Assumptions' @(
+    [void](FillSection 'Assumptions' @(
         'Linear elastic analysis without redistribution; shear checked at the support.',
         'Concrete C50/60 or lower; bottom bars in one layer, continued to the supports; vertical links.',
         'Cover for structural class S4, without reductions. Fire on three sides.',

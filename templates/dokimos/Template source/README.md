@@ -16,17 +16,18 @@ Each Word script runs its own hidden Word: your open documents are left alone. E
 | v1 | `build_template.py` writes `out\dokimos-template.docx` (and `out\cover-pattern.svg`) from the styles in `unpacked-1\` (the original document, unpacked). `Finish-Template.ps1` adds the logo (`assets\logo.svg`, from dokimos.net) and the cover pattern, updates the contents, and saves the `.dotx`. |
 | v2 | Your hand-adjusted `user\calculation-title.docx`, with the cover pattern fixed. `Make-Fallback.ps1` has Word make `user\fallback.docx`, which holds the corrected pattern and its PNG fallback. `swap_pattern.py user\calculation-title.docx user\fallback.docx user\calculation-title-fixed.docx` replaces only the pattern's pictures, so positions are kept. |
 | v3 | `make_v3.py user\calculation-title-fixed.docx user\v3.docx` splits the document into three sections: a cover with no footer; contents numbered i, ii; a body numbered 1, 2 ("Sheet x of y" counts body pages only). It removes the footers. `Version-Template.ps1 -OutDir <dir> -In user\v3.docx -Out "user\Dokimos Design Calculation v3.dotx" -Name v3` updates the contents and fields, renders `user\v3-pageN.png`, and saves the `.dotx`. |
+| v4 | No guidance lines: a calculation is assumed to be for submission (the user, 2026-11-20). `make_v4.py user\v3.docx user\v4.docx` turns each guidance placeholder under a heading into an empty paragraph in the same style, and the cover hints into *[Subject]* and *[Design codes]*. Then `Version-Template.ps1 -OutDir <dir> -In user\v4.docx -Out "user\Dokimos Design Calculation v4.dotx" -Name v4`. |
 
-## Making v4
+## Making v5
 
-1. Start from v3: either a document made from it with your changes, or `user\v3.docx`.
-2. Make the change. Edit the XML with a small script like `make_v3.py`, so that everything else stays byte for byte.
-3. Run `Version-Template.ps1 -OutDir <dir> -In <your .docx> -Out "user\Dokimos Design Calculation v4.dotx" -Name v4`.
+1. Start from v4: either a document made from it with your changes, or `user\v4.docx`.
+2. Make the change. Edit the XML with a small script like `make_v4.py`, so that everything else stays byte for byte.
+3. Run `Version-Template.ps1 -OutDir <dir> -In <your .docx> -Out "user\Dokimos Design Calculation v5.dotx" -Name v5`.
 4. Look at the page pictures, then copy the `.dotx` to the folder above.
 
 ## Calculation templates (beam/)
 
-`Dokimos RC Beam Design (EC2) vN.dotx` is the Dokimos design calculation template (v3) with a complete calculation in it. It designs a simply supported rectangular RC beam to EN 1992-1-1. v2 checks:
+`Dokimos RC Beam Design (EC2) vN.dotx` is the Dokimos design calculation template (v4) with a complete calculation in it. It designs a simply supported rectangular RC beam to EN 1992-1-1. v2 checks:
 - cover, from the exposure class (4.4.1);
 - fire resistance (EN 1992-1-2, Table 5.5);
 - bending by K and K′ (6.1);
@@ -41,10 +42,11 @@ A section sketch follows the geometry. Each check ends in a "PASS - …" or "FAI
 |---|---|
 | v1 | Bending, limits, spacing, shear, crack width, span to depth ratio. |
 | v2 | Modelled on Tekla Tedds' "RC beam design (EN1992)" and Calcpad's EC2 examples: cover, fire, K and K′, top bar spacing, minimum steel for cracking, calculated deflection, the sketch, reactions. Tables use Grid Table 1 Light; plots fill the width. The exposure class sets the cover and w_max. Calculates on Recalculate only (automatic calculation off), so input is fast. |
+| v3 | Built on the general template v4: no guidance lines. References is left empty for the designer. |
 
 **Checked against Tedds:** `Check-WithTedds.ps1 -OutDir <dir> [-Recommended]` runs Tedds' own calculation for the default section through its API (Tedds must be installed; it saves Tedds' output as text). The numbers agree. They are in `BeamTemplateTests` (`Agrees_with_Tedds_…`).
 
-**Using it:** fill in the blue fields under Design inputs, by typing a value or picking one from a list, then click Recalculate (Ctrl+Alt+F9). Until then the button reads *Recalculate (out of date)*. To calculate whenever a field is left, tick *Calculate automatically* on the Calcpad tab.
+**Using it:** fill in the blue fields under Design inputs, by typing a value or picking one from a list, then click Calculate (Ctrl+Alt+F9). Until then the button reads *Calculate (out of date)*. To calculate whenever a field is left, tick *Calculate automatically* on the Calcpad tab.
 
 ## Calculation templates (psychrometric/)
 
@@ -54,6 +56,7 @@ A section sketch follows the geometry. Each check ends in a "PASS - …" or "FAI
 |---|---|
 | v1 | Built on the first PC by an earlier script (2026-11-18), with drop-downs for the two properties and a results table. The working was about 20 hidden paragraphs; Calculations showed one sentence. |
 | v2 | Built from `Psychrometric chart.cpd`. The working is hidden; ASHRAE's relations follow as Calcpad equations (formula = result), with their constants in full. Each known property is one line: "[property] = [value]". The chart has a small legend (a coloured line and its words, one per line) and ends the calculation: no results table, which repeated the working. Red messages for pairs that can't fix the air. Calculates on Recalculate only. |
+| v3 | Built on the general template v4: no guidance lines. References is left empty for the designer. |
 
 **Checked:** `PsychrometricTests` compares the standard atmosphere and the saturation pressures with ASHRAE's tables, and the air at 25 °C and 50 % with its chart. It also finds that air again from each of the 19 pairs of properties that fix it.
 
@@ -64,6 +67,7 @@ A section sketch follows the geometry. Each check ends in a "PASS - …" or "FAI
 | Version | What changed |
 |---|---|
 | v1 | Built from `Duct sizing.cpd`. Calculates on Recalculate only. |
+| v2 | Built on the general template v4: no guidance lines. References is left empty for the designer. |
 
 **Checked against DuctSizer:** `DuctTests` holds four of its results (three by friction rate, one by velocity) and its equivalent diameter for 500 × 200 mm. With DuctSizer's roughness the diameters agree within 0.3 % (see PLAN.md, "Duct sizing v1").
 
@@ -74,6 +78,7 @@ A section sketch follows the geometry. Each check ends in a "PASS - …" or "FAI
 | Version | What changed |
 |---|---|
 | v1 | Built from `Soil stresses and settlement.cpd`, after Calcpad's example "Soil stress and deformations" (not named in the document, at the user's request). Calculates on Recalculate only. |
+| v2 | Built on the general template v4: no guidance lines. References is left empty for the designer. |
 
 **Checked:** `SoilTests` against Calcpad's example (9.96 mm), the classical settlement of a flexible rectangle on a deep half-space (12.35 mm for 2 × 3 m at 100 kPa) and Boussinesq's point load far below.
 
@@ -83,11 +88,12 @@ A section sketch follows the geometry. Each check ends in a "PASS - …" or "FAI
   - `name = ? {default}` lines become the input fields.
   - `'<!--section:NAME-->` lines mark where each part goes.
 - **`Make-…Template.ps1 -OutDir <dir> -Version N`** builds `out\<name> vN.dotx`, with `TemplateBuild.ps1` doing the common steps:
-  1. it opens a new document from v3 in a hidden Word;
+  1. it opens a new document from v4 in a hidden Word;
   2. it fills the cover, scope, codes and assumptions, and adjusts the headings if need be;
   3. it puts each part of the script under its heading and lets Calcpad for Word convert it;
   4. it turns some inputs into drop-down lists;
-  5. it recalculates, makes the empty paragraphs after the last block 1 pt (so they never add a blank page), sets the template to calculate on Recalculate only, renders the pages to `out\vN-pageM.png` and saves it.
+  5. it calculates, makes a section left empty (References) plain so no lone bullet prints, makes the empty paragraphs after the last block 1 pt (so they never add a blank page), sets the template to calculate on Calculate only, renders the pages to `out\vN-pageM.png` and saves it.
+- **No guidance lines:** a calculation template is assumed to be for submission, so it holds no instructions to the designer (the user, 2026-11-20).
 - **`Test-…Template.ps1 -OutDir <dir> -Version N`** uses the template as a designer would and logs ok or FAIL for each check.
 - **The unit tests** (`BeamTemplateTests`, `PsychrometricTests`, `DuctTests`, `SoilTests`) read the `.cpd` from here and calculate it without Word.
 - **Inputs with a unit** (`a = ? {2}m`) show it after the field and are tagged with it (`calcpad-input:a:m`).
@@ -101,10 +107,10 @@ A section sketch follows the geometry. Each check ends in a "PASS - …" or "FAI
 
 ## Other scripts
 
-- `Test-Template.ps1 -OutDir <dir>`: makes a new document from v3 in a hidden Word and checks three things:
+- `Test-Template.ps1 -OutDir <dir>`: makes a new document from v4 in a hidden Word and checks three things:
   - the project typed on the cover appears in the sheet header;
-  - typing over the guidance removes it;
-  - a Calcpad line evaluates.
+  - the body holds no guidance, and the cover no hints;
+  - a Calcpad line typed under Geometry converts.
 
   It needs the Calcpad add-in. Change the template path in the script to test a later version.
 - `check_xml.py <files>`: checks that XML files are well-formed.

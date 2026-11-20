@@ -2,12 +2,12 @@
 .SYNOPSIS
   Shared by the scripts that build and test calculation templates (beam\, psychrometric\).
 .DESCRIPTION
-  A calculation template is the Dokimos design calculation template (v3) with a Calcpad script
+  A calculation template is the Dokimos design calculation template (v4) with a Calcpad script
   in it. Dot-source this file, then, inside try / finally:
     Open-Template $OutDir $base $script   # a hidden Word of its own; a new document from $base;
                                           # the script's sections ('<!--section:NAME--> lines)
-    ...  the template's own steps: Tagged, ReplaceGuidance, ConvertSection, Dropdown, ...
-    Save-Template $target $pictures $prefix   # recalculate, calculate on Recalculate only,
+    ...  the template's own steps: Tagged, FillSection, ConvertSection, Dropdown, ...
+    Save-Template $target $pictures $prefix   # calculate, calculate on Calculate only,
                                               # update the contents, page pictures, save
     Close-Template                        # in finally: quits that Word, and stops only it if need be
   Your open documents are left alone. Each step is logged to OutDir\steps.log, and OutDir\pid.txt
@@ -16,7 +16,7 @@
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Drawing
 
-$script:BaseTemplate = (Resolve-Path (Join-Path $PSScriptRoot '..\Dokimos Design Calculation v3.dotx')).Path
+$script:BaseTemplate = (Resolve-Path (Join-Path $PSScriptRoot '..\Dokimos Design Calculation v4.dotx')).Path
 
 function Step([string]$m) { Add-Content -Path $script:log -Value ("{0:HH:mm:ss.fff} {1}" -f (Get-Date), $m) -Encoding UTF8 }
 function Call($obj, [string]$method, [object[]]$arguments = @()) { [System.__ComObject].InvokeMember($method, [Reflection.BindingFlags]::InvokeMethod, $null, $obj, $arguments) }
@@ -85,20 +85,18 @@ function SetText($paragraph, [string]$text) {
     $range.Text = $text
 }
 
-<# Replaces the guidance paragraph after a heading with paragraphs of text (in the guidance's style); returns their range. #>
-function ReplaceGuidance([string]$heading, [string[]]$lines) {
-    $guide = (HeadingParagraph $heading).Next(1)
-    $controls = $guide.Range.ContentControls
-    for ($k = $controls.Count; $k -ge 1; $k--) { $controls.Item($k).Delete($true) }
-    $range = $guide.Range
+<# Fills the empty paragraph after a heading with paragraphs of text (in its style: bullets under Codes and Assumptions); returns their range. #>
+function FillSection([string]$heading, [string[]]$lines) {
+    $body = (HeadingParagraph $heading).Next(1)
+    $range = $body.Range
     [void]$range.MoveEnd(1, -1)
     $range.Text = ($lines -join "`r")
     return $range
 }
 
-<# Puts a section of the script under a heading, in place of its guidance, and lets Calcpad for Word convert it. #>
+<# Puts a section of the script under a heading and lets Calcpad for Word convert it. #>
 function ConvertSection([string]$heading, [string]$section) {
-    $range = ReplaceGuidance $heading $script:sections[$section].ToArray()
+    $range = FillSection $heading $script:sections[$section].ToArray()
     $range.Select()
     $status = Call $script:api 'Evaluate'
     [void](WaitForCalcpad "$heading ($section): $status")
@@ -106,16 +104,14 @@ function ConvertSection([string]$heading, [string]$section) {
 
 function RenameHeading([string]$old, [string]$new) { SetText (HeadingParagraph $old) $new }
 
-<# Removes a heading and the guidance under it. #>
+<# Removes a heading and the empty paragraph under it. #>
 function RemoveHeading([string]$text) {
     $heading = HeadingParagraph $text
-    $guide = $heading.Next(1)
-    $controls = $guide.Range.ContentControls
-    for ($k = $controls.Count; $k -ge 1; $k--) { $controls.Item($k).Delete($true) }
-    $script:doc.Range($heading.Range.Start, $guide.Range.End).Delete() | Out-Null
+    $body = $heading.Next(1)
+    $script:doc.Range($heading.Range.Start, $body.Range.End).Delete() | Out-Null
 }
 
-<# A level-2 heading straight after the heading $after (before its guidance, which then belongs to the new one). #>
+<# A level-2 heading straight after the heading $after (before its empty paragraph, which then belongs to the new one). #>
 function AddHeadingAfter([string]$after, [string]$text) {
     $parent = HeadingParagraph $after
     $parent.Range.InsertParagraphAfter()
@@ -168,14 +164,26 @@ function Save-PagePicture([int]$page, [string]$path) {
 }
 
 <#
-  Finishes a template: recalculates, sets it to calculate on Recalculate only (typing inputs
+  Finishes a template: calculates, sets it to calculate on Calculate only (typing inputs
   stays fast), updates the contents and the sheet numbers, draws each page to
   $pictures\$prefix-pageN.png (replacing older ones) and saves it as $target (.dotx).
 #>
 function Save-Template([string]$target, [string]$pictures, [string]$prefix) {
     $status = Call $script:api 'Recalculate'
-    [void](WaitForCalcpad "recalculated: $status")
-    # The empty paragraphs after the last block (one kept the guidance's shaded style; Word's last
+    [void](WaitForCalcpad "calculated: $status")
+    # A section left for the designer (References) is an empty paragraph: made plain, so that no
+    # lone bullet prints if it stays empty.
+    $previous = $script:doc.Paragraphs.First
+    $p = $previous.Next(1)
+    while ($null -ne $p) {
+        if ($previous.OutlineLevel -le 2 -and $p.Range.ListFormat.ListType -ne 0 -and $p.Range.Text.Trim().Length -eq 0) {
+            $p.Style = -1 # wdStyleNormal
+            Step ("empty section after '{0}' made plain" -f $previous.Range.Text.Trim())
+        }
+        $previous = $p
+        $p = $p.Next(1)
+    }
+    # The empty paragraphs after the last block (one kept the summary's shaded style; Word's last
     # can't go) are made plain and 1 pt, so that they never add a blank page.
     $paragraphs = $script:doc.Paragraphs
     for ($i = $paragraphs.Count; $i -ge 1; $i--) {

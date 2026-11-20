@@ -52,6 +52,7 @@ The version is set in `src\Directory.Build.props`. **Public numbering starts at 
   - A bottom-aligned cover, with the title, details and document control at the foot, and no header or footer.
   - A faint geometric corner pattern at the top right, inside the margins (office printers can't print edge to edge), with triangles on the mesh's 60° lines.
   - Contents numbered i, ii; the body numbered 1, 2 ("Sheet x of y" counts the body only). No footers.
+  - **No guidance lines** (the user, 2026-11-20: "as you assume they are for submission"): no instructions to the designer in a template, and no "e.g." hints on the cover.
   - Brand colours: ink `1C1710`, paper `F7F4EE`, blue `2E63C4`, green `2FA968`.
 - **Calculations:** the user chose Eurocodes (EN 1992-1-1 for the RC beam), with recommended values unless stated. Calcpad's `class="err"` counts as a calculation error, so a failing design must not use it.
   - A check ends in one line, Tedds style, the verdict and the reason in one colour and size: `'<p class="ok">PASS - reason</p>` (green), or `'<p style="color:#C00000;background-color:#FFEEEE">FAIL - reason</p>` (red).
@@ -79,15 +80,15 @@ The version is set in `src\Directory.Build.props`. **Public numbering starts at 
   - **input fields** (form fields that set variables: reusable templates);
   - **one-file Setup:** the add-in, Calcpad's engine, a private .NET runtime started by the native loader DLL, and the fonts. It needs no .NET and no administrator rights.
 - **Templates:**
-  - `Dokimos Design Calculation v3.dotx` is the general template.
-  - `Dokimos Psychrometric Chart v2.dotx`: moist air from two known properties (ASHRAE Fundamentals ch. 1) with a chart, built from `psychrometric\Psychrometric chart.cpd` and checked against ASHRAE's tables (`PsychrometricTests`). v1 was built on the first PC by an earlier script (2026-11-18) and is kept.
-  - `Dokimos Duct Sizing v1.dotx`: replaces McQuay's DuctSizer (`D:\ductsizer\ductsizer\DuctSizer.exe`, runs on this PC). Round and rectangular ducts by friction rate, velocity or diameter (ASHRAE Fundamentals ch. 21), built from `duct\Duct sizing.cpd` and checked against DuctSizer (`DuctTests`). DuctSizer uses a roughness of about 0.21 mm; the template's default is ASHRAE's 0.09 mm.
-  - `Dokimos Soil Stresses and Settlement v1.dotx`: Boussinesq stresses and settlement under a rectangular load varying across its width (after Calcpad's soil example), built from `soil\Soil stresses and settlement.cpd` and checked in `SoilTests`. About 7 s to calculate.
+  - `Dokimos Design Calculation v4.dotx` is the general template: v3 without guidance lines (2026-11-20). The calculation templates below are built on it; earlier versions are kept.
+  - `Dokimos Psychrometric Chart v3.dotx`: moist air from two known properties (ASHRAE Fundamentals ch. 1) with a chart, built from `psychrometric\Psychrometric chart.cpd` and checked against ASHRAE's tables (`PsychrometricTests`). v1 was built on the first PC by an earlier script (2026-11-18) and is kept.
+  - `Dokimos Duct Sizing v2.dotx`: replaces McQuay's DuctSizer (`D:\ductsizer\ductsizer\DuctSizer.exe`, runs on this PC). Round and rectangular ducts by friction rate, velocity or diameter (ASHRAE Fundamentals ch. 21), built from `duct\Duct sizing.cpd` and checked against DuctSizer (`DuctTests`). DuctSizer uses a roughness of about 0.21 mm; the template's default is ASHRAE's 0.09 mm.
+  - `Dokimos Soil Stresses and Settlement v2.dotx`: Boussinesq stresses and settlement under a rectangular load varying across its width (after Calcpad's soil example), built from `soil\Soil stresses and settlement.cpd` and checked in `SoilTests`. About 7 s to calculate.
   - Templates don't say where their calculation came from (the user, 2026-11-20).
   - Calculation templates share `Template source\TemplateBuild.ps1` (hidden Word, sections, drop-downs, save).
-  - `Dokimos RC Beam Design (EC2) v2.dotx` is the current beam calculation, modelled on Tedds and Calcpad's examples. It covers cover, fire, bending, limits, spacing, shear, crack control and deflection (by ratio and by calculation), with a sketch and a summary. It is cross-checked against Tedds. v1 is kept. It needs add-in 0.1.0 or later; built on the second PC with the internal 0.8.0 plus the block output changes.
+  - `Dokimos RC Beam Design (EC2) v3.dotx` is the current beam calculation, modelled on Tedds and Calcpad's examples. It covers cover, fire, bending, limits, spacing, shear, crack control and deflection (by ratio and by calculation), with a sketch and a summary. It is cross-checked against Tedds. v1 and v2 are kept (v2 was built on the second PC). It needs add-in 0.1.0 or later.
   - All are built and tested by the scripts in `templates/dokimos/Template source/`.
-- **First PC:** the original PC, with Office Professional Plus 2019 (Word 16.0.10417), not Microsoft 365. Add-in 0.1.0 is installed from Setup, rebuilt 2026-11-20 with the SVG drawing fix (PLAN.md, "Calcpad engine findings"). The Tedds Engineering Library isn't installed or licensed here. Git reaches GitHub over SSH with `~\.ssh\id_ed25519` (2026-11-20).
+- **First PC:** the original PC, with Office Professional Plus 2019 (Word 16.0.10417), not Microsoft 365. Add-in 0.1.0 is installed from Setup, rebuilt 2026-11-20 with the SVG drawing fix (PLAN.md, "Calcpad engine findings") and again on 2026-11-21 with the renamed buttons (Calculate, Convert to Calcpad) and edited source that closes when left in manual mode; not yet released or committed. The Tedds Engineering Library isn't installed or licensed here. Git reaches GitHub over SSH with `~\.ssh\id_ed25519` (2026-11-20).
 - **Second PC (2026-11-18):** the project arrived as a zip. Python and git are also in WSL; use Windows git for this repo. Word is Microsoft 365 x64. Add-in 0.8.0 is installed here.
 - **Open:**
   - An intermittent hang of the hidden test Word after the first background draw ("Open issue" in PLAN.md).

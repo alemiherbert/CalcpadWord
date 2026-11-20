@@ -8,7 +8,7 @@
   ..\TemplateBuild.ps1. Writes steps.log and pid.txt to OutDir, the template and page pictures
   to out\.
 #>
-param([Parameter(Mandatory)][string]$OutDir, [int]$Version = 2)
+param([Parameter(Mandatory)][string]$OutDir, [int]$Version = 3)
 . (Join-Path $PSScriptRoot '..\TemplateBuild.ps1')
 $name = "Dokimos Psychrometric Chart v$Version"
 try {
@@ -16,11 +16,11 @@ try {
 
     (Tagged 'dokimos:title').Range.Text = 'Psychrometric chart'
     (Tagged 'dokimos:codes').Range.Text = 'ASHRAE Handbook – Fundamentals, chapter 1'
-    [void](ReplaceGuidance 'Scope' @(
+    [void](FillSection 'Scope' @(
         'Properties of moist air from two known properties, at the standard atmospheric pressure of the site, with a psychrometric chart.'))
-    [void](ReplaceGuidance 'Codes and standards' @(
+    [void](FillSection 'Codes and standards' @(
         'ASHRAE Handbook – Fundamentals (SI), chapter 1, Psychrometrics: standard atmosphere, saturation pressure (Hyland and Wexler), moist air relations.'))
-    [void](ReplaceGuidance 'Assumptions' @(
+    [void](FillSection 'Assumptions' @(
         'Moist air is an ideal-gas mixture of dry air and water vapour, at the standard atmospheric pressure for the altitude.',
         'Thermodynamic wet-bulb temperature; saturation over ice below 0 °C.',
         'Chart from 0 to 50 °C and up to 30 g/kg dry air, widened in steps of 5 to show the air.'))

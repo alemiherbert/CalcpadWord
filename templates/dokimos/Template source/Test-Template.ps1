@@ -15,7 +15,7 @@ try {
     $word.Visible = $false
     $word.DisplayAlerts = 0
     $api = $word.COMAddIns.Item('CalcpadWord.Connect').Object
-    $template = [string](Join-Path $here 'user\Dokimos Design Calculation v3.dotx')
+    $template = [string](Join-Path $here 'user\Dokimos Design Calculation v4.dotx')
     $doc = Call $word.Documents 'Add' @($template)
     Step "new document from template: $($doc.Name), attached template: $($doc.AttachedTemplate.Name)"
     # Fill the project once, on the cover.
@@ -23,18 +23,21 @@ try {
     $project.Range.Text = 'Kampala Northern Bypass'
     $headerText = $doc.Sections.Item($doc.Sections.Count).Headers.Item(1).Range.Text
     Step ("header shows the project: " + ($headerText -match 'Kampala Northern Bypass'))
-    # Type a Calcpad line where the Geometry guidance is, and evaluate it.
-    $guide = $null
-    for ($i = 1; $i -le $doc.ContentControls.Count; $i++) { $c = $doc.ContentControls.Item($i); if ($c.Range.Text -like 'Dimensions and section properties*') { $guide = $c } }
-    $range = $guide.Range
-    $range.Text = 'L = 6m'
-    Step ("guidance removed on typing: " + (@(1..$doc.ContentControls.Count | ForEach-Object { $doc.ContentControls.Item($_) } | Where-Object { $_.Range.Text -like 'Dimensions and section*' }).Count -eq 0))
-    $p = @(1..$doc.Paragraphs.Count | ForEach-Object { $doc.Paragraphs.Item($_) } | Where-Object { $_.Range.Text -match '^L = 6m' })[0]
+    # No guidance: the body holds only headings, each followed by an empty paragraph to type in.
+    $body = @(); $p = $doc.Paragraphs.First
+    while ($null -ne $p) { if ($body.Count -gt 0 -or ($p.OutlineLevel -eq 1 -and $p.Range.Text.Trim() -eq 'Scope')) { $body += $p }; $p = $p.Next(1) }
+    $text = @($body | Where-Object { $_.OutlineLevel -gt 2 -and $_.Range.Text.Trim().Length -gt 0 })
+    Step ("no guidance in the body ({0} headings): {1}" -f @($body | Where-Object { $_.OutlineLevel -le 2 }).Count, ($text.Count -eq 0))
+    Step ("cover hints gone: " + ($doc.Content.Text -notmatch 'e\.g\.|Subject:'))
+    # Type a Calcpad line under Geometry, and convert it.
+    $geometry = @($body | Where-Object { $_.Range.Text.Trim() -eq 'Geometry' })[0]
+    $p = $geometry.Next(1)
+    $range = $p.Range; [void]$range.MoveEnd(1, -1); $range.Text = 'L = 6m'
     $p.Range.Select()
-    Step ("Evaluate -> " + (Call $api 'Evaluate'))
+    Step ("Convert to Calcpad -> " + (Call $api 'Evaluate'))
     Step ("paragraph now: style=$($p.Style.NameLocal) maths=$($p.Range.OMaths.Count)")
     $window = $doc.ActiveWindow; $window.View.Type = 3
-    $page = $window.ActivePane.Pages.Item(3)
+    $page = $window.ActivePane.Pages.Item($window.ActivePane.Pages.Count)
     $emf = Join-Path $here 'out\test-page3.emf'; [IO.File]::WriteAllBytes($emf, [byte[]]$page.EnhMetaFileBits)
     $mf = New-Object System.Drawing.Imaging.Metafile($emf); $bmp = New-Object System.Drawing.Bitmap(1400, [int]($mf.Height * 1400.0 / $mf.Width))
     $g = [System.Drawing.Graphics]::FromImage($bmp); $g.Clear([System.Drawing.Color]::White); $g.DrawImage($mf, 0, 0, $bmp.Width, $bmp.Height)

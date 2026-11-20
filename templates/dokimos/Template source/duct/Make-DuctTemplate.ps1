@@ -7,7 +7,7 @@
   calculations get the air properties, the round duct and the rectangular duct. See
   ..\TemplateBuild.ps1. Writes steps.log and pid.txt to OutDir, the template and page pictures to out\.
 #>
-param([Parameter(Mandatory)][string]$OutDir, [int]$Version = 1)
+param([Parameter(Mandatory)][string]$OutDir, [int]$Version = 2)
 . (Join-Path $PSScriptRoot '..\TemplateBuild.ps1')
 $name = "Dokimos Duct Sizing v$Version"
 try {
@@ -15,11 +15,11 @@ try {
 
     (Tagged 'dokimos:title').Range.Text = 'Duct sizing'
     (Tagged 'dokimos:codes').Range.Text = 'ASHRAE Handbook – Fundamentals, chapter 21'
-    [void](ReplaceGuidance 'Scope' @(
+    [void](FillSection 'Scope' @(
         'Round and rectangular air duct for a given airflow, sized by friction rate, velocity or diameter.'))
-    [void](ReplaceGuidance 'Codes and standards' @(
+    [void](FillSection 'Codes and standards' @(
         'ASHRAE Handbook – Fundamentals (SI), chapter 21, Duct design: Darcy–Weisbach and Colebrook, duct roughness, equivalent diameter of rectangular ducts (Huebscher); chapter 1: standard atmosphere.'))
-    [void](ReplaceGuidance 'Assumptions' @(
+    [void](FillSection 'Assumptions' @(
         'Dry air at the standard atmospheric pressure of the site; humidity changes the density by less than 1 %.',
         'Straight duct with fully developed turbulent flow; fittings are not included.'))
 
