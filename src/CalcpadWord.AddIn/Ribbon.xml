@@ -4,30 +4,30 @@
       <!-- KeyTips: Alt, C, P, then the letter. Shortcuts are handled by the add-in (KeyboardShortcuts.cs). -->
       <tab id="CalcpadTab" label="Calcpad" keytip="CP">
         <group id="CalculateGroup" label="Calculate">
-          <button id="Evaluate" label="Evaluate" size="large" imageMso="FunctionWizard" keytip="E"
-                  onAction="OnEvaluate"
-                  screentip="Evaluate (Alt+Shift+Enter)"
-                  supertip="Turns the selected text, or the current paragraph, into a Calcpad expression and shows its result. Each selected paragraph becomes one expression. Text written as {= ... } anywhere in the document is picked up too. With the keyboard shortcut on a result, it shows the source instead." />
           <button id="Recalculate" getLabel="GetRecalculateLabel" size="large" imageMso="CalculateNow" keytip="R"
                   onAction="OnRecalculate"
-                  screentip="Recalculate document (Ctrl+Alt+F9)"
-                  supertip="Recalculates every Calcpad expression: main text first, then text boxes, notes, headers and footers. Later expressions use variables defined earlier." />
+                  screentip="Calculate (Ctrl+Alt+F9)"
+                  supertip="Calculates every Calcpad expression in the document: main text first, then text boxes, notes, headers and footers. Later expressions use variables defined earlier. Text written as {= ... } is picked up too." />
+          <button id="Evaluate" label="Convert to Calcpad" size="large" imageMso="FunctionWizard" keytip="E"
+                  onAction="OnEvaluate"
+                  screentip="Convert to Calcpad (Alt+Shift+Enter)"
+                  supertip="Turns the selected text, or the current paragraph, into Calcpad, then calculates. Each paragraph becomes one expression. A pasted Calcpad script becomes Word headings and text, with its calculations in Calcpad. With the keyboard shortcut on a result, it shows the source instead." />
           <button id="MakeBlock" label="Calcpad Block" size="large" imageMso="ContentControlRichText" keytip="B"
                   onAction="OnMakeBlock"
                   screentip="Calcpad block"
-                  supertip="Keeps the selected paragraphs (or the current one) together as one multi-line Calcpad script, drawn by Calcpad: comments, headings, #if, loops, macros, plots and tables. On an empty line it starts an empty block to type into. You can also type a line with only {= , the script, and a line with only } . (Evaluate on a pasted script instead turns its headings and text into Word paragraphs.)" />
+                  supertip="Keeps the selected paragraphs (or the current one) together as one multi-line Calcpad script, drawn by Calcpad: comments, headings, #if, loops, macros, plots and tables. On an empty line it starts an empty block to type into. You can also type a line with only {= , the script, and a line with only } . (Convert to Calcpad on a pasted script instead turns its headings and text into Word paragraphs.)" />
           <button id="BlockToText" label="Block to Text" size="large" imageMso="ContentControlText" keytip="T"
                   onAction="OnConvertBlock"
                   screentip="Convert block to Word text"
-                  supertip="Replaces the Calcpad block at the cursor with Word content: its headings and text become Word paragraphs with the values inline, and only plots, tables and #if/loops stay in Calcpad blocks. Evaluate does this by itself when you paste a Calcpad script." />
+                  supertip="Replaces the Calcpad block at the cursor with Word content: its headings and text become Word paragraphs with the values inline, and only plots, tables and #if/loops stay in Calcpad blocks. Convert to Calcpad does this by itself when you paste a Calcpad script." />
           <button id="EditSource" label="Edit Source" size="large" imageMso="EquationLinearFormat" keytip="D"
                   onAction="OnEditSource"
                   screentip="Edit source (or double-click a result)"
-                  supertip="Shows the Calcpad source of the result at the cursor so you can change it. Click outside it, or press Alt+Shift+Enter, to evaluate." />
+                  supertip="Shows the Calcpad source of the result at the cursor so you can change it. Click outside it, or press Alt+Shift+Enter, to calculate." />
           <button id="CancelCalculation" label="Cancel" size="large" imageMso="Cancel" keytip="C"
                   onAction="OnCancel" getEnabled="GetCancelEnabled"
                   screentip="Cancel calculation (Esc)"
-                  supertip="Stops a calculation running in the background, or a math font being downloaded. Results already in the document keep their old values; Recalculate calculates them again. Esc does the same while a calculation runs." />
+                  supertip="Stops a calculation running in the background, or a math font being downloaded. Results already in the document keep their old values; Calculate calculates them again. Esc does the same while a calculation runs." />
         </group>
         <group id="ErrorsGroup" label="Errors">
           <dynamicMenu id="ErrorList" size="large" imageMso="TraceError" keytip="L"
@@ -43,7 +43,7 @@
         <group id="SettingsGroup" label="Document settings">
           <checkBox id="Automatic" label="Calculate automatically" keytip="U"
                     getPressed="GetAutomaticPressed" onAction="OnAutomaticChanged"
-                    supertip="On: leaving a changed input or expression recalculates. Off: nothing calculates until you click Recalculate (Ctrl+Alt+F9), which then reads Recalculate (out of date), so typing inputs is fast. Saved with the document: a template can start with it off." />
+                    supertip="On: leaving a changed input recalculates. Off: a changed input calculates nothing until you click Calculate (Ctrl+Alt+F9), which then reads Calculate (out of date), so typing inputs is fast. An edited expression is calculated when you leave it either way. Saved with the document: a template can start with it off." />
           <dropDown id="Decimals" label="Decimals" keytip="N" sizeString="00"
                     getSelectedItemIndex="GetDecimalsIndex" onAction="OnDecimalsChanged"
                     supertip="Number of decimals in results. Calcpad keeps significant figures for small values.">

@@ -22,7 +22,7 @@ The setup is not code-signed, so on another computer Windows SmartScreen may war
 
 ## Using it
 
-**Pasting a Calcpad script:** paste it into Word, select it and press **Evaluate**. The script becomes Word content:
+**Pasting a Calcpad script:** paste it into Word, select it and press **Convert to Calcpad**. The script becomes Word content:
 
 | In the script | In Word |
 |---|---|
@@ -41,15 +41,15 @@ A few keywords can't be reproduced this way: `#md`, `#format`, `#split`, `#phaso
 
 **Input fields make reusable templates.** An input field is an ordinary Word content control (plain text, combo box or drop-down list) that sets a Calcpad variable where it stands. Whoever uses the document types a number, or picks an item, and never sees Calcpad syntax.
 - **Recalculation:** leaving a changed field recalculates the document.
-- **Making fields:** write `name = ? {default}` in a Calcpad script and Evaluate it. Calcpad's older saved values, after the script, also fill fields that have no default. A field's tag is `calcpad-input:name`, so you can also make one by hand (Developer tab → Plain Text Content Control → Properties → Tag).
+- **Making fields:** write `name = ? {default}` in a Calcpad script and convert it (Convert to Calcpad). Calcpad's older saved values, after the script, also fill fields that have no default. A field's tag is `calcpad-input:name`, so you can also make one by hand (Developer tab → Plain Text Content Control → Properties → Tag).
 - **Units:** with `calcpad-input:name:unit` a bare number gets the unit, e.g. `calcpad-input:L:m`. Without a unit only a number is accepted, as in Calcpad's own unitless templates.
 - **Drop-down lists:** each item's *value* is the number the calculation uses, and its *display name* is what you see. For example, *C30/37* has the value 30, which sets f_ck. Values must be unique in a list, so write 0.3 and 0.30 if two items mean the same.
 - **Wrong entries:** a value that isn't a number (a typo, or `0,85` with a comma) is shaded red. It is listed under **Errors** with a message such as "b: enter a number". Everything that doesn't depend on it still calculates.
 - **Inside a Calcpad block** an input can't be a form field, so it keeps its default as an ordinary assignment.
 
 **Writing your own expressions:**
-- **Select and evaluate.** Type formulas, select them (or put the cursor in one), and press **Evaluate**. Each paragraph becomes one expression.
-- **Inline `{= … }`.** Write `{= expression }` anywhere in a sentence. It is picked up on the next Evaluate or Recalculate.
+- **Select and convert.** Type formulas, select them (or put the cursor in one), and press **Convert to Calcpad**. Each paragraph becomes one expression.
+- **Inline `{= … }`.** Write `{= expression }` anywhere in a sentence. It is picked up on the next Calculate.
 
 ```
 L = 6m
@@ -74,12 +74,12 @@ Rules for blocks:
 
 | Ribbon (Calcpad tab) | Shortcut | What it does |
 |---|---|---|
-| Evaluate | **Alt+Shift+Enter** | Turns the selection into Calcpad (see above), then recalculates. On a result, the shortcut shows its source instead |
-| Recalculate | **Ctrl+Alt+F9** | Recalculates everything: main text, text boxes, footnotes and endnotes, then headers and footers |
+| Calculate | **Ctrl+Alt+F9** | Calculates everything: main text, text boxes, footnotes and endnotes, then headers and footers |
+| Convert to Calcpad | **Alt+Shift+Enter** | Turns the selection (or the current paragraph) into Calcpad (see above), then calculates. On a result, the shortcut shows its source instead |
 | Calcpad Block | | Keeps the selected paragraphs (or an empty line) together as one block |
 | Block to Text | right-click a block | Turns a block into Word text, as for a pasted script |
-| Edit Source | **double-click** a result, or right-click → **Edit Calcpad Source** | Shows the source so you can change it. **Click outside to evaluate** |
-| Cancel | **Esc**, while a calculation runs | Stops a background calculation or a math font download. Results keep their old values until you recalculate |
+| Edit Source | **double-click** a result, or right-click → **Edit Calcpad Source** | Shows the source so you can change it. **Click outside to calculate** |
+| Cancel | **Esc**, while a calculation runs | Stops a background calculation or a math font download. Results keep their old values until you calculate again |
 | Errors (n) | | Lists what failed. Pick one to go to it |
 | Next Error | **Ctrl+Alt+F8** | Moves to the next error and shows its message in the status bar |
 | Math font | | The font of every equation in this document (see below) |
@@ -122,23 +122,23 @@ Setup installs all the free fonts. If one has been removed since, the list marks
 
 **Long calculations run in the background.** If Calcpad takes more than a quarter of a second, Word stays usable. The status bar says *calculating…* and the results appear when they are ready.
 - If you change Calcpad text meanwhile, it calculates again.
-- A newer Evaluate or Recalculate replaces the running one.
+- A newer calculation replaces the running one.
 - **Cancel** (or **Esc**) stops it. Esc is only taken from Word while a calculation runs.
-- **Results that may change are greyed meanwhile:** a light grey background, washed-out plots, and *Out of date:* in front of their title. Only results from the first new or edited expression on are greyed, since the worksheet runs top to bottom. When the results come in, the grey goes. A result that turned out unchanged is not redrawn: only its grey is removed. After **Cancel** the grey stays, also in the saved document, until the next Recalculate.
+- **Results that may change are greyed meanwhile:** a light grey background, washed-out plots, and *Out of date:* in front of their title. Only results from the first new or edited expression on are greyed, since the worksheet runs top to bottom. When the results come in, the grey goes. A result that turned out unchanged is not redrawn: only its grey is removed. After **Cancel** the grey stays, also in the saved document, until the next Calculate.
 - Results that arrive late are one Undo step of their own.
 - Calcpad is loaded when Word starts, so the first calculation isn't slowed down.
 
-**Calculate automatically** (Document settings) is on by default: leaving a changed input field or expression recalculates. Turn it off for fast input. Leaving a field then changes nothing on the page, and the Recalculate button reads *Recalculate (out of date)* until you click it (Ctrl+Alt+F9). The setting is saved with the document, so a template can start with it off, as the Dokimos beam template does.
+**Calculate automatically** (Document settings) is on by default: leaving a changed input field or expression recalculates. Turn it off for fast input. Leaving a field then changes nothing on the page, and the Calculate button reads *Calculate (out of date)* until you click it (Ctrl+Alt+F9). An expression whose source you opened is still calculated when you leave it, so it never stays open. The setting is saved with the document, so a template can start with it off, as the Dokimos beam template does.
 
 How the add-in behaves:
-- **Results are read-only.** Double-click one (or use Edit Source) to change it. When you click outside, it is evaluated again, along with everything after it.
+- **Results are read-only.** Double-click one (or use Edit Source) to change it. When you click outside, it is calculated again, along with everything after it.
 - **Keys while editing an expression's source:**
   - **Shift+Enter** adds another expression line.
-  - **Enter** works like normal Word: it finishes, evaluates, and moves on to a new paragraph.
+  - **Enter** works like normal Word: it finishes, calculates, and moves on to a new paragraph.
   - Inside a block's script, both keys add lines.
 - **Errors** turn into red, editable source. The message shows as the control's title and in the status bar. Fix the text and click outside.
 - **Copy and paste.** A copied result keeps its source, even into another document.
-- **Undo.** One Undo reverts a whole Evaluate or Recalculate.
+- **Undo.** One Undo reverts a whole Convert to Calcpad or Calculate.
 - **Small and large numbers** show as 5.7 × 10⁻⁹: the × sits on the line and the exponent has a real minus sign. Calcpad itself writes a raised × and a hyphen.
 - **Word's typing substitutions are undone automatically:** en dashes become minus signs, ½ becomes (1/2), and smart quotes and non-breaking spaces are straightened.
 

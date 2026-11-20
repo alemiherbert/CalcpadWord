@@ -35,7 +35,7 @@ public sealed class Connect : IDTExtensibility2, IRibbonExtensibility
     ];
 
     private static readonly string[] ContextItemIds =
-        [.. ContextMenus.SelectMany(menu => new[] { $"CalcpadEditSource_{menu}", $"CalcpadEvaluate_{menu}", $"CalcpadBlockToText_{menu}" })];
+        [.. ContextMenus.SelectMany(menu => new[] { $"CalcpadEditSource_{menu}", $"CalcpadCalculate_{menu}", $"CalcpadBlockToText_{menu}" })];
 
     private Word.Application? _app;
     private DocumentController? _controller;
@@ -68,8 +68,8 @@ public sealed class Connect : IDTExtensibility2, IRibbonExtensibility
             _events.Start();
             _keys = new KeyboardShortcuts(
             [
-                new(KeyboardShortcuts.Evaluate, () => Run("Evaluate", () => Controller.EvaluateOrEditSource())),
-                new(KeyboardShortcuts.Recalculate, () => Run("Recalculate", () => Controller.Recalculate())),
+                new(KeyboardShortcuts.Evaluate, () => Run("Convert", () => Controller.EvaluateOrEditSource())),
+                new(KeyboardShortcuts.Recalculate, () => Run("Calculate", () => Controller.Recalculate())),
                 new(KeyboardShortcuts.NextError, () => Run("Next Error", () => Controller.NextError())),
                 // Enter in an expression finishes it; Shift+Enter (Word's line break) adds another.
                 new(KeyboardShortcuts.Enter, () => Run("Enter", () => { PressEnterCore(); return string.Empty; }), Claims: () => _enterLeavesControl),
@@ -114,7 +114,7 @@ public sealed class Connect : IDTExtensibility2, IRibbonExtensibility
         return reader.ReadToEnd().Replace("<!--CONTEXT_MENUS-->", ContextMenusXml(), StringComparison.Ordinal);
     }
 
-    /// <summary>"Edit Calcpad Source" on results and "Evaluate Calcpad" on source text, in each right-click menu.</summary>
+    /// <summary>"Edit Calcpad Source" on results and "Calculate Calcpad" on source text, in each right-click menu.</summary>
     private static string ContextMenusXml()
     {
         var sb = new StringBuilder("<contextMenus>");
@@ -123,8 +123,8 @@ public sealed class Connect : IDTExtensibility2, IRibbonExtensibility
             sb.Append($"<contextMenu idMso=\"{menu}\">")
               .Append($"<button id=\"CalcpadEditSource_{menu}\" tag=\"edit\" label=\"Edit Calcpad Source\" imageMso=\"EquationLinearFormat\" ")
               .Append("onAction=\"OnEditSource\" getVisible=\"GetContextItemVisible\" />")
-              .Append($"<button id=\"CalcpadEvaluate_{menu}\" tag=\"evaluate\" label=\"Evaluate Calcpad\" imageMso=\"FunctionWizard\" ")
-              .Append("onAction=\"OnEvaluate\" getVisible=\"GetContextItemVisible\" />")
+              .Append($"<button id=\"CalcpadCalculate_{menu}\" tag=\"calculate\" label=\"Calculate Calcpad\" imageMso=\"CalculateNow\" ")
+              .Append("onAction=\"OnRecalculate\" getVisible=\"GetContextItemVisible\" />")
               .Append($"<button id=\"CalcpadBlockToText_{menu}\" tag=\"block\" label=\"Convert Calcpad Block to Word Text\" imageMso=\"ContentControlText\" ")
               .Append("onAction=\"OnConvertBlock\" getVisible=\"GetContextItemVisible\" />")
               .Append("</contextMenu>");
@@ -136,9 +136,9 @@ public sealed class Connect : IDTExtensibility2, IRibbonExtensibility
 
     public void OnRibbonLoad(IRibbonUI ribbon) => _ribbon = ribbon;
 
-    public void OnEvaluate(IRibbonControl control) => Run("Evaluate", () => Controller.Evaluate());
+    public void OnEvaluate(IRibbonControl control) => Run("Convert", () => Controller.Evaluate());
 
-    public void OnRecalculate(IRibbonControl control) => Run("Recalculate", () => Controller.Recalculate());
+    public void OnRecalculate(IRibbonControl control) => Run("Calculate", () => Controller.Recalculate());
 
     public void OnEditSource(IRibbonControl control) => Run("Edit Source", () => Controller.ToggleEditSource());
 
@@ -174,7 +174,7 @@ public sealed class Connect : IDTExtensibility2, IRibbonExtensibility
         return sb.Append("</menu>").ToString();
     }
 
-    /// <summary>Right-click menu: Edit Source on a result, Evaluate on source text, nothing elsewhere.</summary>
+    /// <summary>Right-click menu: Edit Source on a result, Calculate on source text, nothing elsewhere.</summary>
     public bool GetContextItemVisible(IRibbonControl control)
     {
         if (control.Tag == "block")
@@ -184,7 +184,7 @@ public sealed class Connect : IDTExtensibility2, IRibbonExtensibility
         return control.Tag switch
         {
             "edit" => kind == CalcpadKind.Result,
-            "evaluate" => kind == CalcpadKind.Source,
+            "calculate" => kind == CalcpadKind.Source,
             _ => false,
         };
     }
@@ -247,11 +247,11 @@ public sealed class Connect : IDTExtensibility2, IRibbonExtensibility
 
     public bool GetAutomaticPressed(IRibbonControl control) => SafeSettings().Automatic;
 
-    /// <summary>"Recalculate", or a reminder when the results are out of date (automatic calculation off).</summary>
+    /// <summary>"Calculate", or a reminder when the results are out of date (automatic calculation off).</summary>
     public string GetRecalculateLabel(IRibbonControl control)
     {
-        try { return _controller?.IsOutOfDate() == true ? "Recalculate (out of date)" : "Recalculate"; }
-        catch (COMException) { return "Recalculate"; }
+        try { return _controller?.IsOutOfDate() == true ? "Calculate (out of date)" : "Calculate"; }
+        catch (COMException) { return "Calculate"; }
     }
 
     public void OnAutomaticChanged(IRibbonControl control, bool pressed) =>
@@ -346,7 +346,7 @@ public sealed class Connect : IDTExtensibility2, IRibbonExtensibility
         UiThread.Post(() =>
         {
             if (IsOpen(doc))
-                Run("Evaluate", () => Controller.AfterExit(doc, cc));
+                Run("Calculate", () => Controller.AfterExit(doc, cc));
         }, key: "evaluate-after-exit");
     }
 
@@ -373,16 +373,26 @@ public sealed class Connect : IDTExtensibility2, IRibbonExtensibility
         return "typed";
     }
 
-    private void RefreshCursorState()
+    /// <summary>Word refuses most calls during some events, such as a document closing.</summary>
+    private const int NotAvailableInThisEvent = unchecked((int)0x800A1835);
+
+    private void RefreshCursorState() => RefreshCursorState(retried: false);
+
+    private void RefreshCursorState(bool retried)
     {
         try
         {
             _enterLeavesControl = _app is not null && _controller is not null && _app.Documents.Count > 0 &&
                                   _controller.EnterLeavesControlAt(_app.Selection.Range);
         }
+        catch (COMException ex) when (ex.ErrorCode == NotAvailableInThisEvent && !retried)
+        {
+            _enterLeavesControl = false; // never take Enter when unsure; look again once the event is over
+            UiThread.Post(() => RefreshCursorState(retried: true), key: "refresh-cursor-state");
+        }
         catch (Exception ex)
         {
-            _enterLeavesControl = false; // never take Enter when unsure
+            _enterLeavesControl = false;
             Log.Error("Checking the cursor position failed", ex);
         }
     }

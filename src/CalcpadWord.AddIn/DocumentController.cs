@@ -50,7 +50,7 @@ internal sealed class DocumentController(Word.Application app)
     public string Evaluate()
     {
         var doc = ActiveDocument();
-        using var undo = new UndoScope(app, "Calcpad Evaluate");
+        using var undo = new UndoScope(app, "Calcpad Convert");
         var selection = app.Selection.Range;
         var note = string.Empty;
         if (FindCalcpadControl(selection) is null)
@@ -145,7 +145,7 @@ internal sealed class DocumentController(Word.Application app)
         _busy = true;
         try
         {
-            ShowSource(cc, string.Empty, TextLook.Source, "Calcpad block: type the script, then click outside it to evaluate",
+            ShowSource(cc, string.Empty, TextLook.Source, "Calcpad block: type the script, then click outside it to calculate",
                 ControlState.Editing, string.Empty);
             PlaceCursorAtEnd(cc);
         }
@@ -153,7 +153,7 @@ internal sealed class DocumentController(Word.Application app)
         {
             _busy = false;
         }
-        return "Type the Calcpad script in the block, one statement per line. Click outside it to evaluate.";
+        return "Type the Calcpad script in the block, one statement per line. Click outside it to calculate.";
     }
 
     public string Recalculate() => Recalculate(ActiveDocument(), keepActiveSource: false);
@@ -164,7 +164,7 @@ internal sealed class DocumentController(Word.Application app)
     /// </param>
     public string Recalculate(Word.Document doc, bool keepActiveSource)
     {
-        using var undo = new UndoScope(app, "Calcpad Recalculate");
+        using var undo = new UndoScope(app, "Calcpad Calculate");
         return RecalculateCore(doc, keepActiveSource);
     }
 
@@ -185,8 +185,8 @@ internal sealed class DocumentController(Word.Application app)
         {
             ShowSource(cc, tag.Source, TextLook.Source,
                 tag.Kind == ControlKind.Block
-                    ? "Calcpad block: click outside to evaluate"
-                    : "Calcpad source: Enter or click outside to evaluate; Shift+Enter adds an expression",
+                    ? "Calcpad block: click outside to calculate"
+                    : "Calcpad source: Enter or click outside to calculate; Shift+Enter adds an expression",
                 ControlState.Editing, string.Empty);
             PlaceCursorAtEnd(cc);
         }
@@ -195,8 +195,8 @@ internal sealed class DocumentController(Word.Application app)
             _busy = false;
         }
         return tag.Kind == ControlKind.Block
-            ? "Editing the Calcpad block. Click outside it to evaluate."
-            : "Editing the Calcpad source. Enter or click outside to evaluate; Shift+Enter adds another expression.";
+            ? "Editing the Calcpad block. Click outside it to calculate."
+            : "Editing the Calcpad source. Enter or click outside to calculate; Shift+Enter adds another expression.";
     }
 
     /// <summary>
@@ -295,7 +295,7 @@ internal sealed class DocumentController(Word.Application app)
         if (!after.Automatic)
         {
             if (before.Automatic)
-                return LastStatus = "Calcpad: automatic calculation is off. Recalculate (Ctrl+Alt+F9) updates the results.";
+                return LastStatus = "Calcpad: automatic calculation is off. Calculate (Ctrl+Alt+F9) updates the results.";
             return after.ResultKey() == before.ResultKey() ? LastStatus : MarkOutOfDate(doc, left: null);
         }
         using var undo = new UndoScope(app, "Calcpad Settings");
@@ -303,18 +303,22 @@ internal sealed class DocumentController(Word.Application app)
     }
 
     /// <summary>
-    /// Leaving a changed input field or edited source: recalculates, or, with automatic
-    /// calculation off, only marks the document's results out of date.
+    /// Leaving a changed input field or edited source: recalculates. With automatic calculation
+    /// off, a changed input field only marks the document's results out of date, so typing
+    /// inputs stays instant. Edited source is always calculated: otherwise it would stay open as
+    /// source until the next Calculate.
     /// </summary>
     public string AfterExit(Word.Document doc, Word.ContentControl left) =>
-        LoadSettings(doc).Automatic ? Recalculate(doc, keepActiveSource: true) : MarkOutOfDate(doc, left);
+        InputField.IsInput(left.Tag) && !LoadSettings(doc).Automatic
+            ? MarkOutOfDate(doc, left)
+            : Recalculate(doc, keepActiveSource: true);
 
     private const string OutOfDateVariable = "Calcpad.OutOfDate";
 
     /// <summary>
-    /// Automatic calculation off: the document's results are marked out of date (a document
-    /// variable, kept when it is saved; the Recalculate button says so) until the next
-    /// Recalculate draws them. Nothing in the text changes, so leaving a field is instant.
+    /// Automatic calculation off, an input changed: the document's results are marked out of date (a document
+    /// variable, kept when it is saved; the Calculate button says so) until the next
+    /// Calculate draws them. Nothing in the text changes, so leaving a field is instant.
     /// Greying each result instead took about 3 s on the v2 beam.
     /// </summary>
     private string MarkOutOfDate(Word.Document doc, Word.ContentControl? left)
@@ -322,7 +326,7 @@ internal sealed class DocumentController(Word.Application app)
         if (left is not null && InputField.IsInput(left.Tag))
             _inputValues[left.ID] = ReadInput(left); // leaving it again unchanged is no change
         SetOutOfDate(doc, true);
-        return LastStatus = "Calcpad: results out of date. Recalculate (Ctrl+Alt+F9) updates them.";
+        return LastStatus = "Calcpad: results out of date. Calculate (Ctrl+Alt+F9) updates them.";
     }
 
     /// <summary>The active document's results are out of date: changed with automatic calculation off, not recalculated since.</summary>
@@ -551,7 +555,7 @@ internal sealed class DocumentController(Word.Application app)
         GreyNow(); // cancelled before they were greyed: they may be out of date all the same
         Log.Info($"Cancelled {string.Join(" and ", what)}");
         var hint = what.Contains("the calculation")
-            ? " Results that may be out of date stay greyed: Recalculate (Ctrl+Alt+F9) to calculate them."
+            ? " Results that may be out of date stay greyed: Calculate (Ctrl+Alt+F9) updates them."
             : string.Empty;
         return LastStatus = $"Calcpad: cancelled {string.Join(" and ", what)}.{hint}";
     }
@@ -915,7 +919,7 @@ internal sealed class DocumentController(Word.Application app)
                  $"rest of the scan {(scanned - inputsDone).TotalSeconds - Seconds(blockTicks):F1} s, {inline.Count} equations {(timer.Elapsed - scanned).TotalSeconds:F1} s " +
                  $"({Seconds(_insertTicks):F1} s in InsertXML, {Seconds(_deleteTicks):F1} s deleting tables)");
         if (total == 0 && fields == 0)
-            return "Calcpad: nothing to calculate. Select text and press Evaluate (Alt+Shift+Enter), type {= expression } in the text, or add a Calcpad Block.";
+            return "Calcpad: nothing to calculate. Select text and press Convert to Calcpad (Alt+Shift+Enter), type {= expression } in the text, or add a Calcpad Block.";
 
         return $"Calcpad: {total} item{(total == 1 ? "" : "s")}" +
                (fields == 0 ? "" : $", {fields} input{(fields == 1 ? "" : "s")}") +

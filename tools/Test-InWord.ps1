@@ -187,7 +187,7 @@ try {
     $menus = @($ribbonXml.customUI.contextMenus.contextMenu)
     $equationMenu = $menus | Where-Object { $_.idMso -eq 'ContextMenuEquation' }
     $ids = @($menus | ForEach-Object { $_.button } | ForEach-Object { $_.id })
-    Check ($null -ne $equationMenu -and @($equationMenu.button).Count -eq 3 -and ($ids | Select-Object -Unique).Count -eq $ids.Count) 'right-click menus: equation menu has Edit Source, Evaluate and Block to Text, all ids unique'
+    Check ($null -ne $equationMenu -and @($equationMenu.button).Count -eq 3 -and ($ids | Select-Object -Unique).Count -eq $ids.Count) 'right-click menus: equation menu has Edit Source, Calculate and Block to Text, all ids unique'
     $badMenus = @($menus | Where-Object { -not (Test-MsoId $_.idMso) } | ForEach-Object { $_.idMso })
     Check ($badMenus.Count -eq 0) "every context menu id exists in this Word $(if ($badMenus) { '(unknown: ' + ($badMenus -join ', ') + ')' })"
     $noControl = [System.Runtime.InteropServices.DispatchWrapper]::new([object]$null)   # Office passes an IRibbonControl here
@@ -218,7 +218,7 @@ try {
     CursorIn $m.Range
     Check ((Prop $api 'CalcpadAtSelection') -eq 'result') 'inside an equation: Edit Calcpad Source'
     CursorIn $broken.Range
-    Check ((Prop $api 'CalcpadAtSelection') -eq 'source') 'inside failed source: Evaluate Calcpad'
+    Check ((Prop $api 'CalcpadAtSelection') -eq 'source') 'inside failed source: Calculate Calcpad'
     $doc.Paragraphs.Item(1).Range.Select()
     Check ((Prop $api 'CalcpadAtSelection') -eq 'none') 'in ordinary text: no Calcpad items'
 
@@ -238,6 +238,18 @@ try {
     $doc.Paragraphs.Item(1).Range.Select()   # leave the control
     Check (WaitFor { $l.Range.OMaths.Count -eq 1 }) 'leaving the source evaluates it'
     Check ((Control $doc.Content '#val M').Range.Text -match '96') 'and everything after it follows (M = 96 kNm)'
+
+    Say 'Step 3b: the same with automatic calculation off: leaving edited source still calculates it'
+    $settings = Call $api 'GetSettings'
+    [void](Call $api 'SetSettings' @("$settings;auto=0"))
+    foreach ($case in @(@($null, '96', 'opened and left unchanged'), @('L = 6m', '54', 'changed to 6m'), @('L = 8m', '96', 'and back to 8m'))) {
+        $r = $l.Range; $r.Collapse(1); $r.Select()
+        [void](Command 'EditSource')
+        if ($case[0]) { $l.Range.Text = $case[0] }
+        $doc.Paragraphs.Item(1).Range.Select()   # leave the control
+        Check ((WaitFor { $l.Range.OMaths.Count -eq 1 }) -and (Control $doc.Content '#val M').Range.Text -match $case[1]) "$($case[2]): the source closes as an equation, M = $($case[1]) kNm"
+    }
+    [void](Call $api 'SetSettings' @($settings))
 
     Say 'Step 4: fix the error in place, then click elsewhere'
     $broken = Control $doc.Content 'y = '

@@ -7,6 +7,7 @@ Usage and build instructions are in [README.md](README.md). This file records th
 - **Platform:** desktop Word on Windows only. That rules out Office.js.
 - **Marking Calcpad text:** both ways. You can select text and press Evaluate, or write `{= … }` inline in a sentence.
 - **Result style:** both, as a per-document setting. One is Calcpad's look (blue variable names); the other is plain Word math.
+- **Button names (2026-11-20):** Evaluate became **Convert to Calcpad** and Recalculate became **Calculate**, first on the ribbon. They stay two commands: one changes your text, the other only calculates. A single button that converted only a selection was considered and rejected: it would act differently depending on whether text is highlighted, and typing a formula would need an extra step. The automation API keeps its method names (`Evaluate`, `Recalculate`), which the test and template scripts call.
 
 ## Architecture (built and verified)
 
@@ -278,7 +279,7 @@ The user: "taking inspiration from Tedds and Calcpad's examples, modify the Doki
   - `SourceNormalizer` treats `\r\n` as one break, so a `.cpd` checked out with Windows line endings no longer gains blank lines. Two tests had failed on the fresh checkout because of this.
 - **Speed:** a change of input redraws about 96 results, which takes about 17 s in Word. Calcpad itself takes 0.3 s and the Word content 0.7 s; the rest is Word's per-item redraw. v2 has more lines than v1, so it takes longer.
 - **Then (the user: "inputting should be snappy… user should be able to switch off autoevaluate… succinctness is golden"):**
-  - **Calculate automatically**, a document setting (`DocumentSettings.Automatic`, stored as `auto=0` only when off) with a ribbon checkbox. When it's off, leaving a changed field or edited expression calls `MarkOutOfDate`, which calculates nothing (see Speed below). Recalculate, Evaluate and Edit Source still calculate. Turning it back on recalculates.
+  - **Calculate automatically**, a document setting (`DocumentSettings.Automatic`, stored as `auto=0` only when off) with a ribbon checkbox. When it's off, leaving a changed field calls `MarkOutOfDate`, which calculates nothing (see Speed below). Recalculate, Evaluate and Edit Source still calculate, and so does leaving edited source (2026-11-20: before, the source stayed open until the next Calculate, which the user took for a bug). Turning it back on recalculates.
   - It is kept out of the results' fingerprint (`ResultKey`), so switching it redraws nothing. `Make-BeamTemplate` saves the beam template with it off.
   - The beam script was trimmed from 173 to 153 items. Lines that echoed a drop-down are gone, constants are folded into the lines that use them, the sketch labels its bars instead of repeating the inputs, and the verdicts and the scope, codes and assumptions are shorter.
   - **Speed, measured in a hidden Word on the v2 beam.** A full recalculation (84 results redrawn) went from about 20 s to about 4 s: Calcpad and the Word content take 1.2 s, and drawing takes 2–3 s. Leaving a field in manual mode takes 0.15 s. `Draw` logs where its time goes.
