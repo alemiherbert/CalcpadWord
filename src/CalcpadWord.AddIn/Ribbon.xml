@@ -3,27 +3,51 @@
     <tabs>
       <!-- KeyTips: Alt, C, P, then the letter. Shortcuts are handled by the add-in (KeyboardShortcuts.cs). -->
       <tab id="CalcpadTab" label="Calcpad" keytip="CP">
-        <group id="CalculateGroup" label="Calculate">
+        <!-- Grouped by job, as on Excel's Formulas tab; only the frequent commands are large. -->
+        <group id="CalculateGroup" label="Calculation">
           <button id="Recalculate" getLabel="GetRecalculateLabel" size="large" imageMso="CalculateNow" keytip="R"
                   onAction="OnRecalculate"
                   screentip="Calculate (Ctrl+Alt+F9)"
                   supertip="Calculates every Calcpad expression in the document: main text first, then text boxes, notes, headers and footers. Later expressions use variables defined earlier. Text written as {= ... } is picked up too." />
+          <checkBox id="Automatic" label="Calculate automatically" keytip="U"
+                    getPressed="GetAutomaticPressed" onAction="OnAutomaticChanged"
+                    screentip="Calculate automatically"
+                    supertip="On (the default): leaving a changed input or expression recalculates the document. Off, as in Excel's manual mode: a changed input waits for Calculate (Ctrl+Alt+F9), which then reads Calculate (out of date); an expression you write or edit is calculated on its own, and what follows it waits. Saved with the document." />
+          <button id="CancelCalculation" label="Cancel" imageMso="Cancel" keytip="C"
+                  onAction="OnCancel" getEnabled="GetCancelEnabled"
+                  screentip="Cancel calculation (Esc)"
+                  supertip="Stops a calculation running in the background, or a math font being downloaded. Results already in the document keep their old values; Calculate calculates them again. Esc does the same while a calculation runs." />
+        </group>
+        <group id="WriteGroup" label="Write">
           <button id="Evaluate" label="Convert to Calcpad" size="large" imageMso="FunctionWizard" keytip="E"
                   onAction="OnEvaluate"
                   screentip="Convert to Calcpad (Alt+Shift+Enter)"
                   supertip="Turns the selected text, or the current paragraph, into Calcpad, then calculates. Each paragraph becomes one expression. A pasted Calcpad script becomes Word headings and text, with its calculations in Calcpad. With the keyboard shortcut on a result, it shows the source instead." />
-          <button id="MakeBlock" label="Calcpad Block" size="large" imageMso="ContentControlRichText" keytip="B"
+          <button id="MakeBlock" label="Calcpad Block" imageMso="ContentControlRichText" keytip="B"
                   onAction="OnMakeBlock"
                   screentip="Calcpad block"
                   supertip="Keeps the selected paragraphs (or the current one) together as one multi-line Calcpad script, drawn by Calcpad: comments, headings, #if, loops, macros, plots and tables. On an empty line it starts an empty block to type into. You can also type a line with only {= , the script, and a line with only } . (Convert to Calcpad on a pasted script instead turns its headings and text into Word paragraphs.)" />
-          <button id="BlockToText" label="Block to Text" size="large" imageMso="ContentControlText" keytip="T"
+          <button id="BlockToText" label="Block to Text" imageMso="ContentControlText" keytip="T"
                   onAction="OnConvertBlock"
                   screentip="Convert block to Word text"
                   supertip="Replaces the Calcpad block at the cursor with Word content: its headings and text become Word paragraphs with the values inline, and only plots, tables and #if/loops stay in Calcpad blocks. Convert to Calcpad does this by itself when you paste a Calcpad script." />
-          <button id="EditSource" label="Edit Source" size="large" imageMso="EquationLinearFormat" keytip="D"
+          <button id="EditSource" label="Edit Source" imageMso="EquationLinearFormat" keytip="D"
                   onAction="OnEditSource"
                   screentip="Edit source (or double-click a result)"
                   supertip="Shows the Calcpad source of the result at the cursor so you can change it. Click outside it, or press Alt+Shift+Enter, to calculate." />
+        </group>
+        <group id="ErrorsGroup" label="Errors">
+          <dynamicMenu id="ErrorList" size="large" imageMso="TraceError" keytip="L"
+                       getLabel="GetErrorListLabel" getEnabled="GetHasErrors" getContent="GetErrorListContent"
+                       invalidateContentOnDrop="true"
+                       screentip="Errors"
+                       supertip="Lists the expressions that failed. Pick one to go to it; the error message is shown as you point at it." />
+          <button id="NextError" label="Next Error" imageMso="ReviewNextComment" keytip="X"
+                  onAction="OnNextError"
+                  screentip="Next error (Ctrl+Alt+F8)"
+                  supertip="Moves the cursor to the next expression that failed. Its error message is shown in the status bar and as the expression's title." />
+        </group>
+        <group id="ProtectGroup" label="Protect">
           <button id="Lock" label="Lock" imageMso="Lock" keytip="K"
                   onAction="OnLock"
                   screentip="Lock calculations"
@@ -32,26 +56,8 @@
                   onAction="OnUnlock"
                   screentip="Unlock calculations"
                   supertip="Unlocks the Calcpad expressions and blocks in the selection, so they can be edited again." />
-          <button id="CancelCalculation" label="Cancel" size="large" imageMso="Cancel" keytip="C"
-                  onAction="OnCancel" getEnabled="GetCancelEnabled"
-                  screentip="Cancel calculation (Esc)"
-                  supertip="Stops a calculation running in the background, or a math font being downloaded. Results already in the document keep their old values; Calculate calculates them again. Esc does the same while a calculation runs." />
-        </group>
-        <group id="ErrorsGroup" label="Errors">
-          <dynamicMenu id="ErrorList" size="large" imageMso="TraceError" keytip="L"
-                       getLabel="GetErrorListLabel" getEnabled="GetHasErrors" getContent="GetErrorListContent"
-                       invalidateContentOnDrop="true"
-                       screentip="Errors"
-                       supertip="Lists the expressions that failed. Pick one to go to it; the error message is shown as you point at it." />
-          <button id="NextError" label="Next Error" size="large" imageMso="ReviewNextComment" keytip="X"
-                  onAction="OnNextError"
-                  screentip="Next error (Ctrl+Alt+F8)"
-                  supertip="Moves the cursor to the next expression that failed. Its error message is shown in the status bar and as the expression's title." />
         </group>
         <group id="SettingsGroup" label="Document settings">
-          <checkBox id="Automatic" label="Calculate automatically" keytip="U"
-                    getPressed="GetAutomaticPressed" onAction="OnAutomaticChanged"
-                    supertip="On (the default): leaving a changed input or expression recalculates the document. Off, as in Excel's manual mode: a changed input waits for Calculate (Ctrl+Alt+F9), which then reads Calculate (out of date); an expression you write or edit is calculated on its own, and what follows it waits. Saved with the document." />
           <dropDown id="Decimals" label="Decimals" keytip="N" sizeString="00"
                     getSelectedItemIndex="GetDecimalsIndex" onAction="OnDecimalsChanged"
                     supertip="Number of decimals in results. Calcpad keeps significant figures for small values.">

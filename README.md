@@ -72,19 +72,22 @@ Rules for blocks:
   - A picture alone on a line, such as an inline `<svg>` drawing, is centred. Give an SVG `alt="name.svg"` so that Word shows it as a vector picture.
 - **Slow blocks are drawn once.** A block whose inputs (everything above it, and its own lines) haven't changed is not drawn again. Editing text or expressions *below* a long-running block, such as one with integral maps, is instant. Changing something above it recalculates it.
 
+The Calcpad tab has five groups, by job: **Calculation**, **Write**, **Errors**, **Protect** and **Document settings**.
+
 | Ribbon (Calcpad tab) | Shortcut | What it does |
 |---|---|---|
-| Calculate | **Ctrl+Alt+F9** | Calculates everything: main text, text boxes, footnotes and endnotes, then headers and footers |
-| Convert to Calcpad | **Alt+Shift+Enter** | Turns the selection (or the current paragraph) into Calcpad (see above), then calculates. On a result, the shortcut shows its source instead |
+| **Calculation:** Calculate | **Ctrl+Alt+F9** | Calculates everything: main text, text boxes, footnotes and endnotes, then headers and footers |
+| Calculate automatically | | On by default: leaving a changed input or expression recalculates (see below). Saved in the document |
+| Cancel | **Esc**, while a calculation runs | Stops a background calculation or a math font download. Results keep their old values until you calculate again |
+| **Write:** Convert to Calcpad | **Alt+Shift+Enter** | Turns the selection (or the current paragraph) into Calcpad (see above), then calculates. On a result, the shortcut shows its source instead |
 | Calcpad Block | | Keeps the selected paragraphs (or an empty line) together as one block |
 | Block to Text | right-click a block | Turns a block into Word text, as for a pasted script |
 | Edit Source | **double-click** a result, or right-click → **Edit Calcpad Source** | Shows the source so you can change it. **Click outside to calculate** |
-| Lock, Unlock | | Lock the Calcpad expressions and blocks in the selection (Ctrl+A for all): they still calculate, but can't be opened, converted or deleted. Input fields stay open. A guard against accidents, not a password: Unlock lifts it. The Dokimos calculation templates ship locked |
-| Cancel | **Esc**, while a calculation runs | Stops a background calculation or a math font download. Results keep their old values until you calculate again |
-| Errors (n) | | Lists what failed. Pick one to go to it |
+| **Errors:** Errors (n) | | Lists what failed. Pick one to go to it |
 | Next Error | **Ctrl+Alt+F8** | Moves to the next error and shows its message in the status bar |
-| Math font | | The font of every equation in this document (see below) |
-| Decimals, Angles, Substitute values, Plain Word math | | Settings for this document. They are saved in the document |
+| **Protect:** Lock, Unlock | | Lock the Calcpad expressions and blocks in the selection (Ctrl+A for all): they still calculate, but can't be opened, converted or deleted. Input fields stay open. A guard against accidents, not a password: Unlock lifts it. The Dokimos calculation templates ship locked |
+| **Document settings:** Decimals, Angles, Substitute values | | How results are written. Saved in the document |
+| Math font, Plain Word math | | How equations look (see below). Saved in the document |
 
 Ribbon KeyTips also work: Alt, C, P, then the letter shown on the button.
 
@@ -129,7 +132,7 @@ Setup installs all the free fonts. If one has been removed since, the list marks
 - Results that arrive late are one Undo step of their own.
 - Calcpad is loaded when Word starts, so the first calculation isn't slowed down.
 
-**Calculate automatically** (Document settings) is on by default, also in the Dokimos templates: leaving a changed input field or expression recalculates. Turn it off for fast input in a long calculation. It then works like Excel's manual mode:
+**Calculate automatically** (Calculation group, saved in the document) is on by default, also in the Dokimos templates: leaving a changed input field or expression recalculates. Turn it off for fast input in a long calculation. It then works like Excel's manual mode:
 - leaving a changed field changes nothing on the page, and the Calculate button reads *Calculate (out of date)* until you click it (Ctrl+Alt+F9);
 - an expression you write or edit is calculated on its own when you leave it (Calcpad runs only as far as it), so it never stays open as source; what follows it waits for Calculate.
 

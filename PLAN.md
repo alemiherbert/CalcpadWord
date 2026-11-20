@@ -7,6 +7,7 @@ Usage and build instructions are in [README.md](README.md). This file records th
 - **Platform:** desktop Word on Windows only. That rules out Office.js.
 - **Marking Calcpad text:** both ways. You can select text and press Evaluate, or write `{= … }` inline in a sentence.
 - **Result style:** both, as a per-document setting. One is Calcpad's look (blue variable names); the other is plain Word math.
+- **Ribbon layout (2026-11-21):** grouped by job, as on Excel's Formulas tab: Calculation (Calculate large; Calculate automatically and Cancel small), Write (Convert to Calcpad large; Calcpad Block, Block to Text, Edit Source small), Errors (Errors large, Next Error small), Protect (Lock, Unlock small), Document settings. Large buttons went from nine to three, so the tab is about half as wide and doesn't collapse on a laptop screen.
 - **Button names (2026-11-20):** Evaluate became **Convert to Calcpad** and Recalculate became **Calculate**, first on the ribbon. They stay two commands: one changes your text, the other only calculates. A single button that converted only a selection was considered and rejected: it would act differently depending on whether text is highlighted, and typing a formula would need an extra step. The automation API keeps its method names (`Evaluate`, `Recalculate`), which the test and template scripts call.
 
 ## Architecture (built and verified)
