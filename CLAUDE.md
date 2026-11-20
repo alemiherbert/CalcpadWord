@@ -45,6 +45,7 @@ The version is set in `src\Directory.Build.props`. **Public numbering starts at 
   - Every new template is a new version, `<Name> vN.dotx`. Never overwrite an earlier version.
   - The user's hand-adjusted document is the base. Change its XML with a script and keep their positions exactly; don't regenerate it. The base is "Calculation title.docx", from which v2 and v3 were made.
   - New versions go to `templates/dokimos/`. Also copy them to the user's own Dokimos folder, if they have one outside the repository (on the first PC: `Desktop\Alemi Herbert\Dokimos`).
+  - **Only the latest version of each template is on GitHub** (the user, 2026-11-21). When a new version is made, untrack the one it replaces (`git rm --cached`, with its build output and page pictures) and add it to `.gitignore`: it stays on disk, in the Dokimos folder and in git history. Keep the current base document (`Template source\user\v4.docx`).
 - **Dokimos template design (the user's decisions):**
   - A4, 0.6 in margins.
   - Libre Franklin, SemiBold for headings. They rejected Cambria, Bahnschrift and Tahoma.
