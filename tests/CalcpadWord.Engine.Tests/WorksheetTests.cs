@@ -375,6 +375,29 @@ public class BlockWorksheetTests
     }
 
     [Fact]
+    public void Drawings_are_svg_pictures_with_a_png_fallback()
+    {
+        // Word 2019 loses a picture that points straight at an SVG: it needs a PNG, with the SVG as an extension.
+        var block = Run(Block(
+            "'<svg alt=\"sketch.svg\" width=\"40\" height=\"20\" xmlns=\"http://www.w3.org/2000/svg\">",
+            "'<rect width=\"10\" height=\"10\"/>",
+            "'</svg>"))[0];
+
+        var xml = XDocument.Parse(block.Block!.ToWordPackage());
+        XNamespace a = "http://schemas.openxmlformats.org/drawingml/2006/main";
+        XNamespace r = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+        XNamespace asvg = "http://schemas.microsoft.com/office/drawing/2016/SVG/main";
+        XNamespace rel = "http://schemas.openxmlformats.org/package/2006/relationships";
+        var targets = xml.Descendants(rel + "Relationship")
+            .ToDictionary(x => x.Attribute("Id")!.Value, x => x.Attribute("Target")!.Value);
+
+        var blip = Assert.Single(xml.Descendants(a + "blip"));
+        Assert.EndsWith(".png", targets[blip.Attribute(r + "embed")!.Value]);
+        var svg = Assert.Single(blip.Descendants(asvg + "svgBlip"));
+        Assert.EndsWith(".svg", targets[svg.Attribute(r + "embed")!.Value]);
+    }
+
+    [Fact]
     public void Plots_become_pictures()
     {
         var block = Run(Block("$Plot{x^2 @ x = 0 : 2}"))[0];

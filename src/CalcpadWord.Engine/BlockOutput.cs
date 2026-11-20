@@ -1,6 +1,8 @@
 using Calcpad.OpenXml;
+using DocumentFormat.OpenXml.Office2019.Drawing.SVG;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using A = DocumentFormat.OpenXml.Drawing;
 
 namespace CalcpadWord.Engine;
 
@@ -75,6 +77,7 @@ public sealed record BlockOutput(string Html, IReadOnlyList<string> Expressions)
             UseDocumentFonts(doc.MainDocumentPart);
         }
         LayOutPictures(body, textWidth);
+        AddSvgFallbacks(doc.MainDocumentPart);
         KeepOnlyWhatIsUsed(doc.MainDocumentPart);
 
         // Calcpad's output often ends in empty paragraphs (e.g. after a plot): drop them, they show as blank lines.
@@ -182,6 +185,43 @@ public sealed record BlockOutput(string Html, IReadOnlyList<string> Expressions)
                 if (paragraph.PreviousSibling() is Paragraph title && title.InnerText.Trim().Length > 0)
                     (title.ParagraphProperties ??= new ParagraphProperties()).KeepNext = new KeepNext();
             }
+        }
+    }
+
+    /// <summary>The extension of a picture that holds its SVG, as Word writes it.</summary>
+    private const string SvgExtensionUri = "{96DAC541-7B7A-43D3-8B79-37D633B846F1}";
+
+    /// <summary>A 1×1 transparent PNG.</summary>
+    private static readonly byte[] TransparentPixel = System.Convert.FromBase64String(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAANSURBVBhXY/j//z8DAAj8Av6IXwbgAAAAAElFTkSuQmCC");
+
+    /// <summary>
+    /// Calcpad's writer points an SVG drawing's picture straight at the SVG. Microsoft 365 makes a
+    /// PNG copy when it is inserted, but Word 2019 doesn't: it shows a broken picture and saves it
+    /// with no image ("The picture can't be displayed" when the document is opened again). So the
+    /// picture is made as Word writes one: a PNG, with the SVG in an extension. Word 2016 and later
+    /// draw the SVG; the PNG, a transparent pixel, is only for programs that can't.
+    /// </summary>
+    private static void AddSvgFallbacks(MainDocumentPart main)
+    {
+        string? fallback = null;
+        foreach (var blip in main.Document!.Body!.Descendants<A.Blip>())
+        {
+            if (blip.Embed?.Value is not { } svg ||
+                !main.TryGetPartById(svg, out var part) || part.ContentType != "image/svg+xml")
+                continue;
+
+            if (fallback is null)
+            {
+                var png = main.AddImagePart(ImagePartType.Png);
+                using (var stream = new MemoryStream(TransparentPixel))
+                    png.FeedData(stream);
+                fallback = main.GetIdOfPart(png);
+            }
+            blip.Embed = fallback;
+            var extensions = blip.GetFirstChild<A.BlipExtensionList>() ?? blip.AppendChild(new A.BlipExtensionList());
+            if (!extensions.Elements<A.BlipExtension>().Any(e => e.Uri?.Value == SvgExtensionUri))
+                extensions.AppendChild(new A.BlipExtension(new SVGBlip { Embed = svg }) { Uri = SvgExtensionUri });
         }
     }
 

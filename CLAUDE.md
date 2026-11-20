@@ -19,7 +19,7 @@ This file also carries what Claude Code remembered on the first PC (its memory f
 
 ```powershell
 git submodule update --init                      # once, after cloning: Calcpad's source
-dotnet test tests\CalcpadWord.Engine.Tests       # unit tests, no Word needed (227 on 2026-11-20)
+dotnet test tests\CalcpadWord.Engine.Tests       # unit tests, no Word needed (228 on 2026-11-20)
 tools\Build-Installer.ps1                        # out\installer\CalcpadWord-Setup-<version>.exe
 out\installer\CalcpadWord-Setup-<version>.exe /quiet   # install it (per user) to test the real thing
 tools\Register.ps1                               # or: register the development build directly
@@ -87,7 +87,7 @@ The version is set in `src\Directory.Build.props`. **Public numbering starts at 
   - Calculation templates share `Template source\TemplateBuild.ps1` (hidden Word, sections, drop-downs, save).
   - `Dokimos RC Beam Design (EC2) v2.dotx` is the current beam calculation, modelled on Tedds and Calcpad's examples. It covers cover, fire, bending, limits, spacing, shear, crack control and deflection (by ratio and by calculation), with a sketch and a summary. It is cross-checked against Tedds. v1 is kept. It needs add-in 0.1.0 or later; built on the second PC with the internal 0.8.0 plus the block output changes.
   - All are built and tested by the scripts in `templates/dokimos/Template source/`.
-- **First PC:** the original PC. Add-in 0.8.0 is installed from Setup (built 2026-11-18, before the second PC's block output and manual-mode changes). The Tedds Engineering Library isn't installed or licensed here. Git reaches GitHub over SSH with `~\.ssh\id_ed25519` (2026-11-20).
+- **First PC:** the original PC, with Office Professional Plus 2019 (Word 16.0.10417), not Microsoft 365. Add-in 0.1.0 is installed from Setup, rebuilt 2026-11-20 with the SVG drawing fix (PLAN.md, "Calcpad engine findings"). The Tedds Engineering Library isn't installed or licensed here. Git reaches GitHub over SSH with `~\.ssh\id_ed25519` (2026-11-20).
 - **Second PC (2026-11-18):** the project arrived as a zip. Python and git are also in WSL; use Windows git for this repo. Word is Microsoft 365 x64. Add-in 0.8.0 is installed here.
 - **Open:**
   - An intermittent hang of the hidden test Word after the first background draw ("Open issue" in PLAN.md).
