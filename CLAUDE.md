@@ -75,7 +75,7 @@ The version is set in `src\Directory.Build.props`. **Public numbering starts at 
 ## State on 2026-11-21 (version 0.1.1)
 
 - **Released:** 0.1.0 is the first public release on GitHub (tag `v0.1.0`, with Setup attached), 2026-11-20. It is the internal 0.8.0 plus the second PC's block output and Recalculate-only mode.
-- **0.1.1 (2026-11-21), committed, not yet released on GitHub:** the SVG drawing fix for Word 2019, out-of-date results greyed later and in grey, the buttons renamed (Calculate, Convert to Calcpad), Calculate automatically on by default with Excel-style manual mode, Lock and Unlock (two small buttons; templates ship with their calculation locked, inputs open), and the templates without guidance lines.
+- **Released 0.1.1** (tag `v0.1.1`, Setup attached, 2026-11-21): the SVG drawing fix for Word 2019, out-of-date results greyed later and in grey, the buttons renamed (Calculate, Convert to Calcpad), Calculate automatically on by default with Excel-style manual mode, Lock and Unlock (two small buttons; templates ship with their calculation locked, inputs open), and the templates without guidance lines.
 - **Done in the internal 0.8.0, which is installed on the first PC:**
   - inline and block evaluation, script conversion and background calculation;
   - a math font chooser, Cancel, and greying of out-of-date results;
