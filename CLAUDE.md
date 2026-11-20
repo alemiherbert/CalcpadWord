@@ -29,7 +29,7 @@ templates\dokimos\Template source\beam\Check-WithTedds.ps1 -OutDir <dir> [-Recom
 gh release create v<version> out\installer\CalcpadWord-Setup-<version>.exe --title "Calcpad for Word <version>" --notes-file <notes>   # publish a build (after commit, tag and push)
 ```
 
-The version is set in `src\Directory.Build.props`. **Versions move slowly** (the user, 2026-11-18): don't bump for small fixes. Batch changes into the next meaningful release, and make one new template version per piece of work, rebuilt in place until it's done.
+The version is set in `src\Directory.Build.props`. **Public numbering starts at 0.1.0** (the user, 2026-11-20: "0.8x is premature"). The builds numbered 0.4 to 0.8 were internal, only on the user's PCs; history in PLAN.md keeps their numbers. **Versions move slowly** (the user, 2026-11-18): don't bump for small fixes. Batch changes into the next meaningful release, and make one new template version per piece of work, rebuilt in place until it's done.
 
 ## Rules
 
@@ -70,10 +70,10 @@ The version is set in `src\Directory.Build.props`. **Versions move slowly** (the
   - Quote arguments that contain commas, such as `'-Wl,--entry=DllMain'`.
   - `2>&1` on native programs turns stderr into errors.
 
-## State on 2026-11-20 (version 0.8.1)
+## State on 2026-11-20 (version 0.1.0)
 
-- **Released:** 0.8.1 is the first GitHub release (tag `v0.8.1`, with Setup attached), 2026-11-20. It is 0.8.0 plus the second PC's block output and Recalculate-only mode.
-- **Done in 0.8.0 and installed on the first PC:**
+- **Released:** 0.1.0 is the first public release on GitHub (tag `v0.1.0`, with Setup attached), 2026-11-20. It is the internal 0.8.0 plus the second PC's block output and Recalculate-only mode.
+- **Done in the internal 0.8.0, which is installed on the first PC:**
   - inline and block evaluation, script conversion and background calculation;
   - a math font chooser, Cancel, and greying of out-of-date results;
   - **input fields** (form fields that set variables: reusable templates);
@@ -85,7 +85,7 @@ The version is set in `src\Directory.Build.props`. **Versions move slowly** (the
   - `Dokimos Soil Stresses and Settlement v1.dotx`: Boussinesq stresses and settlement under a rectangular load varying across its width (after Calcpad's soil example), built from `soil\Soil stresses and settlement.cpd` and checked in `SoilTests`. About 7 s to calculate.
   - Templates don't say where their calculation came from (the user, 2026-11-20).
   - Calculation templates share `Template source\TemplateBuild.ps1` (hidden Word, sections, drop-downs, save).
-  - `Dokimos RC Beam Design (EC2) v2.dotx` is the current beam calculation, modelled on Tedds and Calcpad's examples. It covers cover, fire, bending, limits, spacing, shear, crack control and deflection (by ratio and by calculation), with a sketch and a summary. It is cross-checked against Tedds. v1 is kept. It needs add-in 0.8.0 or later; built on the second PC with 0.8.0 plus the block output changes.
+  - `Dokimos RC Beam Design (EC2) v2.dotx` is the current beam calculation, modelled on Tedds and Calcpad's examples. It covers cover, fire, bending, limits, spacing, shear, crack control and deflection (by ratio and by calculation), with a sketch and a summary. It is cross-checked against Tedds. v1 is kept. It needs add-in 0.1.0 or later; built on the second PC with the internal 0.8.0 plus the block output changes.
   - All are built and tested by the scripts in `templates/dokimos/Template source/`.
 - **First PC:** the original PC. Add-in 0.8.0 is installed from Setup (built 2026-11-18, before the second PC's block output and manual-mode changes). The Tedds Engineering Library isn't installed or licensed here. Git reaches GitHub over SSH with `~\.ssh\id_ed25519` (2026-11-20).
 - **Second PC (2026-11-18):** the project arrived as a zip. Python and git are also in WSL; use Windows git for this repo. Word is Microsoft 365 x64. Add-in 0.8.0 is installed here.

@@ -39,7 +39,7 @@ The setup is not code-signed, so on another computer Windows SmartScreen may war
 
 A few keywords can't be reproduced this way: `#md`, `#format`, `#split`, `#phasor`, `#novar`, `#input` and `#pause`. To show PASS or FAIL in a block's output, give a line `class="ok"` (green) or an inline colour such as `style="color:#C00000"`. Calcpad's own `class="err"` counts as a calculation error. A script that uses them stays one block, and the status bar says why. **Block to Text** (ribbon, or right-click a block) converts an existing block the same way.
 
-**Input fields make reusable templates** (0.8.0). An input field is an ordinary Word content control (plain text, combo box or drop-down list) that sets a Calcpad variable where it stands. Whoever uses the document types a number, or picks an item, and never sees Calcpad syntax.
+**Input fields make reusable templates.** An input field is an ordinary Word content control (plain text, combo box or drop-down list) that sets a Calcpad variable where it stands. Whoever uses the document types a number, or picks an item, and never sees Calcpad syntax.
 - **Recalculation:** leaving a changed field recalculates the document.
 - **Making fields:** write `name = ? {default}` in a Calcpad script and Evaluate it. Calcpad's older saved values, after the script, also fill fields that have no default. A field's tag is `calcpad-input:name`, so you can also make one by hand (Developer tab → Plain Text Content Control → Properties → Tag).
 - **Units:** with `calcpad-input:name:unit` a bare number gets the unit, e.g. `calcpad-input:L:m`. Without a unit only a number is accepted, as in Calcpad's own unitless templates.
