@@ -5,6 +5,11 @@
 *.docx binary
 *.dotx binary
 *.dotm binary
+*.xlsx binary
+*.xltx binary
+*.pptx binary
+*.potx binary
+*.pdf binary
 *.emf binary
 *.png binary
 *.jpg binary

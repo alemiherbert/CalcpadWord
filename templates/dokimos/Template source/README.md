@@ -52,7 +52,7 @@ A section sketch follows the geometry. Each check ends in a "PASS - …" or "FAI
 
 | Version | What changed |
 |---|---|
-| v1 | Made by hand in Word. The working was about 20 hidden paragraphs; Calculations showed one sentence. |
+| v1 | Built on the first PC by an earlier script (2026-11-18), with drop-downs for the two properties and a results table. The working was about 20 hidden paragraphs; Calculations showed one sentence. |
 | v2 | Built from `Psychrometric chart.cpd`. The working is hidden; ASHRAE's relations follow as Calcpad equations (formula = result), with their constants in full. Each known property is one line: "[property] = [value]". The chart has a small legend (a coloured line and its words, one per line) and ends the calculation: no results table, which repeated the working. Red messages for pairs that can't fix the air. Calculates on Recalculate only. |
 
 **Checked:** `PsychrometricTests` compares the standard atmosphere and the saturation pressures with ASHRAE's tables, and the air at 25 °C and 50 % with its chart. It also finds that air again from each of the 19 pairs of properties that fix it.
@@ -92,6 +92,8 @@ A section sketch follows the geometry. Each check ends in a "PASS - …" or "FAI
 - **The unit tests** (`BeamTemplateTests`, `PsychrometricTests`, `DuctTests`, `SoilTests`) read the `.cpd` from here and calculate it without Word.
 - **Inputs with a unit** (`a = ? {2}m`) show it after the field and are tagged with it (`calcpad-input:a:m`).
 - **A template doesn't say where its calculation came from** (the user, 2026-11-20).
+- **Empty table cells:** Calcpad's Word writer leaves an empty `<td></td>` without a paragraph, and Word then refuses the whole block ("XML markup cannot be inserted"). Put a dash in empty cells. (Found with psychrometric v1.)
+- **Hidden working:** keep the hidden `#if` groups in one block, and end it with something visible. A `#show` between two `#if` groups is not carried into the block, and an empty block shows as a blank line. (Found with psychrometric v1.)
 
 **Changing one:** edit the `.cpd`, run the unit tests (`dotnet test tests\CalcpadWord.Engine.Tests`), then its Make and Test scripts. Work on one new version and rebuild it until it is done. Copy it to the folder above; never overwrite a version already given out.
 

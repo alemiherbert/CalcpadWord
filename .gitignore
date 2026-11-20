@@ -5,6 +5,7 @@ obj/
 /out/
 *.user
 .vs/
+__pycache__/
 
 # Word's lock files for open documents
 ~$*

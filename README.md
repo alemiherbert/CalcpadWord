@@ -155,10 +155,11 @@ Requirements: Windows, the .NET 10 SDK, and 64-bit desktop Word (tested with Off
 
 **Setting up a development PC:**
 1. **Install the tools:** Git for Windows, the .NET 10 SDK, and 64-bit desktop Word. The build uses Office's Word interop assemblies from `C:\Windows\assembly\GAC_MSIL`; Office installs them unless its ".NET Programmability Support" was left out. Python 3 is needed only for the Dokimos template scripts.
-2. **Get the repository:** unzip it, or clone it. Then fetch Calcpad's source, which is pinned to the tested commit and downloaded from Codeberg: `git submodule update --init`.
-3. **Set who you commit as** (once per PC): `git config --global user.name "Alemi Herbert"` and `git config --global user.email "..."`.
-4. **Check it works:** run `dotnet test tests\CalcpadWord.Engine.Tests`, then `tools\Build-Installer.ps1`. Install the result with `out\installer\CalcpadWord-Setup-<version>.exe`, then run `tools\Test-InWord.ps1` with Word closed.
-5. **Using Claude Code:** open the folder. `CLAUDE.md` gives it the project's context and rules.
+2. **Connect to GitHub over SSH** (once per PC): make a key with `ssh-keygen -t ed25519`, add the contents of `~\.ssh\id_ed25519.pub` at [github.com/settings/ssh/new](https://github.com/settings/ssh/new), then check it with `ssh -T git@github.com`. Git, and VS Code through it, then uses the key.
+3. **Get the repository** from [github.com/alemiherbert/CalcpadWord](https://github.com/alemiherbert/CalcpadWord), into a folder named `CalcpadWord`: `git clone --recurse-submodules git@github.com:alemiherbert/CalcpadWord.git`. `--recurse-submodules` also fetches Calcpad's source, which is pinned to the tested commit and downloaded from Codeberg; in a copy cloned without it, run `git submodule update --init`.
+4. **Set who you commit as** (once per PC): `git config --global user.name "Alemi Herbert"` and `git config --global user.email "..."`.
+5. **Check it works:** run `dotnet test tests\CalcpadWord.Engine.Tests`, then `tools\Build-Installer.ps1`. Install the result with `out\installer\CalcpadWord-Setup-<version>.exe`, then run `tools\Test-InWord.ps1` with Word closed.
+6. **Using Claude Code:** open the folder. `CLAUDE.md` gives it the project's context and rules.
 
 ```powershell
 dotnet test tests\CalcpadWord.Engine.Tests      # unit tests (no Word needed)

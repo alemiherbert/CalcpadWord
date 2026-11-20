@@ -5,8 +5,11 @@
 **This repository holds:**
 - **the Calcpad for Word add-in:** `src/`, `tests/`, `tools/`, `installer/`;
 - **the Dokimos calculation templates:** `templates/dokimos/`;
+- **the Dokimos corporate document system:** `templates/dokimos/Document System/`, on the first PC only and kept off GitHub until the user decides (2026-11-20): never `git add` it. Its README holds the user's decisions and its state;
 - **Calcpad's source:** `calcpad/`, a git submodule from Codeberg, pinned and never modified;
 - **the first PC's working folder:** `scratchpad/`, for reference only.
+
+**Where it lives:** on GitHub, [github.com/alemiherbert/CalcpadWord](https://github.com/alemiherbert/CalcpadWord) (`origin`, branch `main`), reached over SSH: `git@github.com:alemiherbert/CalcpadWord.git`. The local folder is named `CalcpadWord`, after the repository (it was `Plugin` until 2026-11-20). Pull before starting work on a PC, since both PCs push to it.
 
 **Read first:** `README.md` (usage, building, layout), then `PLAN.md` (decisions, findings, roadmap, the open issue). For the templates, read `templates/dokimos/Template source/README.md`.
 
@@ -23,6 +26,7 @@ tools\Register.ps1                               # or: register the development 
 tools\Test-InWord.ps1                            # end-to-end test in a hidden Word (ask the user to keep Word closed)
 tools\Build-Loader.ps1                           # only after changing src\CalcpadWord.Loader (downloads Zig once)
 templates\dokimos\Template source\beam\Check-WithTedds.ps1 -OutDir <dir> [-Recommended]   # Tedds' own beam calc, for cross-checks
+gh release create v<version> out\installer\CalcpadWord-Setup-<version>.exe --title "Calcpad for Word <version>" --notes-file <notes>   # publish a build (after commit, tag and push)
 ```
 
 The version is set in `src\Directory.Build.props`. **Versions move slowly** (the user, 2026-11-18): don't bump for small fixes. Batch changes into the next meaningful release, and make one new template version per piece of work, rebuilt in place until it's done.
@@ -66,22 +70,24 @@ The version is set in `src\Directory.Build.props`. **Versions move slowly** (the
   - Quote arguments that contain commas, such as `'-Wl,--entry=DllMain'`.
   - `2>&1` on native programs turns stderr into errors.
 
-## State on 2026-11-18 (version 0.8.0)
+## State on 2026-11-20 (version 0.8.1)
 
-- **Done and installed on the first PC:**
+- **Released:** 0.8.1 is the first GitHub release (tag `v0.8.1`, with Setup attached), 2026-11-20. It is 0.8.0 plus the second PC's block output and Recalculate-only mode.
+- **Done in 0.8.0 and installed on the first PC:**
   - inline and block evaluation, script conversion and background calculation;
   - a math font chooser, Cancel, and greying of out-of-date results;
   - **input fields** (form fields that set variables: reusable templates);
   - **one-file Setup:** the add-in, Calcpad's engine, a private .NET runtime started by the native loader DLL, and the fonts. It needs no .NET and no administrator rights.
 - **Templates:**
   - `Dokimos Design Calculation v3.dotx` is the general template.
-  - `Dokimos Psychrometric Chart v2.dotx`: moist air from two known properties (ASHRAE Fundamentals ch. 1) with a chart, built from `psychrometric\Psychrometric chart.cpd` and checked against ASHRAE's tables (`PsychrometricTests`). v1 was made by hand.
+  - `Dokimos Psychrometric Chart v2.dotx`: moist air from two known properties (ASHRAE Fundamentals ch. 1) with a chart, built from `psychrometric\Psychrometric chart.cpd` and checked against ASHRAE's tables (`PsychrometricTests`). v1 was built on the first PC by an earlier script (2026-11-18) and is kept.
   - `Dokimos Duct Sizing v1.dotx`: replaces McQuay's DuctSizer (`D:\ductsizer\ductsizer\DuctSizer.exe`, runs on this PC). Round and rectangular ducts by friction rate, velocity or diameter (ASHRAE Fundamentals ch. 21), built from `duct\Duct sizing.cpd` and checked against DuctSizer (`DuctTests`). DuctSizer uses a roughness of about 0.21 mm; the template's default is ASHRAE's 0.09 mm.
   - `Dokimos Soil Stresses and Settlement v1.dotx`: Boussinesq stresses and settlement under a rectangular load varying across its width (after Calcpad's soil example), built from `soil\Soil stresses and settlement.cpd` and checked in `SoilTests`. About 7 s to calculate.
   - Templates don't say where their calculation came from (the user, 2026-11-20).
   - Calculation templates share `Template source\TemplateBuild.ps1` (hidden Word, sections, drop-downs, save).
   - `Dokimos RC Beam Design (EC2) v2.dotx` is the current beam calculation, modelled on Tedds and Calcpad's examples. It covers cover, fire, bending, limits, spacing, shear, crack control and deflection (by ratio and by calculation), with a sketch and a summary. It is cross-checked against Tedds. v1 is kept. It needs add-in 0.8.0 or later; built on the second PC with 0.8.0 plus the block output changes.
-  - Both are built and tested by the scripts in `templates/dokimos/Template source/`.
+  - All are built and tested by the scripts in `templates/dokimos/Template source/`.
+- **First PC:** the original PC. Add-in 0.8.0 is installed from Setup (built 2026-11-18, before the second PC's block output and manual-mode changes). The Tedds Engineering Library isn't installed or licensed here. Git reaches GitHub over SSH with `~\.ssh\id_ed25519` (2026-11-20).
 - **Second PC (2026-11-18):** the project arrived as a zip. Python and git are also in WSL; use Windows git for this repo. Word is Microsoft 365 x64. Add-in 0.8.0 is installed here.
 - **Open:**
   - An intermittent hang of the hidden test Word after the first background draw ("Open issue" in PLAN.md).
