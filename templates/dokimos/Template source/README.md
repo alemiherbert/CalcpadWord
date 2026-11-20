@@ -37,7 +37,7 @@ Each Word script runs its own hidden Word: your open documents are left alone. E
 - crack control: minimum steel (7.1) and crack width (7.3.4);
 - deflection: span to depth ratio (7.4.2) and calculated deflection (7.4.3), with creep and shrinkage from Annex B.
 
-A section sketch follows the geometry. Each check ends in a "PASS - …" or "FAIL - …" line, and a summary table follows. It needs Calcpad for Word 0.1.0 or later.
+A section sketch follows the geometry. Each check ends in a "PASS - …" or "FAIL - …" line, and a summary table follows. It needs Calcpad for Word 0.1.1 or later.
 
 | Version | What changed |
 |---|---|

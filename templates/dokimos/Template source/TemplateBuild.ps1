@@ -11,7 +11,7 @@
                                               # page pictures, save
     Close-Template                        # in finally: quits that Word, and stops only it if need be
   Your open documents are left alone. Each step is logged to OutDir\steps.log, and OutDir\pid.txt
-  holds the hidden Word's process ID. It needs the Calcpad for Word add-in, 0.1.0 or later.
+  holds the hidden Word's process ID. It needs the Calcpad for Word add-in, 0.1.1 or later.
 #>
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Drawing
