@@ -7,8 +7,8 @@
     Open-Template $OutDir $base $script   # a hidden Word of its own; a new document from $base;
                                           # the script's sections ('<!--section:NAME--> lines)
     ...  the template's own steps: Tagged, FillSection, ConvertSection, Dropdown, ...
-    Save-Template $target $pictures $prefix   # calculate, calculate on Calculate only,
-                                              # update the contents, page pictures, save
+    Save-Template $target $pictures $prefix   # calculate, update the contents,
+                                              # page pictures, save
     Close-Template                        # in finally: quits that Word, and stops only it if need be
   Your open documents are left alone. Each step is logged to OutDir\steps.log, and OutDir\pid.txt
   holds the hidden Word's process ID. It needs the Calcpad for Word add-in, 0.1.0 or later.
@@ -68,6 +68,16 @@ function WaitForCalcpad([string]$what) {
     $status = Prop $script:api 'LastStatus'
     if ($what) { Step ("{0}: {1}" -f $what, $status) }
     return $status
+}
+
+<# Waits until Calcpad is idle and $condition holds (true), or $seconds pass (false). Word runs deferred work, such as calculating after a field is left, while it waits. #>
+function WaitUntil([scriptblock]$condition, [int]$seconds = 60) {
+    $timer = [Diagnostics.Stopwatch]::StartNew()
+    while ($timer.Elapsed.TotalSeconds -lt $seconds) {
+        if (-not (Prop $script:api 'IsWorking') -and (& $condition)) { return $true }
+        Start-Sleep -Milliseconds 200
+    }
+    return $false
 }
 
 function HeadingParagraph([string]$text) {
@@ -164,8 +174,7 @@ function Save-PagePicture([int]$page, [string]$path) {
 }
 
 <#
-  Finishes a template: calculates, sets it to calculate on Calculate only (typing inputs
-  stays fast), updates the contents and the sheet numbers, draws each page to
+  Finishes a template: calculates, updates the contents and the sheet numbers, draws each page to
   $pictures\$prefix-pageN.png (replacing older ones) and saves it as $target (.dotx).
 #>
 function Save-Template([string]$target, [string]$pictures, [string]$prefix) {
@@ -199,8 +208,8 @@ function Save-Template([string]$target, [string]$pictures, [string]$prefix) {
         Step "paragraph $i made 1 pt"
     }
     Step ("errors: {0}" -f (Prop $script:api 'ErrorCount'))
-    $settings = Call $script:api 'GetSettings'
-    Step ("automatic calculation off: {0}" -f (Call $script:api 'SetSettings' @("$settings;auto=0")))
+    # Calculate automatically stays on, the default (the user, 2026-11-21).
+    Step ("settings: {0}" -f (Call $script:api 'GetSettings'))
 
     if ($script:doc.TablesOfContents.Count -gt 0) { [void](Call $script:doc.TablesOfContents.Item(1) 'Update') }
     $window = $script:doc.ActiveWindow; $window.View.Type = 3

@@ -14,24 +14,21 @@ function Shows([string]$label, [string]$pattern) { (Text) -match ('(?s)' + [rege
 try {
     if (-not (Open-Template $OutDir (Join-Path $PSScriptRoot "out\Dokimos Soil Stresses and Settlement v$Version.dotx"))) { return }
     Check 'the template arrives calculated: 10.23 mm at the centre' ((Shows 'At the centre' '10\.23') -and (Prop $api 'ErrorCount') -eq 0)
-    Check 'automatic calculation is off' ((Call $api 'GetSettings') -match 'auto=0')
+    Check 'automatic calculation is on' ((Call $api 'GetSettings') -notmatch 'auto=0')
     $plots = 0; $shapes = $doc.InlineShapes
     for ($k = 1; $k -le $shapes.Count; $k++) { if ($shapes.Item($k).Title -eq 'Calcpad plot') { $plots++ } }
     Check "the plots and maps are there ($plots)" ($plots -eq 6)
 
-    # 1. Typing a value and leaving the field is instant.
+    # 1. Typing a value and leaving the field recalculates (in the background: about 10 s).
+    #    A uniform 50 kPa: the linear part of the old load added nothing at the centre, so it halves.
     $p2 = Tagged 'calcpad-input:p_2:kPa' # an input with a unit is tagged with it
     $p2.Range.Select()
     $word.Selection.TypeText('50')
     $timer = [Diagnostics.Stopwatch]::StartNew()
     $doc.Paragraphs.Item(1).Range.Select()
-    for ($i = 0; $i -lt 100 -and (Prop $api 'LastStatus') -notmatch 'out of date'; $i++) { Start-Sleep -Milliseconds 50 }
-    Check ("leaving a changed field marks the results out of date ({0:F2} s)" -f $timer.Elapsed.TotalSeconds) (((Prop $api 'LastStatus') -match 'out of date') -and $timer.Elapsed.TotalSeconds -lt 1)
-
-    # 2. A uniform 50 kPa: the linear part of the old load added nothing at the centre, so it halves.
-    $timer.Restart()
-    Step ("p_2 = 50 kPa: {0} ({1:F1} s)" -f (Recalculate), $timer.Elapsed.TotalSeconds)
-    Check 'a uniform 50 kPa halves the settlement at the centre (5.12 mm)' ((Shows 'At the centre' '5\.1[1-3]') -and (Prop $api 'ErrorCount') -eq 0)
+    $ok = WaitUntil { Shows 'At the centre' '5\.1[1-3]' } 120
+    Step ("p_2 = 50 kPa, field left: {0} ({1:F1} s)" -f (Prop $api 'LastStatus'), $timer.Elapsed.TotalSeconds)
+    Check 'leaving a changed field recalculates: a uniform 50 kPa halves the settlement at the centre (5.12 mm)' ($ok -and (Prop $api 'ErrorCount') -eq 0)
 
     [void](Call $doc 'Close' @(0))
     Step "done: $failures failure(s)"

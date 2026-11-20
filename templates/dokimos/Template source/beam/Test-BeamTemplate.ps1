@@ -14,19 +14,15 @@ try {
     if (-not (Open-Template $OutDir (Join-Path $PSScriptRoot "out\Dokimos RC Beam Design (EC2) v$Version.dotx"))) { return }
     Check 'the template arrives calculated, passing' ((Text) -match 'The beam passes every check')
 
-    # 1. Calculation happens on Recalculate only. Leaving a changed field just marks the
-    #    results out of date, at once; Recalculate updates them.
-    Check 'automatic calculation is off' ((Call $api 'GetSettings') -match 'auto=0')
+    # 1. Calculate automatically is on: leaving a changed field recalculates.
+    Check 'automatic calculation is on' ((Call $api 'GetSettings') -notmatch 'auto=0')
     (Tagged 'calcpad-input:h').Range.Select()
     $word.Selection.TypeText('350')
     $timer = [Diagnostics.Stopwatch]::StartNew()
     $doc.Paragraphs.Item(1).Range.Select() # leave the field
-    for ($i = 0; $i -lt 100 -and (Prop $api 'LastStatus') -notmatch 'out of date'; $i++) { Start-Sleep -Milliseconds 50 }
-    Step ("after typing h = 350 and leaving: {0} ({1:F2} s)" -f (Prop $api 'LastStatus'), $timer.Elapsed.TotalSeconds)
-    Check 'leaving a changed field marks the results out of date, within a second' (((Prop $api 'LastStatus') -match 'out of date') -and $timer.Elapsed.TotalSeconds -lt 1)
-    Check 'and calculates nothing' ((Text) -notmatch '350\s*[−-]\s*30\s*[−-]\s*8')
-    [void](Recalculate)
-    Check 'Recalculate updates the results' ((Text) -match '350\s*[−-]\s*30\s*[−-]\s*8')
+    $ok = WaitUntil { (Text) -match '350\s*[−-]\s*30\s*[−-]\s*8' }
+    Step ("after typing h = 350 and leaving: {0} ({1:F1} s)" -f (Prop $api 'LastStatus'), $timer.Elapsed.TotalSeconds)
+    Check 'leaving a changed field recalculates' $ok
 
     # 2. A shallow, long beam fails, and the summary says so.
     (Tagged 'calcpad-input:L').Range.Text = '8'

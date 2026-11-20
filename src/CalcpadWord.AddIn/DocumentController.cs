@@ -53,7 +53,8 @@ internal sealed class DocumentController(Word.Application app)
         using var undo = new UndoScope(app, "Calcpad Convert");
         var selection = app.Selection.Range;
         var note = string.Empty;
-        if (FindCalcpadControl(selection) is null)
+        var existing = FindCalcpadControl(selection);
+        if (existing is null)
         {
             var paragraphs = WholeParagraphs(selection);
             if (paragraphs.ContentControls.Count == 0 && BlockSource.LooksLikeScript(ParagraphTexts(paragraphs)))
@@ -76,7 +77,7 @@ internal sealed class DocumentController(Word.Application app)
                 WrapAsExpressions(selection);
             }
         }
-        return RecalculateCore(doc, keepActiveSource: false) + note;
+        return CalculateEdits(doc, keepActiveSource: false, existing?.ID) + note;
     }
 
     /// <summary>
@@ -111,7 +112,7 @@ internal sealed class DocumentController(Word.Application app)
         {
             _busy = false;
         }
-        return RecalculateCore(doc, keepActiveSource: false);
+        return CalculateEdits(doc, keepActiveSource: false);
     }
 
     public bool IsBlockAt(Word.Range range) =>
@@ -140,7 +141,7 @@ internal sealed class DocumentController(Word.Application app)
         var source = SourceNormalizer.NormalizeBlock(paragraphs.Text);
         var cc = CreateBlock(paragraphs, source);
         if (source.Length > 0)
-            return RecalculateCore(doc, keepActiveSource: false);
+            return CalculateEdits(doc, keepActiveSource: false);
 
         _busy = true;
         try
@@ -178,7 +179,7 @@ internal sealed class DocumentController(Word.Application app)
 
         using var undo = new UndoScope(app, "Calcpad Edit Source");
         if (tag.ShowsSource)
-            return RecalculateCore(doc, keepActiveSource: false);
+            return CalculateEdits(doc, keepActiveSource: false, cc.ID);
 
         _busy = true;
         try
@@ -304,14 +305,21 @@ internal sealed class DocumentController(Word.Application app)
 
     /// <summary>
     /// Leaving a changed input field or edited source: recalculates. With automatic calculation
-    /// off, a changed input field only marks the document's results out of date, so typing
-    /// inputs stays instant. Edited source is always calculated: otherwise it would stay open as
-    /// source until the next Calculate.
+    /// off (as in Excel's manual mode), a changed input field only marks the document's results
+    /// out of date, so typing inputs stays instant, and edited source is calculated and drawn on
+    /// its own, so it never stays open; what follows it waits for Calculate.
     /// </summary>
-    public string AfterExit(Word.Document doc, Word.ContentControl left) =>
-        InputField.IsInput(left.Tag) && !LoadSettings(doc).Automatic
-            ? MarkOutOfDate(doc, left)
-            : Recalculate(doc, keepActiveSource: true);
+    public string AfterExit(Word.Document doc, Word.ContentControl left)
+    {
+        if (InputField.IsInput(left.Tag) && !LoadSettings(doc).Automatic)
+            return MarkOutOfDate(doc, left);
+
+        string? leftId = null;
+        try { leftId = left.ID; }
+        catch (COMException) { } // deleted meanwhile
+        using var undo = new UndoScope(app, "Calcpad Calculate");
+        return CalculateEdits(doc, keepActiveSource: true, leftId);
+    }
 
     private const string OutOfDateVariable = "Calcpad.OutOfDate";
 
@@ -474,10 +482,17 @@ internal sealed class DocumentController(Word.Application app)
     /// <param name="Items">What the worksheet runs, in document order: the controls and the input fields.</param>
     /// <param name="ItemOf">For each of <paramref name="Controls"/>: its index in <paramref name="Items"/>.</param>
     /// <param name="Inputs">The input fields, with the value calculated with.</param>
+    /// <param name="Only">
+    /// Automatic calculation off, after an edit: the IDs of the only controls to draw (those just
+    /// written or edited). The worksheet then runs only as far as the last of them (<paramref name="Limit"/>
+    /// items), and everything else waits for Calculate, as in Excel's manual mode.
+    /// </param>
+    /// <param name="LeftId">The control just left, if any (with <paramref name="Only"/>).</param>
     private sealed record Snapshot(
         Word.Document Doc, List<Word.ContentControl> Controls, List<string> Ids, List<string> Tags,
         List<ControlTag> Parsed, List<WorksheetItem> Items, List<int> ItemOf, List<InputSnapshot> Inputs,
-        DocumentSettings Settings, string? Folder, double? TextWidth);
+        DocumentSettings Settings, string? Folder, double? TextWidth,
+        HashSet<string>? Only = null, int Limit = int.MaxValue, string? LeftId = null);
 
     /// <param name="Changed">The value differs from the last calculation's (or this session hasn't calculated it yet).</param>
     private sealed record InputSnapshot(Word.ContentControl Control, string Id, InputField Field, string Value, int Item, bool Changed);
@@ -566,13 +581,25 @@ internal sealed class DocumentController(Word.Application app)
     /// <summary>Raised on Word's thread when results calculated in the background have been drawn (or failed).</summary>
     public event Action<string>? BackgroundFinished;
 
-    private string RecalculateCore(Word.Document doc, bool keepActiveSource)
+    /// <summary>
+    /// After writing or editing Calcpad: with automatic calculation on, recalculates everything;
+    /// off, calculates and draws only what was just written or edited (<see cref="Snapshot.Only"/>).
+    /// </summary>
+    /// <param name="leftId">The control just left (an error that was edited is drawn too).</param>
+    private string CalculateEdits(Word.Document doc, bool keepActiveSource, string? leftId = null) =>
+        // A full calculation still running (Calculate) is not cut short: it is started again in full.
+        LoadSettings(doc).Automatic || (_calculation is not null && !_calculatingOnlyEdits)
+            ? RecalculateCore(doc, keepActiveSource)
+            : RecalculateCore(doc, keepActiveSource, onlyEdited: true, leftId);
+
+    /// <summary>The calculation running (<see cref="_calculation"/>) draws only what was edited.</summary>
+    private bool _calculatingOnlyEdits;
+
+    private string RecalculateCore(Word.Document doc, bool keepActiveSource, bool onlyEdited = false, string? leftId = null)
     {
         if (_busy)
             return "Calcpad is busy.";
 
-        _calculation?.Cancel(); // its results would be out of date
-        _toGrey = null;
         Snapshot snapshot;
         _busy = true;
         try
@@ -584,14 +611,21 @@ internal sealed class DocumentController(Word.Application app)
             foreach (var story in Stories(doc))
                 ConvertDelimiters(story);
             snapshot = TakeSnapshot(doc);
+            if (onlyEdited)
+                snapshot = LimitToEdits(snapshot, activeId, leftId);
         }
         finally
         {
             _busy = false;
         }
+        if (snapshot.Only is { Count: 0 })
+            return LastStatus = IsOutOfDate(doc) ? "Calcpad: results out of date. Calculate (Ctrl+Alt+F9) updates them." : LastStatus;
 
+        _calculation?.Cancel(); // its results would be out of date
+        _toGrey = null;
         var cancel = new CancellationTokenSource();
         _calculation = cancel;
+        _calculatingOnlyEdits = snapshot.Only is not null;
         var token = cancel.Token;
         var calculation = _lastCalculation.ContinueWith(
             _ => Calculate(snapshot, token), CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default);
@@ -708,6 +742,26 @@ internal sealed class DocumentController(Word.Application app)
     }
 
     /// <summary>
+    /// Automatic calculation off: only the sources being edited, the new expressions and the
+    /// control just left are drawn (not the source the cursor is in). The worksheet runs top to
+    /// bottom, so it needs to run only as far as the last of them.
+    /// </summary>
+    private static Snapshot LimitToEdits(Snapshot s, string? activeId, string? leftId)
+    {
+        var only = new HashSet<string>(StringComparer.Ordinal);
+        var limit = 0;
+        for (var i = 0; i < s.Controls.Count; ++i)
+        {
+            var (id, tag) = (s.Ids[i], s.Parsed[i]);
+            if (id == activeId || !(tag.State == ControlState.Editing || tag.Fingerprint.Length == 0 || id == leftId))
+                continue;
+            only.Add(id);
+            limit = Math.Max(limit, s.ItemOf[i] + 1);
+        }
+        return s with { Only = only, Limit = limit, LeftId = leftId };
+    }
+
+    /// <summary>
     /// The text width in points, which plots are made to fill: the last section's page less its
     /// margins and gutter, or its column width. Null if Word can't say: plots stay as drawn.
     /// </summary>
@@ -730,7 +784,8 @@ internal sealed class DocumentController(Word.Application app)
     {
         using var fullSpeed = new FullSpeedScope();
         var timer = System.Diagnostics.Stopwatch.StartNew();
-        var results = Worksheet.Evaluate(snapshot.Items, snapshot.Settings, snapshot.Folder, token);
+        var items = snapshot.Limit < snapshot.Items.Count ? snapshot.Items.GetRange(0, snapshot.Limit) : snapshot.Items;
+        var results = Worksheet.Evaluate(items, snapshot.Settings, snapshot.Folder, token);
         var calculated = timer.Elapsed;
         foreach (var result in results)
         {
@@ -808,7 +863,7 @@ internal sealed class DocumentController(Word.Application app)
                 {
                     _busy = false;
                     Log.Info($"'{s.Doc.Name}' changed during the calculation: calculating again");
-                    var restarted = RecalculateCore(s.Doc, keepActiveSource: true);
+                    var restarted = RecalculateCore(s.Doc, keepActiveSource: true, onlyEdited: s.Only is not null, s.LeftId);
                     return _calculation is null ? restarted : null; // still running: it reports when done
                 }
             }
@@ -855,7 +910,8 @@ internal sealed class DocumentController(Word.Application app)
         var inline = new List<InlineResult>();
 
         // Input fields come first in the count: a wrong value explains the errors after it.
-        foreach (var input in s.Inputs)
+        // (Drawing only what was edited, they wait for Calculate like everything else.)
+        foreach (var input in s.Only is null ? s.Inputs : [])
         {
             var result = results[input.Item];
             var failed = result.Kind == ResultKind.Error;
@@ -871,6 +927,8 @@ internal sealed class DocumentController(Word.Application app)
 
         for (var i = 0; i < controls.Count; ++i)
         {
+            if (s.Only is not null && !s.Only.Contains(s.Ids[i]))
+                continue;
             var (cc, tag, result) = (controls[i], s.Parsed[i], results[s.ItemOf[i]]);
             // A block that wasn't redrawn keeps the error summary in its title.
             var title = TitleOf(cc);
@@ -910,16 +968,24 @@ internal sealed class DocumentController(Word.Application app)
         }
         var scanned = timer.Elapsed;
         WriteInline(s.Doc.Application, inline);
-        SetOutOfDate(s.Doc, false);
+        if (s.Only is null)
+            SetOutOfDate(s.Doc, false);
+        else if (s.Limit < s.Items.Count)
+            SetOutOfDate(s.Doc, true); // what follows may depend on it
 
-        var total = controls.Count;
+        var total = s.Only?.Count ?? controls.Count;
         var fields = s.Inputs.Count;
-        Log.Info($"Recalculated '{s.Doc.Name}': {total} items, {fields} inputs, {errors} with errors, {redrawn} redrawn " +
+        Log.Info($"{(s.Only is null ? "Recalculated" : "Calculated what was edited in")} '{s.Doc.Name}': {total} items, {fields} inputs, {errors} with errors, {redrawn} redrawn " +
                  $"in {timer.Elapsed.TotalSeconds:F1} s: inputs {inputsDone.TotalSeconds:F1} s, blocks {Seconds(blockTicks):F1} s, " +
                  $"rest of the scan {(scanned - inputsDone).TotalSeconds - Seconds(blockTicks):F1} s, {inline.Count} equations {(timer.Elapsed - scanned).TotalSeconds:F1} s " +
                  $"({Seconds(_insertTicks):F1} s in InsertXML, {Seconds(_deleteTicks):F1} s deleting tables)");
         if (total == 0 && fields == 0)
             return "Calcpad: nothing to calculate. Select text and press Convert to Calcpad (Alt+Shift+Enter), type {= expression } in the text, or add a Calcpad Block.";
+
+        if (s.Only is not null)
+            return $"Calcpad: calculated {(total == 1 ? "the expression" : $"{total} expressions")}" +
+                   (firstError is null ? "" : $", {errors} error{(errors == 1 ? "" : "s")}: {firstError}") +
+                   (IsOutOfDate(s.Doc) ? ". Other results are out of date: Calculate (Ctrl+Alt+F9) updates them." : ".");
 
         return $"Calcpad: {total} item{(total == 1 ? "" : "s")}" +
                (fields == 0 ? "" : $", {fields} input{(fields == 1 ? "" : "s")}") +
@@ -1147,6 +1213,9 @@ internal sealed class DocumentController(Word.Application app)
     /// </summary>
     private static List<Word.ContentControl> StaleCandidates(Snapshot s)
     {
+        if (s.Only is not null)
+            return []; // drawing only what was edited, which shows its source meanwhile: nothing else changes
+
         // The first item (in worksheet order) that is new, edited, or an input field with a new value.
         var first = s.Parsed.FindIndex(p => p.ShowsSource || p.Fingerprint is "" or "-");
         var firstItem = first >= 0 ? s.ItemOf[first] : int.MaxValue;

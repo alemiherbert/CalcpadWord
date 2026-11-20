@@ -239,16 +239,23 @@ try {
     Check (WaitFor { $l.Range.OMaths.Count -eq 1 }) 'leaving the source evaluates it'
     Check ((Control $doc.Content '#val M').Range.Text -match '96') 'and everything after it follows (M = 96 kNm)'
 
-    Say 'Step 3b: the same with automatic calculation off: leaving edited source still calculates it'
+    Say 'Step 3b: automatic calculation off (Excel''s manual mode): leaving edited source draws it alone'
     $settings = Call $api 'GetSettings'
     [void](Call $api 'SetSettings' @("$settings;auto=0"))
-    foreach ($case in @(@($null, '96', 'opened and left unchanged'), @('L = 6m', '54', 'changed to 6m'), @('L = 8m', '96', 'and back to 8m'))) {
+    function Edit-L([string]$text) {
         $r = $l.Range; $r.Collapse(1); $r.Select()
         [void](Command 'EditSource')
-        if ($case[0]) { $l.Range.Text = $case[0] }
+        if ($text) { $l.Range.Text = $text }
         $doc.Paragraphs.Item(1).Range.Select()   # leave the control
-        Check ((WaitFor { $l.Range.OMaths.Count -eq 1 }) -and (Control $doc.Content '#val M').Range.Text -match $case[1]) "$($case[2]): the source closes as an equation, M = $($case[1]) kNm"
+        return (WaitFor { $l.Range.OMaths.Count -eq 1 })
     }
+    $m = { (Control $doc.Content '#val M').Range.Text }
+    Check ((Edit-L $null) -and (& $m) -match '96') 'opened and left unchanged: the source closes as an equation'
+    Check ((Edit-L 'L = 6m') -and $l.Range.Text -match '6') 'changed to 6m: L closes, showing 6 m'
+    Check ((& $m) -match '96' -and (Prop $api 'LastStatus') -match 'out of date') 'but M waits for Calculate (still 96 kNm), and the results are out of date'
+    Say ('  -> ' + (Command 'Recalculate'))
+    Check ((& $m) -match '54') 'Calculate updates M (54 kNm)'
+    Check ((Edit-L 'L = 8m') -and (Command 'Recalculate') -and (& $m) -match '96') 'back to 8m, and Calculate: M = 96 kNm'
     [void](Call $api 'SetSettings' @($settings))
 
     Say 'Step 4: fix the error in place, then click elsewhere'

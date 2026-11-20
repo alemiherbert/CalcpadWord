@@ -18,20 +18,18 @@ function Pick([string]$variable, [string]$text) {
 try {
     if (-not (Open-Template $OutDir (Join-Path $PSScriptRoot "out\Dokimos Psychrometric Chart v$Version.dotx"))) { return }
     Check 'the template arrives calculated: 25 °C and 60 % at 1190 m' ((Text) -match 'Relative humidity' -and (Prop $api 'ErrorCount') -eq 0)
-    Check 'automatic calculation is off' ((Call $api 'GetSettings') -match 'auto=0')
+    Check 'automatic calculation is on' ((Call $api 'GetSettings') -notmatch 'auto=0')
 
-    # 1. Typing a value and leaving the field is instant; Recalculate updates the results.
+    # 1. Typing a value and leaving the field recalculates.
     $x2 = Tagged 'calcpad-input:x_2'
     $x2.Range.Select()
     $word.Selection.TypeText('40')
     $timer = [Diagnostics.Stopwatch]::StartNew()
     $doc.Paragraphs.Item(1).Range.Select()
-    for ($i = 0; $i -lt 100 -and (Prop $api 'LastStatus') -notmatch 'out of date'; $i++) { Start-Sleep -Milliseconds 50 }
-    Check ("leaving a changed field marks the results out of date ({0:F2} s)" -f $timer.Elapsed.TotalSeconds) (((Prop $api 'LastStatus') -match 'out of date') -and $timer.Elapsed.TotalSeconds -lt 1)
-    $timer.Restart()
-    Step ("φ = 40 %: {0} ({1:F1} s)" -f (Recalculate), $timer.Elapsed.TotalSeconds)
     # An equation's text in Word has paragraph marks in it (fractions): (?s) and a short reach.
-    Check 'Recalculate finds the air' ((Text) -match '(?s)Relative humidity:.{0,80}?=\s*40\s*%' -and (Prop $api 'ErrorCount') -eq 0)
+    $ok = WaitUntil { (Text) -match '(?s)Relative humidity:.{0,80}?=\s*40\s*%' }
+    Step ("φ = 40 %, field left: {0} ({1:F1} s)" -f (Prop $api 'LastStatus'), $timer.Elapsed.TotalSeconds)
+    Check 'leaving a changed field finds the air' ($ok -and (Prop $api 'ErrorCount') -eq 0)
 
     # 2. Another pair: dry bulb and wet bulb.
     Pick 'P_2' 'Wet-bulb temperature, °C'

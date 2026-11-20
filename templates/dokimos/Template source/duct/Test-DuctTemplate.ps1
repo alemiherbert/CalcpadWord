@@ -20,19 +20,17 @@ function Shows([string]$label, [string]$value) { (Text) -match ('(?s)' + [regex]
 try {
     if (-not (Open-Template $OutDir (Join-Path $PSScriptRoot "out\Dokimos Duct Sizing v$Version.dotx"))) { return }
     Check 'the template arrives calculated: 500 L/s at 1 Pa/m, 1190 m' ((Shows 'Diameter for this friction rate' '331.9') -and (Prop $api 'ErrorCount') -eq 0)
-    Check 'automatic calculation is off' ((Call $api 'GetSettings') -match 'auto=0')
+    Check 'automatic calculation is on' ((Call $api 'GetSettings') -notmatch 'auto=0')
 
-    # 1. Typing a value and leaving the field is instant; Recalculate updates the sizes.
+    # 1. Typing a value and leaving the field recalculates the sizes.
     $q = Tagged 'calcpad-input:q'
     $q.Range.Select()
     $word.Selection.TypeText('1000')
     $timer = [Diagnostics.Stopwatch]::StartNew()
     $doc.Paragraphs.Item(1).Range.Select()
-    for ($i = 0; $i -lt 100 -and (Prop $api 'LastStatus') -notmatch 'out of date'; $i++) { Start-Sleep -Milliseconds 50 }
-    Check ("leaving a changed field marks the results out of date ({0:F2} s)" -f $timer.Elapsed.TotalSeconds) (((Prop $api 'LastStatus') -match 'out of date') -and $timer.Elapsed.TotalSeconds -lt 1)
-    $timer.Restart()
-    Step ("q = 1000 L/s: {0} ({1:F1} s)" -f (Recalculate), $timer.Elapsed.TotalSeconds)
-    Check 'Recalculate sizes the larger duct' ((Shows 'Friction loss (Darcy' '1') -and -not (Shows 'Diameter for this friction rate' '331.9') -and (Prop $api 'ErrorCount') -eq 0)
+    $ok = WaitUntil { (Shows 'Friction loss (Darcy' '1') -and -not (Shows 'Diameter for this friction rate' '331.9') }
+    Step ("q = 1000 L/s, field left: {0} ({1:F1} s)" -f (Prop $api 'LastStatus'), $timer.Elapsed.TotalSeconds)
+    Check 'leaving a changed field sizes the larger duct' ($ok -and (Prop $api 'ErrorCount') -eq 0)
 
     # 2. Sized by velocity instead.
     Pick 'P_s' 'Velocity'

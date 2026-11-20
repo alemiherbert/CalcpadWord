@@ -128,7 +128,11 @@ Setup installs all the free fonts. If one has been removed since, the list marks
 - Results that arrive late are one Undo step of their own.
 - Calcpad is loaded when Word starts, so the first calculation isn't slowed down.
 
-**Calculate automatically** (Document settings) is on by default: leaving a changed input field or expression recalculates. Turn it off for fast input. Leaving a field then changes nothing on the page, and the Calculate button reads *Calculate (out of date)* until you click it (Ctrl+Alt+F9). An expression whose source you opened is still calculated when you leave it, so it never stays open. The setting is saved with the document, so a template can start with it off, as the Dokimos beam template does.
+**Calculate automatically** (Document settings) is on by default, also in the Dokimos templates: leaving a changed input field or expression recalculates. Turn it off for fast input in a long calculation. It then works like Excel's manual mode:
+- leaving a changed field changes nothing on the page, and the Calculate button reads *Calculate (out of date)* until you click it (Ctrl+Alt+F9);
+- an expression you write or edit is calculated on its own when you leave it (Calcpad runs only as far as it), so it never stays open as source; what follows it waits for Calculate.
+
+The setting is saved with the document.
 
 How the add-in behaves:
 - **Results are read-only.** Double-click one (or use Edit Source) to change it. When you click outside, it is calculated again, along with everything after it.

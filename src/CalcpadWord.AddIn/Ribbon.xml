@@ -43,7 +43,7 @@
         <group id="SettingsGroup" label="Document settings">
           <checkBox id="Automatic" label="Calculate automatically" keytip="U"
                     getPressed="GetAutomaticPressed" onAction="OnAutomaticChanged"
-                    supertip="On: leaving a changed input recalculates. Off: a changed input calculates nothing until you click Calculate (Ctrl+Alt+F9), which then reads Calculate (out of date), so typing inputs is fast. An edited expression is calculated when you leave it either way. Saved with the document: a template can start with it off." />
+                    supertip="On (the default): leaving a changed input or expression recalculates the document. Off, as in Excel's manual mode: a changed input waits for Calculate (Ctrl+Alt+F9), which then reads Calculate (out of date); an expression you write or edit is calculated on its own, and what follows it waits. Saved with the document." />
           <dropDown id="Decimals" label="Decimals" keytip="N" sizeString="00"
                     getSelectedItemIndex="GetDecimalsIndex" onAction="OnDecimalsChanged"
                     supertip="Number of decimals in results. Calcpad keeps significant figures for small values.">
