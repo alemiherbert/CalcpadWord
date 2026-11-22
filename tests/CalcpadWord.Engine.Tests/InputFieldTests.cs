@@ -30,6 +30,10 @@ public class InputFieldTests
     [InlineData("", "+3", "b = 3")]
     [InlineData("mm", "300", "b = 300mm")]
     [InlineData("mm", "0.3 m", "b = 0.3m")]
+    [InlineData("", "1e-5", "b = 1*10^(-5)")] // E notation, as in Excel
+    [InlineData("m/s", "2.5E-7", "b = 2.5*10^(-7)*1m/s")]
+    [InlineData("m/s", "1e-4 mm/s", "b = 1*10^(-4)*1mm/s")]
+    [InlineData("", "3e+2", "b = 3*10^(2)")]
     public void Values_become_assignments(string unit, string value, string expected) =>
         Assert.Equal(expected, new InputField("b", unit).Assignment(value));
 
@@ -62,6 +66,21 @@ public class InputFieldTests
         Assert.Equal(ResultKind.Hidden, results[1].Kind);
         Assert.EndsWith("150000", results[2].Text.Replace(" ", ""));
         Assert.EndsWith("100000", results[4].Text.Replace(" ", ""));
+    }
+
+    [Fact]
+    public void Numbers_in_E_notation_calculate()
+    {
+        var results = Worksheet.Evaluate(
+        [
+            WorksheetItem.Input(new InputField("k", "m/s"), "2.5e-5"),
+            WorksheetItem.Inline("q = k*3m|mm^2/s"),
+        ], new DocumentSettings());
+
+        Assert.Equal(ResultKind.Hidden, results[0].Kind);
+        var text = results[1].Text.Replace(" ", "");
+        Assert.Contains("2.5×10^-5m∕s", text);
+        Assert.EndsWith("=75mm^2∕s", text);
     }
 
     [Fact]

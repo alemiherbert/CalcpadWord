@@ -43,6 +43,7 @@ A few keywords can't be reproduced this way: `#md`, `#format`, `#split`, `#phaso
 - **Recalculation:** leaving a changed field recalculates the document.
 - **Making fields:** write `name = ? {default}` in a Calcpad script and convert it (Convert to Calcpad). Calcpad's older saved values, after the script, also fill fields that have no default. A field's tag is `calcpad-input:name`, so you can also make one by hand (Developer tab → Plain Text Content Control → Properties → Tag).
 - **Units:** with `calcpad-input:name:unit` a bare number gets the unit, e.g. `calcpad-input:L:m`. Without a unit only a number is accepted, as in Calcpad's own unitless templates.
+- **Small and large numbers:** E notation works as in Excel, `1e-5` or `2.5E-7` (Calcpad itself writes these as `1*10^-5`), so a permeability can be typed in m/s.
 - **Drop-down lists:** each item's *value* is the number the calculation uses, and its *display name* is what you see. For example, *C30/37* has the value 30, which sets f_ck. Values must be unique in a list, so write 0.3 and 0.30 if two items mean the same.
 - **Wrong entries:** a value that isn't a number (a typo, or `0,85` with a comma) is shaded red. It is listed under **Errors** with a message such as "b: enter a number". Everything that doesn't depend on it still calculates.
 - **Inside a Calcpad block** an input can't be a form field, so it keeps its default as an ordinary assignment.

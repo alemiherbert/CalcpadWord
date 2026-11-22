@@ -18,12 +18,23 @@ public sealed partial record InputField(string Name, string Unit = "")
     [GeneratedRegex(@"^[\p{L}_][\p{L}\p{N}_′″‴⁗,.]*$")]
     internal static partial Regex VariableName();
 
-    [GeneratedRegex(@"^-?(\d+\.?\d*|\.\d+)$")]
+    /// <summary>A number, also in E notation as typed in Excel ("1e-5", "2.5E-7"), which Calcpad doesn't read.</summary>
+    [GeneratedRegex(@"^(?<number>-?(\d+\.?\d*|\.\d+))([eE](?<exponent>[-+]?\d+))?$")]
     private static partial Regex Number();
 
-    /// <summary>A number with a unit, accepted where the field has a unit: "0.3 m", "25kN/m".</summary>
-    [GeneratedRegex(@"^(?<number>-?(\d+\.?\d*|\.\d+))\s*(?<unit>[\p{L}°][\p{L}\p{N}°/·*^.]*)$")]
+    /// <summary>A number with a unit, accepted where the field has a unit: "0.3 m", "25kN/m", "1e-5 m/s".</summary>
+    [GeneratedRegex(@"^(?<number>-?(\d+\.?\d*|\.\d+))([eE](?<exponent>[-+]?\d+))?\s*(?<unit>[\p{L}°][\p{L}\p{N}°/·*^.]*)$")]
     private static partial Regex NumberWithUnit();
+
+    /// <summary>The number as Calcpad writes it, with the unit after it: "1e-5" with m/s is 1*10^(-5)*1m/s.</summary>
+    private static string Quantity(Match m, string unit)
+    {
+        var number = m.Groups["number"].Value;
+        if (!m.Groups["exponent"].Success)
+            return number + unit;
+        var exponent = int.Parse(m.Groups["exponent"].Value, System.Globalization.CultureInfo.InvariantCulture);
+        return $"{number}*10^({exponent})" + (unit.Length > 0 ? "*1" + unit : string.Empty);
+    }
 
     public static bool IsInput(string? tag) => tag is not null && tag.StartsWith(Prefix, StringComparison.Ordinal);
 
@@ -45,10 +56,10 @@ public sealed partial record InputField(string Name, string Unit = "")
         var text = SourceNormalizer.Normalize(value).TrimStart('+');
         if (text.Length == 0 || text == "?")
             throw new FormatException($"Enter a value for {Name}.");
-        if (Number().IsMatch(text))
-            return $"{Name} = {text}{Unit}";
+        if (Number().Match(text) is { Success: true } n)
+            return $"{Name} = {Quantity(n, Unit)}";
         if (Unit.Length > 0 && NumberWithUnit().Match(text) is { Success: true } m)
-            return $"{Name} = {m.Groups["number"].Value}{m.Groups["unit"].Value}";
+            return $"{Name} = {Quantity(m, m.Groups["unit"].Value)}";
         if (text.Contains(',') && Number().IsMatch(text.Replace(",", "")))
             throw new FormatException($"{Name}: write the number without commas: a point for decimals (0.85), nothing between thousands (1200).");
         throw new FormatException(Unit.Length == 0
