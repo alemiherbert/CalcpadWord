@@ -9,7 +9,7 @@
   drop-down lists. See ..\TemplateBuild.ps1. Writes steps.log and pid.txt to OutDir, the template
   and page pictures to out\.
 #>
-param([Parameter(Mandatory)][string]$OutDir, [int]$Version = 3)
+param([Parameter(Mandatory)][string]$OutDir, [int]$Version = 4)
 . (Join-Path $PSScriptRoot '..\TemplateBuild.ps1')
 $name = "Dokimos RC Beam Design (EC2) v$Version"
 try {

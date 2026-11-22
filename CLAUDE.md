@@ -19,7 +19,7 @@ This file also carries what Claude Code remembered on the first PC (its memory f
 
 ```powershell
 git submodule update --init                      # once, after cloning: Calcpad's source
-dotnet test tests\CalcpadWord.Engine.Tests       # unit tests, no Word needed (228 on 2026-11-20)
+dotnet test tests\CalcpadWord.Engine.Tests       # unit tests, no Word needed (244 on 2026-11-22)
 tools\Build-Installer.ps1                        # out\installer\CalcpadWord-Setup-<version>.exe
 out\installer\CalcpadWord-Setup-<version>.exe /quiet   # install it (per user) to test the real thing
 tools\Register.ps1                               # or: register the development build directly
@@ -59,6 +59,7 @@ The version is set in `src\Directory.Build.props`. **Public numbering starts at 
   - A check ends in one line, Tedds style, the verdict and the reason in one colour and size: `'<p class="ok">PASS - reason</p>` (green), or `'<p style="color:#C00000;background-color:#FFEEEE">FAIL - reason</p>` (red).
   - Don't wrap the verdict in `<b>`: Calcpad leaves a formatted run uncoloured, and bold capitals look larger than the reason.
 - **Snappy and succinct (the user, 2026-11-18):** input must feel instant, and templates say things once: no lines that echo an input, no repeated assumptions, short labels and verdicts. **Calculate automatically** (`DocumentSettings.Automatic`, stored as `auto=0` when off) **must be on by default, templates included** (the user, 2026-11-21; templates shipped with it off until then). Off works like Excel's manual mode: a changed input waits for Calculate; an expression written or edited is calculated and drawn on its own (Calcpad runs only as far as it), and what follows waits.
+- **One calculation with a substitution per line** (the user, 2026-11-22: "calculations whose substitutions go toward the end of a line should have their own line"): no comma-separated calculations that wrap. Plain definitions (γ_G = 1.35) and input fields may share a line.
 - **Block output (the user's decisions, made in `BlockOutput`):**
   - Tables use Word's Grid Table 1 Light, full width, left-aligned, with a tiny cell pad.
   - Plots fill the text width.
@@ -86,9 +87,10 @@ The version is set in `src\Directory.Build.props`. **Public numbering starts at 
   - `Dokimos Psychrometric Chart v3.dotx`: moist air from two known properties (ASHRAE Fundamentals ch. 1) with a chart, built from `psychrometric\Psychrometric chart.cpd` and checked against ASHRAE's tables (`PsychrometricTests`). v1 was built on the first PC by an earlier script (2026-11-18) and is kept.
   - `Dokimos Duct Sizing v2.dotx`: replaces McQuay's DuctSizer (`D:\ductsizer\ductsizer\DuctSizer.exe`, runs on this PC). Round and rectangular ducts by friction rate, velocity or diameter (ASHRAE Fundamentals ch. 21), built from `duct\Duct sizing.cpd` and checked against DuctSizer (`DuctTests`). DuctSizer uses a roughness of about 0.21 mm; the template's default is ASHRAE's 0.09 mm.
   - `Dokimos Soil Stresses and Settlement v2.dotx`: Boussinesq stresses and settlement under a rectangular load varying across its width (after Calcpad's soil example), built from `soil\Soil stresses and settlement.cpd` and checked in `SoilTests`. About 7 s to calculate.
+  - `Dokimos Seepage by Finite Differences v1.dotx` (2026-11-22, the user: "base on Seepage_CSM8.xls", Craig's Soil Mechanics 8th ed.; "our graphics must be better"): seepage under a sheet pile wall, one or two layers, anisotropy, an excavation in front. Cell-centred finite differences solved directly (`symmetric_hp`, `clsolve`); flow, exit gradient, heave (EN 1997-1 HYD), water pressure on the wall; a dimensioned sketch, a true flow net (marching squares on heads and the stream function) and a pressure diagram, all SVG. Built from `seepage\Seepage by finite differences.cpd`, checked in `SeepageTests` (exact solution, the spreadsheet's node method, its manual's 1.4k). It needs E notation in input fields (k = 1e-5 m/s), an add-in change after 0.1.1, not yet released.
   - Templates don't say where their calculation came from (the user, 2026-11-20).
   - Calculation templates share `Template source\TemplateBuild.ps1` (hidden Word, sections, drop-downs, save).
-  - `Dokimos RC Beam Design (EC2) v3.dotx` is the current beam calculation, modelled on Tedds and Calcpad's examples. It covers cover, fire, bending, limits, spacing, shear, crack control and deflection (by ratio and by calculation), with a sketch and a summary. It is cross-checked against Tedds. v1 and v2 are kept (v2 was built on the second PC). It needs add-in 0.1.1 or later.
+  - `Dokimos RC Beam Design (EC2) v4.dotx` is the current beam calculation, modelled on Tedds and Calcpad's examples. It covers cover, fire, bending, limits, spacing, shear, crack control and deflection (by ratio and by calculation), with a sketch and a summary. It is cross-checked against Tedds. v4 (2026-11-22) puts each substituted calculation on its own line. It needs add-in 0.1.1 or later.
   - All are built and tested by the scripts in `templates/dokimos/Template source/`.
 - **First PC:** the original PC, with Office Professional Plus 2019 (Word 16.0.10417), not Microsoft 365. Add-in 0.1.1 is installed from Setup (2026-11-21). The Tedds Engineering Library isn't installed or licensed here. Git reaches GitHub over SSH with `~\.ssh\id_ed25519` (2026-11-20).
 - **Second PC (2026-11-18):** the project arrived as a zip. Python and git are also in WSL; use Windows git for this repo. Word is Microsoft 365 x64. Add-in 0.8.0 is installed here.

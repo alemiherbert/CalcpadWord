@@ -44,6 +44,7 @@ A section sketch follows the geometry. Each check ends in a "PASS - …" or "FAI
 | v1 | Bending, limits, spacing, shear, crack width, span to depth ratio. |
 | v2 | Modelled on Tekla Tedds' "RC beam design (EN1992)" and Calcpad's EC2 examples: cover, fire, K and K′, top bar spacing, minimum steel for cracking, calculated deflection, the sketch, reactions. Tables use Grid Table 1 Light; plots fill the width. The exposure class sets the cover and w_max. Calculates on Recalculate only (automatic calculation off), so input is fast. |
 | v3 | Built on the general template v4: no guidance lines. References is left empty for the designer. *Calculate automatically* is on, and the calculation is locked (inputs open). |
+| v4 | One calculation with a substitution per line: 38 lines that held two or three (d and d₂, the shear values, creep and shrinkage…) are split, so none wraps. |
 
 **Checked against Tedds:** `Check-WithTedds.ps1 -OutDir <dir> [-Recommended]` runs Tedds' own calculation for the default section through its API (Tedds must be installed; it saves Tedds' output as text). The numbers agree. They are in `BeamTemplateTests` (`Agrees_with_Tedds_…`).
 
@@ -83,9 +84,29 @@ A section sketch follows the geometry. Each check ends in a "PASS - …" or "FAI
 
 **Checked:** `SoilTests` against Calcpad's example (9.96 mm), the classical settlement of a flexible rectangle on a deep half-space (12.35 mm for 2 × 3 m at 100 kPa) and Boussinesq's point load far below.
 
+## Calculation templates (seepage/)
+
+`Dokimos Seepage by Finite Differences vN.dotx` gives the steady seepage under a sheet pile wall, after the spreadsheet Seepage_CSM8 of Craig's Soil Mechanics (8th edition, Knappett; not named in the document): one or two soil layers over an impermeable base, anisotropy, and an excavation in front of the wall (a cofferdam: the far end of the section is its axis of symmetry). It gives the flow, the exit gradient, the heave of Terzaghi's prism (EN 1997-1 HYD, partial factors of Table A.17) and the water pressure on both faces of the wall.
+
+- **Method:** square cells of side Δ; in each, the flows to its neighbours balance (Laplace's equation), with conductances k_h beside, k_v above and below (harmonic mean across the layer boundary), 2k_v to the ground half a cell up, 0 across the wall. Numbered down each column, the equations form a narrow band, solved directly by Cholesky decomposition (`symmetric_hp` and `clsolve`): about 0.3 s for the default 120 × 43 cells. The spreadsheet iterates instead (F9).
+- **Accuracy:** the flow round the toe is singular, so the error falls with Δ, not Δ²: the flow is about 1 % low on the default grid (0.2 m, 43 rows), 3 % on the spreadsheet's 0.5 m. The spreadsheet's node method errs as much the other way.
+- **Drawings:** the section sketch from the inputs; the flow net, to scale: equipotentials from the heads, flow lines from the stream function (integrated from the cell fluxes, so that the wall and the base are flow lines exactly), both traced by marching squares into SVG lines; the water pressure on each face.
+- **Inputs in E notation:** permeabilities are typed in m/s as `1e-5`, which needs add-in builds after 0.1.1.
+
+| Version | What changed |
+|---|---|
+| v1 | Built from `Seepage by finite differences.cpd`. |
+
+**Checked:** `SeepageTests`:
+- against the exact solution for a wall in a layer of any width (Polubarinova-Kochina, Harr: q/(kΔH) = K(cos α)/(2K(sin α)), α = πd/(2T)): a wall to half the depth gives 0.5, and two grids extrapolate to it within 0.1 %;
+- against the node method of Seepage_CSM8, solved independently in the test: on its 0.5 m grid it gives the 1.4·k its manual quotes for Craig's sheet pile, and the template extrapolates to the same flow;
+- for continuity, anisotropy (the transformed section), layers, a deeper wall and an excavation.
+Craig's flow net for the default wall has 4.3 channels for 12 drops; the template gives 4.31.
+
 ## How a calculation template is made
 
-- **The calculation** is an ordinary Calcpad script (`.cpd`); it also runs in Calcpad desktop.
+- **The calculation** is an ordinary Calcpad script (`.cpd`); it also runs in Calcpad desktop (but for defaults in E notation, which only the add-in reads).
+- **In comments, no apostrophes**, straight or curly: either ends a comment (the add-in makes curly quotes straight). And no variable named like a unit (m, g, A, N, V, P): in some places Calcpad reads it as the unit.
   - `name = ? {default}` lines become the input fields.
   - `'<!--section:NAME-->` lines mark where each part goes.
 - **`Make-…Template.ps1 -OutDir <dir> -Version N`** builds `out\<name> vN.dotx`, with `TemplateBuild.ps1` doing the common steps:
@@ -96,7 +117,7 @@ A section sketch follows the geometry. Each check ends in a "PASS - …" or "FAI
   5. it calculates, makes a section left empty (References) plain so no lone bullet prints, makes the empty paragraphs after the last block 1 pt (so they never add a blank page), leaves *Calculate automatically* on (the default; the user, 2026-11-21), locks the calculation (Lock on the whole document; input fields stay open), renders the pages to `out\vN-pageM.png` and saves it.
 - **No guidance lines:** a calculation template is assumed to be for submission, so it holds no instructions to the designer (the user, 2026-11-20).
 - **`Test-…Template.ps1 -OutDir <dir> -Version N`** uses the template as a designer would and logs ok or FAIL for each check.
-- **The unit tests** (`BeamTemplateTests`, `PsychrometricTests`, `DuctTests`, `SoilTests`) read the `.cpd` from here and calculate it without Word.
+- **The unit tests** (`BeamTemplateTests`, `PsychrometricTests`, `DuctTests`, `SoilTests`, `SeepageTests`) read the `.cpd` from here and calculate it without Word.
 - **Inputs with a unit** (`a = ? {2}m`) show it after the field and are tagged with it (`calcpad-input:a:m`).
 - **A template doesn't say where its calculation came from** (the user, 2026-11-20).
 - **Empty table cells:** Calcpad's Word writer leaves an empty `<td></td>` without a paragraph, and Word then refuses the whole block ("XML markup cannot be inserted"). Put a dash in empty cells. (Found with psychrometric v1.)
