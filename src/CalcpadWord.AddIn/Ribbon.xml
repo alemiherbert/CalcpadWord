@@ -1,18 +1,27 @@
-<customUI xmlns="http://schemas.microsoft.com/office/2009/07/customui" onLoad="OnRibbonLoad">
+<customUI xmlns="http://schemas.microsoft.com/office/2009/07/customui" onLoad="OnRibbonLoad" loadImage="LoadImage">
   <ribbon>
     <tabs>
       <!-- KeyTips: Alt, C, P, then the letter. Shortcuts are handled by the add-in (KeyboardShortcuts.cs). -->
       <tab id="CalcpadTab" label="Calcpad" keytip="CP">
         <!-- Grouped by job, as on Excel's Formulas tab; only the frequent commands are large. -->
         <group id="CalculateGroup" label="Calculation">
-          <button id="Recalculate" getLabel="GetRecalculateLabel" size="large" imageMso="CalculateNow" keytip="R"
-                  onAction="OnRecalculate"
-                  screentip="Calculate (Ctrl+Alt+F9)"
-                  supertip="Calculates every Calcpad expression in the document: main text first, then text boxes, notes, headers and footers. Later expressions use variables defined earlier. Text written as {= ... } is picked up too." />
-          <checkBox id="Automatic" label="Calculate automatically" keytip="U"
-                    getPressed="GetAutomaticPressed" onAction="OnAutomaticChanged"
-                    screentip="Calculate automatically"
-                    supertip="On (the default): leaving a changed input or expression recalculates the document. Off, as in Excel's manual mode: a changed input waits for Calculate (Ctrl+Alt+F9), which then reads Calculate (out of date); an expression you write or edit is calculated on its own, and what follows it waits. Saved with the document." />
+          <!-- Calculate, with "Calculate automatically" in its drop-down. -->
+          <splitButton id="CalculateSplit" size="large" keytip="R">
+            <button id="Recalculate" getLabel="GetRecalculateLabel" imageMso="CalculateNow"
+                    onAction="OnRecalculate"
+                    screentip="Calculate (Ctrl+Alt+F9)"
+                    supertip="Calculates every Calcpad expression in the document: main text first, then text boxes, notes, headers and footers. Later expressions use variables defined earlier. Text written as {= ... } is picked up too. The arrow below has Calculate automatically." />
+            <menu id="CalculateMenu">
+              <button id="RecalculateNow" label="Calculate Now" imageMso="CalculateNow" keytip="C"
+                      onAction="OnRecalculate"
+                      screentip="Calculate (Ctrl+Alt+F9)"
+                      supertip="Calculates every Calcpad expression in the document." />
+              <checkBox id="Automatic" label="Calculate automatically" keytip="U"
+                        getPressed="GetAutomaticPressed" onAction="OnAutomaticChanged"
+                        screentip="Calculate automatically"
+                        supertip="On (the default): leaving a changed input or expression recalculates the document. Off, as in Excel's manual mode: a changed input waits for Calculate (Ctrl+Alt+F9), which then reads Calculate (out of date); an expression you write or edit is calculated on its own, and what follows it waits. Saved with the document." />
+            </menu>
+          </splitButton>
           <button id="CancelCalculation" label="Cancel" imageMso="Cancel" keytip="C"
                   onAction="OnCancel" getEnabled="GetCancelEnabled"
                   screentip="Cancel calculation (Esc)"
@@ -35,6 +44,11 @@
                   onAction="OnEditSource"
                   screentip="Edit source (or double-click a result)"
                   supertip="Shows the Calcpad source of the result at the cursor so you can change it. Click outside it, or press Alt+Shift+Enter, to calculate." />
+        </group>
+        <!-- Operators, units and marks, Greek letters: a grid like Word's equation Symbols gallery,
+             with ▲ ▼ and ▾ for all of them (generated from SymbolPalette; pictures from the add-in). -->
+        <group id="SymbolsGroup" label="Symbols" image="CalcpadSymIcon_03B1">
+          <!--SYMBOL_GALLERIES-->
         </group>
         <group id="ErrorsGroup" label="Errors">
           <dynamicMenu id="ErrorList" size="large" imageMso="TraceError" keytip="L"
@@ -83,6 +97,10 @@
           <checkBox id="PlainStyle" label="Plain Word math" keytip="W"
                     getPressed="GetPlainStylePressed" onAction="OnPlainStyleChanged"
                     supertip="Off: Calcpad look, with variable names in blue. On: plain black Word equations." />
+          <checkBox id="Complex" label="Complex numbers" keytip="I"
+                    getPressed="GetComplexPressed" onAction="OnComplexChanged"
+                    screentip="Complex numbers"
+                    supertip="Calcpad's Complex mode: i is the imaginary unit, so √(-4) = 2i, and A∠φ (or A&lt;&lt;φ) writes a phasor. Off, as in Calcpad: real numbers only. Saved in the document." />
         </group>
       </tab>
     </tabs>

@@ -111,7 +111,85 @@ public sealed class Connect : IDTExtensibility2, IRibbonExtensibility
     {
         using var stream = typeof(Connect).Assembly.GetManifestResourceStream("CalcpadWord.AddIn.Ribbon.xml")!;
         using var reader = new StreamReader(stream);
-        return reader.ReadToEnd().Replace("<!--CONTEXT_MENUS-->", ContextMenusXml(), StringComparison.Ordinal);
+        return reader.ReadToEnd()
+            .Replace("<!--SYMBOL_GALLERIES-->", SymbolPalette.RibbonXml(), StringComparison.Ordinal)
+            .Replace("<!--CONTEXT_MENUS-->", ContextMenusXml(), StringComparison.Ordinal);
+    }
+
+    // ---- Symbols: a grid of cells scrolled by rows, as Word's equation Symbols gallery ------
+
+    private int _symbolTopRow;
+
+    /// <summary>Pictures named in the ribbon markup (customUI loadImage), drawn when the ribbon asks.</summary>
+    public object? LoadImage(string imageId) => SafePicture(imageId, () => imageId switch
+    {
+        SymbolPalette.UpImage => SymbolPictures.Arrow(SymbolPictures.ArrowKind.Up, SymbolPalette.SlotSize),
+        SymbolPalette.DownImage => SymbolPictures.Arrow(SymbolPictures.ArrowKind.Down, SymbolPalette.SlotSize),
+        SymbolPalette.MoreImage => SymbolPictures.Arrow(SymbolPictures.ArrowKind.More, SymbolPalette.SlotSize),
+        _ => SymbolPalette.FromImageId(imageId) switch
+        {
+            ({ } c, true) => SymbolPictures.Icon(c, SymbolPalette.GroupIconSize),
+            ({ } c, false) => SymbolPictures.Cell(c, SymbolPalette.ItemSize),
+            _ => null,
+        },
+    });
+
+    private static object? SafePicture(string name, Func<object?> draw)
+    {
+        try { return draw(); }
+        catch (Exception ex)
+        {
+            Log.Error($"Drawing the ribbon picture {name} failed", ex);
+            return null;
+        }
+    }
+
+    /// <summary>The symbol a grid cell shows at the current scroll position, if any.</summary>
+    private Symbol? SlotSymbol(IRibbonControl control) =>
+        SymbolPalette.FromSlotId(control.Id) is var (row, column) ? SymbolPalette.At(_symbolTopRow + row, column) : null;
+
+    public object? GetSlotImage(IRibbonControl control) => SafePicture(control.Id, () =>
+        SlotSymbol(control) is { } s ? SymbolPictures.Cell(s.Character, SymbolPalette.SlotSize) : SymbolPictures.Blank(SymbolPalette.SlotSize));
+
+    public string GetSlotLabel(IRibbonControl control) => SlotSymbol(control)?.Character.ToString() ?? " ";
+
+    public string GetSlotScreentip(IRibbonControl control) => SlotSymbol(control) is { } s ? SymbolPalette.ScreenTip(s) : "";
+
+    public string GetSlotSupertip(IRibbonControl control) => SlotSymbol(control) is { } s ? SymbolPalette.SuperTip(s) : "";
+
+    public bool GetSlotEnabled(IRibbonControl control) => SlotSymbol(control) is not null;
+
+    /// <summary>A grid cell clicked: its symbol is typed at the cursor.</summary>
+    public void OnSlot(IRibbonControl control)
+    {
+        if (SlotSymbol(control) is { } s)
+            Run("Symbol", () => Controller.InsertSymbol(s.Character.ToString()));
+    }
+
+    /// <summary>A symbol picked from the drop-down with all of them.</summary>
+    public void OnSymbol(IRibbonControl control, string selectedId, int selectedIndex)
+    {
+        if (SymbolPalette.FromItemId(selectedId) is { } c)
+            Run("Symbol", () => Controller.InsertSymbol(c.ToString()));
+    }
+
+    public bool GetSymbolsUpEnabled(IRibbonControl control) => _symbolTopRow > 0;
+
+    public bool GetSymbolsDownEnabled(IRibbonControl control) => _symbolTopRow < SymbolPalette.MaxTopRow;
+
+    public void OnSymbolsUp(IRibbonControl control) => ScrollSymbols(-1);
+
+    public void OnSymbolsDown(IRibbonControl control) => ScrollSymbols(+1);
+
+    private void ScrollSymbols(int rows)
+    {
+        _symbolTopRow = Math.Clamp(_symbolTopRow + rows, 0, SymbolPalette.MaxTopRow);
+        if (_ribbon is null)
+            return;
+        foreach (var id in SymbolPalette.SlotIds())
+            _ribbon.InvalidateControl(id);
+        _ribbon.InvalidateControl("CalcpadSymbolsUp");
+        _ribbon.InvalidateControl("CalcpadSymbolsDown");
     }
 
     /// <summary>"Edit Calcpad Source" on results and "Calculate Calcpad" on source text, in each right-click menu.</summary>
@@ -266,6 +344,11 @@ public sealed class Connect : IDTExtensibility2, IRibbonExtensibility
     public void OnSubstituteChanged(IRibbonControl control, bool pressed) =>
         Run("Substitute values", () => Controller.ChangeSettings(s => s with { Substitute = pressed }));
 
+    public bool GetComplexPressed(IRibbonControl control) => SafeSettings().Complex;
+
+    public void OnComplexChanged(IRibbonControl control, bool pressed) =>
+        Run("Complex numbers", () => Controller.ChangeSettings(s => s with { Complex = pressed }));
+
     public bool GetPlainStylePressed(IRibbonControl control) => SafeSettings().Style == RenderStyle.PlainMath;
 
     public void OnPlainStyleChanged(IRibbonControl control, bool pressed) =>
@@ -318,6 +401,23 @@ public sealed class Connect : IDTExtensibility2, IRibbonExtensibility
     public string SetMathFont(string family) => Api(() => Controller.SetMathFont(family, allowDownload: true));
 
     public string MakeBlock() => Api(() => Controller.MakeBlock());
+
+    /// <summary>What picking a symbol from the Calcpad tab's galleries does.</summary>
+    public string InsertSymbol(string symbol) => Api(() => Controller.InsertSymbol(symbol));
+
+    /// <summary>
+    /// The picture LoadImage gives the ribbon for an image name, as "bitmap W x H" (pixels at
+    /// 96 dpi), or "none". Described here because the picture itself doesn't cross processes.
+    /// </summary>
+    public string DescribeImage(string imageId) => UiThread.Invoke(() =>
+    {
+        if (LoadImage(imageId) is not { } picture)
+            return "none";
+
+        int Get(string name) => Convert.ToInt32(picture.GetType().InvokeMember(name, BindingFlags.GetProperty, null, picture, null));
+        static int Pixels(int himetric) => (int)Math.Round(himetric * 96 / 2540.0);
+        return $"{(Get("Type") == 1 ? "bitmap" : $"type {Get("Type")}")} {Pixels(Get("Width"))} x {Pixels(Get("Height"))}";
+    });
 
     public string ConvertBlockToText() => Api(() => Controller.ConvertBlockToText());
 

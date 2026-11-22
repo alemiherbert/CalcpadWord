@@ -35,12 +35,18 @@ public sealed record DocumentSettings
     public bool Automatic { get; init; } = true;
 
     /// <summary>
-    /// The settings as stored in the document. "auto=0" is written only when off, so documents
-    /// calculating automatically read as before.
+    /// Complex numbers, Calcpad's Complex mode: i is the imaginary unit, √(-1) = i, and A∠φ
+    /// writes a phasor. Off (Real mode), as in Calcpad, by default.
+    /// </summary>
+    public bool Complex { get; init; }
+
+    /// <summary>
+    /// The settings as stored in the document. "auto=0" is written only when off and "complex=1"
+    /// only when on, so documents with the defaults read (and hash) as before.
     /// </summary>
     public string Serialize() =>
         string.Create(CultureInfo.InvariantCulture,
-            $"decimals={Decimals};substitute={(Substitute ? 1 : 0)};angles={AngleKey(Angles)};style={(Style == RenderStyle.PlainMath ? "plain" : "calcpad")};font={MathFont}{(Automatic ? "" : ";auto=0")}");
+            $"decimals={Decimals};substitute={(Substitute ? 1 : 0)};angles={AngleKey(Angles)};style={(Style == RenderStyle.PlainMath ? "plain" : "calcpad")};font={MathFont}{(Automatic ? "" : ";auto=0")}{(Complex ? ";complex=1" : "")}");
 
     /// <summary>What the results depend on: <see cref="Automatic"/> only decides when they are calculated.</summary>
     public string ResultKey() => (this with { Automatic = true }).Serialize();
@@ -69,6 +75,7 @@ public sealed record DocumentSettings
                 "angles" when TryParseAngles(value, out var a) => settings with { Angles = a },
                 "style" => settings with { Style = value == "plain" ? RenderStyle.PlainMath : RenderStyle.Calcpad },
                 "auto" => settings with { Automatic = value is not ("0" or "false" or "off") },
+                "complex" => settings with { Complex = value is "1" or "true" or "on" },
                 _ => settings,
             };
         }

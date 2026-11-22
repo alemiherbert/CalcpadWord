@@ -33,6 +33,8 @@
     <None Include="..\..\templates\dokimos\Template source\soil\Soil stresses and settlement.cpd" Link="Fixtures\Soil.cpd" CopyToOutputDirectory="PreserveNewest" />
     <!-- The Dokimos seepage calculation, by finite differences (SeepageTests). -->
     <None Include="..\..\templates\dokimos\Template source\seepage\Seepage by finite differences.cpd" Link="Fixtures\Seepage.cpd" CopyToOutputDirectory="PreserveNewest" />
+    <!-- The add-in's ribbon, checked against Office's customUI schema with the symbol galleries in (SymbolTests). -->
+    <None Include="..\..\src\CalcpadWord.AddIn\Ribbon.xml" Link="Fixtures\Ribbon.xml" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

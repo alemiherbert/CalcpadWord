@@ -4,10 +4,83 @@ namespace CalcpadWord.Engine;
 
 /// <summary>
 /// Undoes the characters Word's AutoCorrect and AutoFormat substitute while you type
-/// (dashes, smart quotes, ½, non-breaking spaces, line breaks), which Calcpad would reject.
+/// (dashes, smart quotes, ½, non-breaking spaces, line breaks), which Calcpad would reject,
+/// and turns the operators typed as two keys (>=, ==, &&…) into Calcpad's symbols.
 /// </summary>
 public static class SourceNormalizer
 {
+    /// <summary>
+    /// Calcpad's own editor shortcuts (as you type, and on paste): == ≡, != ≠, &lt;= ≤, >= ≥,
+    /// &amp;&amp; ∧, || ∨, ^^ ⊕, // ÷, %% ⦼, &lt;&lt; ∠, &lt;* ←. Each pair is otherwise an error in Calcpad.
+    /// </summary>
+    private static char Shortcut(char previous, char c) => (previous, c) switch
+    {
+        ('=', '=') => '≡',
+        ('!', '=') => '≠',
+        ('<', '=') => '≤',
+        ('>', '=') => '≥',
+        ('&', '&') => '∧',
+        ('|', '|') => '∨',
+        ('^', '^') => '⊕',
+        ('/', '/') => '÷',
+        ('%', '%') => '⦼',
+        ('<', '<') => '∠',
+        ('<', '*') => '←',
+        ('≡', '=') => '≡', // === and !== (as in JavaScript) mean the same
+        ('≠', '=') => '≠',
+        _ => '\0',
+    };
+
+    private static readonly char[] ShortcutKeys = ['=', '&', '|', '^', '/', '%', '<', '*'];
+
+    // Lines that name a file (a path or URL may contain // or <<).
+    private static readonly string[] FileKeywords = ["#include", "#read", "#write", "#append"];
+
+    /// <summary>
+    /// Replaces the two-key operators (see <see cref="Shortcut"/>) in one line, leaving comments
+    /// alone: Calcpad text between ' or " and the same quote, or the end of the line.
+    /// </summary>
+    public static string ReplaceOperators(string line)
+    {
+        if (line.IndexOfAny(ShortcutKeys) < 0)
+            return line;
+
+        var trimmed = line.AsSpan().TrimStart();
+        foreach (var keyword in FileKeywords)
+            if (trimmed.StartsWith(keyword, StringComparison.OrdinalIgnoreCase))
+                return line;
+
+        var sb = new StringBuilder(line.Length);
+        var comment = '\0';
+        var mathStart = 0; // where the current stretch of math began in sb
+        foreach (var c in line)
+        {
+            if (comment != '\0')
+            {
+                sb.Append(c);
+                if (c == comment)
+                {
+                    comment = '\0';
+                    mathStart = sb.Length;
+                }
+            }
+            else if (c is '\'' or '"')
+            {
+                comment = c;
+                sb.Append(c);
+            }
+            else if (sb.Length > mathStart && Shortcut(sb[^1], c) is var symbol and not '\0')
+            {
+                sb[^1] = symbol;
+            }
+            else
+            {
+                sb.Append(c);
+            }
+        }
+        return sb.ToString();
+    }
+
     /// <summary>One inline expression: line breaks become spaces.</summary>
     public static string Normalize(string? text) => NormalizeLine(text).Trim();
 
@@ -77,6 +150,6 @@ public static class SourceNormalizer
                     break;
             }
         }
-        return sb.ToString();
+        return ReplaceOperators(sb.ToString());
     }
 }

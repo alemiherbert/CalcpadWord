@@ -192,6 +192,14 @@ try {
     Check ($badMenus.Count -eq 0) "every context menu id exists in this Word $(if ($badMenus) { '(unknown: ' + ($badMenus -join ', ') + ')' })"
     $noControl = [System.Runtime.InteropServices.DispatchWrapper]::new([object]$null)   # Office passes an IRibbonControl here
     Check ((Call $api 'GetDecimalsIndex' @($noControl)) -eq 2) 'ribbon callbacks are callable through IDispatch'
+    $split = $ribbonXml.SelectSingleNode('//*[local-name()="splitButton"]')
+    Check ($split.button.id -eq 'Recalculate' -and $split.menu.checkBox.id -eq 'Automatic') 'Calculate is a split button, with Calculate automatically in its drop-down'
+    $slots = @($ribbonXml.SelectNodes('//*[local-name()="button"][starts-with(@id, "CalcpadSlot_")]'))
+    $all = $ribbonXml.SelectSingleNode('//*[local-name()="gallery"][@id="CalcpadSymbolsAll"]')
+    Check ($slots.Count -eq 20 -and @($all.item).Count -eq 59) "Symbols group: a grid of $($slots.Count) cells (2 x 10), and all $(@($all.item).Count) symbols under its arrow"
+    # The pictures are drawn by the add-in (GDI), so a hidden Word can check them: α, ‱ (fallback font), the group's icon, the arrow.
+    $pictures = @('CalcpadSym_03B1', 'CalcpadSym_2031', 'CalcpadSymIcon_03B1', 'CalcpadSymNavMore', 'Nonsense') | ForEach-Object { Call $api 'DescribeImage' @([string]$_) }
+    Check (@($pictures[0..3] | Where-Object { $_ -match '^bitmap \d+ x \d+$' }).Count -eq 4 -and $pictures[4] -eq 'none') "symbol pictures are drawn as bitmaps ($($pictures -join ', '))"
     Check (WaitFor { -not (Prop $api 'IsWorking') } 30000) 'Calcpad warms up in the background at start-up'
 
     $doc = $word.Documents.Add()
@@ -604,6 +612,33 @@ try {
     $ok = $doc.ContentControls.Count -eq 1
     [void](Call $doc 'Undo' @(1))
     Check ($ok -and $doc.ContentControls.Count -eq 0 -and $doc.Content.Text -eq "a = 1 + 2`r") 'single undo step'
+    [void](Call $doc 'Close' @(0))
+
+    Say 'Step 19: symbols from the Calcpad tab, and operators typed with two keys'
+    $doc = $word.Documents.Add()
+    $doc.Content.Text = "x = 30`rq = (2 >= 1) && (x′ != 0)"
+    $r = $doc.Paragraphs.Item(1).Range; $r.SetRange($r.Start + 1, $r.Start + 1); $r.Select()   # just after x
+    [void](Call $api 'InsertSymbol' @('′'))
+    Check ($doc.Paragraphs.Item(1).Range.Text -eq "x′ = 30`r") 'a symbol is typed at the cursor (x becomes x′)'
+    $doc.Content.Select()
+    [void](Command 'Evaluate')
+    $q = Control $doc.Content 'q = '
+    Check ((SourceOf $q) -eq 'q = (2 ≥ 1) ∧ (x′ ≠ 0)' -and (StateOf $q) -eq 'r' -and $q.Range.OMaths.Count -eq 1) ">=, && and != become ≥, ∧ and ≠, and calculate ($(SourceOf $q))"
+    CursorIn $q.Range
+    [void](Call $api 'InsertSymbol' @(' ∨ 0'))
+    Check ((StateOf $q) -eq 'e' -and $q.Range.Text -eq 'q = (2 ≥ 1) ∧ (x′ ≠ 0) ∨ 0') "on a result, the source opens and the symbol goes at its end ($(Show $q.Range.Text))"
+    $doc.Paragraphs.Item(1).Range.Select()   # leave it
+    Check ((WaitFor { $q.Range.OMaths.Count -eq 1 }) -and (SourceOf $q) -eq 'q = (2 ≥ 1) ∧ (x′ ≠ 0) ∨ 0') 'and leaving it calculates'
+
+    Say 'Step 19b: complex numbers (a document setting)'
+    $end = $doc.Content; $end.Collapse(0); $end.InsertAfter("`rz = sqrt(-4)")
+    $doc.Paragraphs.Last.Range.Select()
+    [void](Command 'Evaluate')
+    $z = { (Control $doc.Content 'z = ').Range.Text }
+    Check ((& $z) -notmatch '2i') "real numbers (the default): no i ($(& $z))"
+    $settings = Call $api 'GetSettings'
+    Say ('  -> ' + (Call $api 'SetSettings' @("$settings;complex=1")))
+    Check ((WaitFor { (& $z) -match '2\s*(i|𝑖)' }) -and (Call $api 'GetSettings') -match 'complex=1') "Complex numbers on: √(-4) = 2i, and the setting is saved ($(& $z))"
     [void](Call $doc 'Close' @(0))
 }
 catch {

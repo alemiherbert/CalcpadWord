@@ -162,6 +162,7 @@ public static partial class Worksheet
                     Decimals = settings.Decimals,
                     Substitute = true, // the document setting is applied with #nosub / #varsub
                     Degrees = (int)settings.Angles,
+                    IsComplex = settings.Complex,
                     FormatEquations = true,
                 },
             },

@@ -205,6 +205,21 @@ internal sealed class DocumentController(Word.Application app)
     }
 
     /// <summary>
+    /// A symbol from the Calcpad tab, typed at the cursor (replacing selected text, as typing
+    /// does). On a result, its source is opened first and the symbol goes at its end.
+    /// </summary>
+    public string InsertSymbol(string symbol)
+    {
+        ActiveDocument();
+        using var undo = new UndoScope(app, "Calcpad Symbol");
+        var status = string.Empty;
+        if (FindCalcpadControl(app.Selection.Range) is { } cc && ControlTag.Parse(cc.Tag) is { ShowsSource: false })
+            status = ToggleEditSource();
+        app.Selection.TypeText(symbol);
+        return status;
+    }
+
+    /// <summary>
     /// True when leaving <paramref name="cc"/> should recalculate: it shows source that was edited,
     /// or it is an input field whose value differs from the last calculation's.
     /// </summary>

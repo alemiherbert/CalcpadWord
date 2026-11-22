@@ -19,7 +19,7 @@ This file also carries what Claude Code remembered on the first PC (its memory f
 
 ```powershell
 git submodule update --init                      # once, after cloning: Calcpad's source
-dotnet test tests\CalcpadWord.Engine.Tests       # unit tests, no Word needed (244 on 2026-11-22)
+dotnet test tests\CalcpadWord.Engine.Tests       # unit tests, no Word needed (273 on 2026-11-22)
 tools\Build-Installer.ps1                        # out\installer\CalcpadWord-Setup-<version>.exe
 out\installer\CalcpadWord-Setup-<version>.exe /quiet   # install it (per user) to test the real thing
 tools\Register.ps1                               # or: register the development build directly
@@ -78,6 +78,7 @@ The version is set in `src\Directory.Build.props`. **Public numbering starts at 
 - **Released:** 0.1.0 is the first public release on GitHub (tag `v0.1.0`, with Setup attached), 2026-11-20. It is the internal 0.8.0 plus the second PC's block output and Recalculate-only mode.
 - **Released 0.1.1** (tag `v0.1.1`, Setup attached, 2026-11-21): the SVG drawing fix for Word 2019, out-of-date results greyed later and in grey, the buttons renamed (Calculate, Convert to Calcpad), Calculate automatically on by default with Excel-style manual mode, Lock and Unlock (two small buttons; templates ship with their calculation locked, inputs open), and the templates without guidance lines.
 - **Released 0.1.2** (tag `v0.1.2`, Setup attached, 2026-11-22): E notation in input fields (`1e-5`), for the new seepage template; with the seepage template and beam v4 (one substituted calculation per line).
+- **Not released yet (2026-11-22, after 0.1.2):** a **Symbols** group (a 2 × 10 grid like Word's equation Symbols gallery, with ▲ ▼ and ▾; pictures drawn by the add-in, grey and thin as Word's), **Calculate** as a split button with Calculate automatically under its arrow, two-key operators (`>=`, `==`, `&&`…) turned into Calcpad's symbols, and a **Complex numbers** setting. Installed on the first PC from a 0.1.2-numbered Setup; the end-to-end test passes (140 checks, Steps 19 and 19b). Waiting for the user's verdict on the ribbon's look. The ribbon's look still needs the user's eye in a visible Word.
 - **Done in the internal 0.8.0, which is installed on the first PC:**
   - inline and block evaluation, script conversion and background calculation;
   - a math font chooser, Cancel, and greying of out-of-date results;
