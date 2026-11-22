@@ -46,6 +46,10 @@ internal sealed record Calculation(List<WorksheetItem> Items, IReadOnlyList<Eval
 {
     public bool HasErrors => Results.Any(r => r.Kind == ResultKind.Error || r.ErrorCount > 0);
 
+    /// <summary>Each failed item's error, for a test's failure message.</summary>
+    public string Errors => string.Join("\n", Results.Where(r => r.Kind == ResultKind.Error || r.ErrorCount > 0)
+        .Select(r => $"{(r.Source.Length > 60 ? r.Source[..60] + "…" : r.Source)}: {r.Error}"));
+
     /// <summary>The value at the end of an inline result such as "M_Ed = w_Ed·L^2/8 = … = 137.53".</summary>
     public double Value(string name)
     {

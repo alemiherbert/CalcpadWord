@@ -31,6 +31,8 @@
     <None Include="..\..\templates\dokimos\Template source\duct\Duct sizing.cpd" Link="Fixtures\Duct.cpd" CopyToOutputDirectory="PreserveNewest" />
     <!-- The Dokimos soil stresses and settlement calculation (SoilTests). -->
     <None Include="..\..\templates\dokimos\Template source\soil\Soil stresses and settlement.cpd" Link="Fixtures\Soil.cpd" CopyToOutputDirectory="PreserveNewest" />
+    <!-- The Dokimos seepage calculation, by finite differences (SeepageTests). -->
+    <None Include="..\..\templates\dokimos\Template source\seepage\Seepage by finite differences.cpd" Link="Fixtures\Seepage.cpd" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
