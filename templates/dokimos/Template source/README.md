@@ -91,7 +91,7 @@ A section sketch follows the geometry. Each check ends in a "PASS - …" or "FAI
 - **Method:** square cells of side Δ; in each, the flows to its neighbours balance (Laplace's equation), with conductances k_h beside, k_v above and below (harmonic mean across the layer boundary), 2k_v to the ground half a cell up, 0 across the wall. Numbered down each column, the equations form a narrow band, solved directly by Cholesky decomposition (`symmetric_hp` and `clsolve`): about 0.3 s for the default 120 × 43 cells. The spreadsheet iterates instead (F9).
 - **Accuracy:** the flow round the toe is singular, so the error falls with Δ, not Δ²: the flow is about 1 % low on the default grid (0.2 m, 43 rows), 3 % on the spreadsheet's 0.5 m. The spreadsheet's node method errs as much the other way.
 - **Drawings:** the section sketch from the inputs; the flow net, to scale: equipotentials from the heads, flow lines from the stream function (integrated from the cell fluxes, so that the wall and the base are flow lines exactly), both traced by marching squares into SVG lines; the water pressure on each face.
-- **Inputs in E notation:** permeabilities are typed in m/s as `1e-5`, which needs add-in builds after 0.1.1.
+- **Inputs in E notation:** permeabilities are typed in m/s as `1e-5`, which needs add-in 0.1.2 or later.
 
 | Version | What changed |
 |---|---|

@@ -73,10 +73,11 @@ The version is set in `src\Directory.Build.props`. **Public numbering starts at 
   - Quote arguments that contain commas, such as `'-Wl,--entry=DllMain'`.
   - `2>&1` on native programs turns stderr into errors.
 
-## State on 2026-11-21 (version 0.1.1)
+## State on 2026-11-22 (version 0.1.2)
 
 - **Released:** 0.1.0 is the first public release on GitHub (tag `v0.1.0`, with Setup attached), 2026-11-20. It is the internal 0.8.0 plus the second PC's block output and Recalculate-only mode.
 - **Released 0.1.1** (tag `v0.1.1`, Setup attached, 2026-11-21): the SVG drawing fix for Word 2019, out-of-date results greyed later and in grey, the buttons renamed (Calculate, Convert to Calcpad), Calculate automatically on by default with Excel-style manual mode, Lock and Unlock (two small buttons; templates ship with their calculation locked, inputs open), and the templates without guidance lines.
+- **Released 0.1.2** (tag `v0.1.2`, Setup attached, 2026-11-22): E notation in input fields (`1e-5`), for the new seepage template; with the seepage template and beam v4 (one substituted calculation per line).
 - **Done in the internal 0.8.0, which is installed on the first PC:**
   - inline and block evaluation, script conversion and background calculation;
   - a math font chooser, Cancel, and greying of out-of-date results;
@@ -87,12 +88,12 @@ The version is set in `src\Directory.Build.props`. **Public numbering starts at 
   - `Dokimos Psychrometric Chart v3.dotx`: moist air from two known properties (ASHRAE Fundamentals ch. 1) with a chart, built from `psychrometric\Psychrometric chart.cpd` and checked against ASHRAE's tables (`PsychrometricTests`). v1 was built on the first PC by an earlier script (2026-11-18) and is kept.
   - `Dokimos Duct Sizing v2.dotx`: replaces McQuay's DuctSizer (`D:\ductsizer\ductsizer\DuctSizer.exe`, runs on this PC). Round and rectangular ducts by friction rate, velocity or diameter (ASHRAE Fundamentals ch. 21), built from `duct\Duct sizing.cpd` and checked against DuctSizer (`DuctTests`). DuctSizer uses a roughness of about 0.21 mm; the template's default is ASHRAE's 0.09 mm.
   - `Dokimos Soil Stresses and Settlement v2.dotx`: Boussinesq stresses and settlement under a rectangular load varying across its width (after Calcpad's soil example), built from `soil\Soil stresses and settlement.cpd` and checked in `SoilTests`. About 7 s to calculate.
-  - `Dokimos Seepage by Finite Differences v1.dotx` (2026-11-22, the user: "base on Seepage_CSM8.xls", Craig's Soil Mechanics 8th ed.; "our graphics must be better"): seepage under a sheet pile wall, one or two layers, anisotropy, an excavation in front. Cell-centred finite differences solved directly (`symmetric_hp`, `clsolve`); flow, exit gradient, heave (EN 1997-1 HYD), water pressure on the wall; a dimensioned sketch, a true flow net (marching squares on heads and the stream function) and a pressure diagram, all SVG. Built from `seepage\Seepage by finite differences.cpd`, checked in `SeepageTests` (exact solution, the spreadsheet's node method, its manual's 1.4k). It needs E notation in input fields (k = 1e-5 m/s), an add-in change after 0.1.1, not yet released.
+  - `Dokimos Seepage by Finite Differences v1.dotx` (2026-11-22, the user: "base on Seepage_CSM8.xls", Craig's Soil Mechanics 8th ed.; "our graphics must be better"): seepage under a sheet pile wall, one or two layers, anisotropy, an excavation in front. Cell-centred finite differences solved directly (`symmetric_hp`, `clsolve`); flow, exit gradient, heave (EN 1997-1 HYD), water pressure on the wall; a dimensioned sketch, a true flow net (marching squares on heads and the stream function) and a pressure diagram, all SVG. Built from `seepage\Seepage by finite differences.cpd`, checked in `SeepageTests` (exact solution, the spreadsheet's node method, its manual's 1.4k). It needs add-in 0.1.2 or later (E notation in input fields: k = 1e-5 m/s).
   - Templates don't say where their calculation came from (the user, 2026-11-20).
   - Calculation templates share `Template source\TemplateBuild.ps1` (hidden Word, sections, drop-downs, save).
   - `Dokimos RC Beam Design (EC2) v4.dotx` is the current beam calculation, modelled on Tedds and Calcpad's examples. It covers cover, fire, bending, limits, spacing, shear, crack control and deflection (by ratio and by calculation), with a sketch and a summary. It is cross-checked against Tedds. v4 (2026-11-22) puts each substituted calculation on its own line. It needs add-in 0.1.1 or later.
   - All are built and tested by the scripts in `templates/dokimos/Template source/`.
-- **First PC:** the original PC, with Office Professional Plus 2019 (Word 16.0.10417), not Microsoft 365. Add-in 0.1.1 is installed from Setup (2026-11-21). The Tedds Engineering Library isn't installed or licensed here. Git reaches GitHub over SSH with `~\.ssh\id_ed25519` (2026-11-20).
+- **First PC:** the original PC, with Office Professional Plus 2019 (Word 16.0.10417), not Microsoft 365. Add-in 0.1.2 is installed from Setup (2026-11-22). The Tedds Engineering Library isn't installed or licensed here. Git reaches GitHub over SSH with `~\.ssh\id_ed25519` (2026-11-20).
 - **Second PC (2026-11-18):** the project arrived as a zip. Python and git are also in WSL; use Windows git for this repo. Word is Microsoft 365 x64. Add-in 0.8.0 is installed here.
 - **Open:**
   - An intermittent hang of the hidden test Word after the first background draw ("Open issue" in PLAN.md).
