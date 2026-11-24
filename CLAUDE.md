@@ -27,6 +27,7 @@ tools\Test-InWord.ps1                            # end-to-end test in a hidden W
 tools\Build-Loader.ps1                           # only after changing src\CalcpadWord.Loader (downloads Zig once)
 templates\dokimos\Template source\beam\Check-WithTedds.ps1 -OutDir <dir> [-Recommended]   # Tedds' own beam calc, for cross-checks
 gh release create v<version> out\installer\CalcpadWord-Setup-<version>.exe --title "Calcpad for Word <version>" --notes-file <notes>   # publish a build (after commit, tag and push)
+gh release view v<version> --json assets --jq ".assets[].name"   # then check that Setup is attached: 0.1.2's upload once failed unnoticed
 ```
 
 The version is set in `src\Directory.Build.props`. **Public numbering starts at 0.1.0** (the user, 2026-11-20: "0.8x is premature"). The builds numbered 0.4 to 0.8 were internal, only on the user's PCs; history in PLAN.md keeps their numbers. **Versions move slowly** (the user, 2026-11-18): don't bump for small fixes. Batch changes into the next meaningful release, and make one new template version per piece of work, rebuilt in place until it's done.
@@ -74,12 +75,12 @@ The version is set in `src\Directory.Build.props`. **Public numbering starts at 
   - Quote arguments that contain commas, such as `'-Wl,--entry=DllMain'`.
   - `2>&1` on native programs turns stderr into errors.
 
-## State on 2026-11-22 (version 0.1.2)
+## State on 2026-11-25 (version 0.1.3)
 
 - **Released:** 0.1.0 is the first public release on GitHub (tag `v0.1.0`, with Setup attached), 2026-11-20. It is the internal 0.8.0 plus the second PC's block output and Recalculate-only mode.
 - **Released 0.1.1** (tag `v0.1.1`, Setup attached, 2026-11-21): the SVG drawing fix for Word 2019, out-of-date results greyed later and in grey, the buttons renamed (Calculate, Convert to Calcpad), Calculate automatically on by default with Excel-style manual mode, Lock and Unlock (two small buttons; templates ship with their calculation locked, inputs open), and the templates without guidance lines.
-- **Released 0.1.2** (tag `v0.1.2`, Setup attached, 2026-11-22): E notation in input fields (`1e-5`), for the new seepage template; with the seepage template and beam v4 (one substituted calculation per line).
-- **Not released yet (2026-11-22, after 0.1.2):** a **Symbols** group (a 2 × 10 grid like Word's equation Symbols gallery, with ▲ ▼ and ▾; pictures drawn by the add-in, grey and thin as Word's), **Calculate** as a split button with Calculate automatically under its arrow, two-key operators (`>=`, `==`, `&&`…) turned into Calcpad's symbols, and a **Complex numbers** setting. Then (2026-11-24) the equation look: real minus signs, upright subscripts, regular function names, one font (`RenderVersion` 4: blocks redraw once). Installed on the first PC from a 0.1.2-numbered Setup; the end-to-end test passes (140 checks, Steps 19 and 19b). Waiting for the user's verdict on the ribbon's look. The ribbon's look still needs the user's eye in a visible Word.
+- **Released 0.1.2** (tag `v0.1.2`, 2026-11-22; its Setup upload had failed, and a Setup built from the tag was attached on 2026-11-25): E notation in input fields (`1e-5`), for the new seepage template; with the seepage template and beam v4 (one substituted calculation per line).
+- **Released 0.1.3** (tag `v0.1.3`, Setup attached and checked, 2026-11-25; the user: "release 0.1.3 and push"): a **Symbols** group (a 2 × 10 grid like Word's equation Symbols gallery, with ▲ ▼ and ▾; pictures drawn by the add-in, grey and thin as Word's), **Calculate** as a split button with Calculate automatically under its arrow, two-key operators (`>=`, `==`, `&&`…) turned into Calcpad's symbols, and a **Complex numbers** setting. Then (2026-11-24) the equation look: real minus signs, upright subscripts, regular function names, one font (`RenderVersion` 4: blocks redraw once). The end-to-end test passed on this code (140 checks, Steps 19 and 19b, 2026-11-24, from a 0.1.2-numbered Setup); 0.1.3 changes only the version number, so it wasn't rerun (a Word was open).
 - **Done in the internal 0.8.0, which is installed on the first PC:**
   - inline and block evaluation, script conversion and background calculation;
   - a math font chooser, Cancel, and greying of out-of-date results;
@@ -95,7 +96,7 @@ The version is set in `src\Directory.Build.props`. **Public numbering starts at 
   - Calculation templates share `Template source\TemplateBuild.ps1` (hidden Word, sections, drop-downs, save).
   - `Dokimos RC Beam Design (EC2) v4.dotx` is the current beam calculation, modelled on Tedds and Calcpad's examples. It covers cover, fire, bending, limits, spacing, shear, crack control and deflection (by ratio and by calculation), with a sketch and a summary. It is cross-checked against Tedds. v4 (2026-11-22) puts each substituted calculation on its own line. It needs add-in 0.1.1 or later.
   - All are built and tested by the scripts in `templates/dokimos/Template source/`.
-- **First PC:** the original PC, with Office Professional Plus 2019 (Word 16.0.10417), not Microsoft 365. Add-in 0.1.2 is installed from Setup (2026-11-22). The Tedds Engineering Library isn't installed or licensed here. Git reaches GitHub over SSH with `~\.ssh\id_ed25519` (2026-11-20).
+- **First PC:** the original PC, with Office Professional Plus 2019 (Word 16.0.10417), not Microsoft 365. Add-in 0.1.3 is installed from Setup (2026-11-25). The Tedds Engineering Library isn't installed or licensed here. Git reaches GitHub over SSH with `~\.ssh\id_ed25519` (2026-11-20).
 - **Second PC (2026-11-18):** the project arrived as a zip. Python and git are also in WSL; use Windows git for this repo. Word is Microsoft 365 x64. Add-in 0.8.0 is installed here.
 - **Open:**
   - An intermittent hang of the hidden test Word after the first background draw ("Open issue" in PLAN.md).
