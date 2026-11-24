@@ -19,7 +19,7 @@ This file also carries what Claude Code remembered on the first PC (its memory f
 
 ```powershell
 git submodule update --init                      # once, after cloning: Calcpad's source
-dotnet test tests\CalcpadWord.Engine.Tests       # unit tests, no Word needed (273 on 2026-11-22)
+dotnet test tests\CalcpadWord.Engine.Tests       # unit tests, no Word needed (279 on 2026-11-24)
 tools\Build-Installer.ps1                        # out\installer\CalcpadWord-Setup-<version>.exe
 out\installer\CalcpadWord-Setup-<version>.exe /quiet   # install it (per user) to test the real thing
 tools\Register.ps1                               # or: register the development build directly
@@ -60,6 +60,7 @@ The version is set in `src\Directory.Build.props`. **Public numbering starts at 
   - Don't wrap the verdict in `<b>`: Calcpad leaves a formatted run uncoloured, and bold capitals look larger than the reason.
 - **Snappy and succinct (the user, 2026-11-18):** input must feel instant, and templates say things once: no lines that echo an input, no repeated assumptions, short labels and verdicts. **Calculate automatically** (`DocumentSettings.Automatic`, stored as `auto=0` when off) **must be on by default, templates included** (the user, 2026-11-21; templates shipped with it off until then). Off works like Excel's manual mode: a changed input waits for Calculate; an expression written or edited is calculated and drawn on its own (Calcpad runs only as far as it), and what follows waits.
 - **One calculation with a substitution per line** (the user, 2026-11-22: "calculations whose substitutions go toward the end of a line should have their own line"): no comma-separated calculations that wrap. Plain definitions (γ_G = 1.35) and input fields may share a line.
+- **Equations are Word math** (the user, 2026-11-24: "latex out"; LaTeX-typeset pictures were tried and rejected, see PLAN.md). The add-in corrects Calcpad's OMML in `WordMarkup.ApplyStyle` (the user: "keep fixes"): real minus signs, upright subscripts (M_Ed, as in the Eurocodes), regular function names, one font. The Math font list stays unmarked, although Word 2019 sets Latin Modern and Libertinus badly (the user: "not marked").
 - **Block output (the user's decisions, made in `BlockOutput`):**
   - Tables use Word's Grid Table 1 Light, full width, left-aligned, with a tiny cell pad.
   - Plots fill the text width.
@@ -78,7 +79,7 @@ The version is set in `src\Directory.Build.props`. **Public numbering starts at 
 - **Released:** 0.1.0 is the first public release on GitHub (tag `v0.1.0`, with Setup attached), 2026-11-20. It is the internal 0.8.0 plus the second PC's block output and Recalculate-only mode.
 - **Released 0.1.1** (tag `v0.1.1`, Setup attached, 2026-11-21): the SVG drawing fix for Word 2019, out-of-date results greyed later and in grey, the buttons renamed (Calculate, Convert to Calcpad), Calculate automatically on by default with Excel-style manual mode, Lock and Unlock (two small buttons; templates ship with their calculation locked, inputs open), and the templates without guidance lines.
 - **Released 0.1.2** (tag `v0.1.2`, Setup attached, 2026-11-22): E notation in input fields (`1e-5`), for the new seepage template; with the seepage template and beam v4 (one substituted calculation per line).
-- **Not released yet (2026-11-22, after 0.1.2):** a **Symbols** group (a 2 × 10 grid like Word's equation Symbols gallery, with ▲ ▼ and ▾; pictures drawn by the add-in, grey and thin as Word's), **Calculate** as a split button with Calculate automatically under its arrow, two-key operators (`>=`, `==`, `&&`…) turned into Calcpad's symbols, and a **Complex numbers** setting. Installed on the first PC from a 0.1.2-numbered Setup; the end-to-end test passes (140 checks, Steps 19 and 19b). Waiting for the user's verdict on the ribbon's look. The ribbon's look still needs the user's eye in a visible Word.
+- **Not released yet (2026-11-22, after 0.1.2):** a **Symbols** group (a 2 × 10 grid like Word's equation Symbols gallery, with ▲ ▼ and ▾; pictures drawn by the add-in, grey and thin as Word's), **Calculate** as a split button with Calculate automatically under its arrow, two-key operators (`>=`, `==`, `&&`…) turned into Calcpad's symbols, and a **Complex numbers** setting. Then (2026-11-24) the equation look: real minus signs, upright subscripts, regular function names, one font (`RenderVersion` 4: blocks redraw once). Installed on the first PC from a 0.1.2-numbered Setup; the end-to-end test passes (140 checks, Steps 19 and 19b). Waiting for the user's verdict on the ribbon's look. The ribbon's look still needs the user's eye in a visible Word.
 - **Done in the internal 0.8.0, which is installed on the first PC:**
   - inline and block evaluation, script conversion and background calculation;
   - a math font chooser, Cancel, and greying of out-of-date results;

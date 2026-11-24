@@ -47,7 +47,7 @@ public static partial class Worksheet
     private static partial Regex NotRepeatable();
 
     /// <summary>Part of every input hash: bump when block rendering changes, so existing blocks are redrawn.</summary>
-    private const string RenderVersion = "calcpad-word-render-3"; // 2: scientific notation (× and exponent minus); 3: SVG drawings with a PNG fallback (Word 2019 lost them)
+    private const string RenderVersion = "calcpad-word-render-4"; // 2: scientific notation (× and exponent minus); 3: SVG drawings with a PNG fallback (Word 2019 lost them); 4: equations' minus signs, upright subscripts, regular function names, one font
 
     static Worksheet()
     {

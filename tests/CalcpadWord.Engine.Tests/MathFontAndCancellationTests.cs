@@ -146,13 +146,67 @@ public class ScientificNotationTests
     }
 
     [Fact]
-    public void Negative_values_and_large_exponents_are_left_alone()
+    public void Negative_values_get_a_real_minus_and_large_exponents_are_left_alone()
     {
         var omml = Worksheet.Evaluate([WorksheetItem.Inline("y = -2*3"), WorksheetItem.Inline("z = 5.7*10^20")], new DocumentSettings());
 
-        Assert.Contains("<m:t>-</m:t>", omml[0].Omml);                      // Calcpad's own negative sign stays
+        Assert.Contains("<m:r><m:t>−</m:t></m:r><m:r><m:t>6</m:t></m:r>", omml[0].Omml); // −6, not a hyphen
+        Assert.DoesNotContain("<m:t>-</m:t>", omml[0].Omml);
         Assert.Contains("<m:r><m:t>×</m:t></m:r>", omml[1].Omml);
         Assert.DoesNotContain("−", omml[1].Omml);
+    }
+}
+
+/// <summary>What the add-in corrects in Calcpad's Word equations, so that they read as Word math and the Eurocodes do.</summary>
+public class EquationLookTests
+{
+    private static string Omml(string source, DocumentSettings? settings = null) =>
+        Worksheet.Evaluate([WorksheetItem.Inline("a = 3"), WorksheetItem.Inline(source)], settings ?? new DocumentSettings())[1].Omml;
+
+    [Theory]
+    [InlineData("k = abs(-a)")]
+    [InlineData("y = exp(-1)")]
+    public void Minus_signs_are_math_minus_signs_not_hyphens_in_normal_text(string source)
+    {
+        var omml = Omml(source);
+
+        Assert.Contains("<m:r><m:t>−</m:t></m:r>", omml);
+        Assert.DoesNotContain("<m:t>-</m:t>", omml);
+    }
+
+    [Fact]
+    public void Function_names_are_upright_and_regular()
+    {
+        var omml = Omml("y = max(sin(30); exp(a))");
+
+        Assert.Matches(@"<m:nor/></m:rPr><w:rPr>\s*<w:rFonts [^>]*/>\s*</w:rPr><m:t>max</m:t>", omml);
+        Assert.DoesNotContain("<w:b", omml);
+    }
+
+    [Fact]
+    public void Subscripts_of_names_are_upright_as_in_the_Eurocodes()
+    {
+        var omml = Omml("A_s,req = 2*a");
+
+        Assert.Contains("<m:sub><m:r><m:rPr><m:sty m:val=\"p\"/></m:rPr><m:t>s,req</m:t></m:r></m:sub>", omml);
+        Assert.Matches(@"<m:e><m:r><w:rPr>\s*<w:color [^>]*/>\s*</w:rPr><m:t>A</m:t>", omml); // the name itself stays italic
+    }
+
+    [Fact]
+    public void Numbers_in_subscripts_and_the_limits_of_a_sum_are_left_alone()
+    {
+        var omml = Omml("n = d_2 + $Sum{i @ i = 1 : 3}", new DocumentSettings()) + Omml("d_2 = 1");
+
+        Assert.DoesNotContain("m:sty", omml);
+    }
+
+    [Fact]
+    public void Words_in_equations_are_in_the_math_font_not_the_paragraph_font()
+    {
+        var omml = Omml("q = if(a > 2; a; 2)");
+
+        Assert.Matches(@"<m:nor/></m:rPr><w:rPr><w:rFonts w:ascii=""Cambria Math"" w:hAnsi=""Cambria Math""/></w:rPr><m:t> if </m:t>", omml);
+        Assert.Matches(@"<w:rFonts w:ascii=""STIX Two Math"" w:hAnsi=""STIX Two Math""/></w:rPr><m:t> else:</m:t>", Omml("q = if(a > 2; a; 2)", new DocumentSettings { MathFont = "STIX Two Math" }));
     }
 }
 

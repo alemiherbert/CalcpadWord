@@ -150,7 +150,12 @@ How the add-in behaves:
 - **Errors** turn into red, editable source. The message shows as the control's title and in the status bar. Fix the text and click outside.
 - **Copy and paste.** A copied result keeps its source, even into another document.
 - **Undo.** One Undo reverts a whole Convert to Calcpad or Calculate.
-- **Small and large numbers** show as 5.7 × 10⁻⁹: the × sits on the line and the exponent has a real minus sign. Calcpad itself writes a raised × and a hyphen.
+- **Equations read as Word math,** with a few corrections to Calcpad's own output:
+  - small and large numbers show as 5.7 × 10⁻⁹, with the × on the line (Calcpad raises it);
+  - minus signs are real minus signs, as in |−a| and exp(−1) (Calcpad writes hyphens);
+  - the subscripts of names are upright, as in the Eurocodes: M_Ed, f_ck, A_s,req;
+  - function names (sin, max, exp) are upright and regular (Calcpad makes them bold);
+  - words such as "if" and "else:" are in the math font, not the paragraph's.
 - **Word's typing substitutions are undone automatically:** en dashes become minus signs, ½ becomes (1/2), and smart quotes and non-breaking spaces are straightened.
 - **Symbols:** the Symbols group is a grid of Calcpad's operators, the unit symbols and marks allowed in names (° ′ ″ ø ∡ ‰ …) and Greek letters (those that differ from Latin ones). Point at one for its name, and for an operator the keys that type it.
 - **Operators typed with two keys** become Calcpad's symbols when the expression is calculated, as in Calcpad's own editor: `==` ≡, `!=` ≠, `<=` ≤, `>=` ≥, `&&` ∧, `||` ∨, `^^` ⊕, `//` ÷, `%%` ⦼, `<<` ∠, `<*` ←. `===` and `!==` work too. Comments, and the file names after `#include`, `#read`, `#write` and `#append`, are left alone.

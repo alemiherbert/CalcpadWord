@@ -42,48 +42,75 @@ public static partial class WordMarkup
     [GeneratedRegex(@"<m:r(?:\s[^>]*)?>.*?</m:r>", RegexOptions.Singleline)]
     private static partial Regex MathRun();
 
+    [GeneratedRegex(@"<m:rPr>\s*<m:nor\s*/>")]
+    private static partial Regex NormalText();
+
     // Calcpad writes the × of 5.7×10⁻⁹ as a small, bold, superscript normal-text run (raised in Word).
     [GeneratedRegex(@"<m:r>\s*<m:rPr>\s*<m:nor\s*/>\s*</m:rPr>\s*<w:rPr>(?:(?!</w:rPr>).)*?<w:vertAlign\s+w:val=""superscript""\s*/>(?:(?!</w:rPr>).)*?</w:rPr>\s*<m:t>×</m:t>\s*</m:r>", RegexOptions.Singleline)]
     private static partial Regex RaisedTimes();
 
-    // ...and the minus of a negative exponent as a hyphen in normal text.
-    [GeneratedRegex(@"(<m:sup>\s*)<m:r>\s*<m:rPr>\s*<m:nor\s*/>\s*</m:rPr>\s*<m:t>-</m:t>\s*</m:r>")]
-    private static partial Regex HyphenExponent();
+    // ...and every minus sign (a negative exponent, -a, exp(-1)) as a hyphen in normal text, which Word
+    // draws as a hyphen in the paragraph's font. A hyphen in a math run is drawn as a minus already.
+    [GeneratedRegex(@"<m:r>\s*<m:rPr>\s*<m:nor\s*/>\s*</m:rPr>\s*(?:<w:rPr>(?:(?!</w:rPr>).)*</w:rPr>\s*)?<m:t>-</m:t>\s*</m:r>", RegexOptions.Singleline)]
+    private static partial Regex HyphenMinus();
+
+    // Function names (sin, max, exp…): Calcpad writes them bold; Word math and TeX set them upright and regular.
+    [GeneratedRegex(@"(<m:r>\s*<m:rPr>\s*<m:nor\s*/>\s*</m:rPr>\s*<w:rPr>(?:(?!</w:rPr>).)*?)<w:b(?:\s+w:val=""(?:true|1|on)"")?\s*/>", RegexOptions.Singleline)]
+    private static partial Regex BoldFunction();
+
+    // The subscript of a name (M_Ed, A_s,req): a script's m:sub, after its base (m:e); not the limits of a sum.
+    [GeneratedRegex(@"(?<=</m:e>\s*)<m:sub>(?:(?!</m:sub>).)*</m:sub>", RegexOptions.Singleline)]
+    private static partial Regex Subscript();
+
+    // A math run with no properties: in a subscript, the name's letters (a variable there, an index, has Calcpad's colour).
+    [GeneratedRegex(@"<m:r>(?=\s*<m:t>[^<]*\p{L})")]
+    private static partial Regex PlainRun();
 
     private const string TimesRun = "<m:r><m:t>×</m:t></m:r>";
     private const string MinusRun = "<m:r><m:t>−</m:t></m:r>";
+    private const string UprightRun = "<m:r><m:rPr><m:sty m:val=\"p\"/></m:rPr>";
 
     /// <summary>
-    /// Calcpad raises the × of scientific notation and writes its exponent's minus as a hyphen:
-    /// both become ordinary math characters.
+    /// Calcpad raises the × of scientific notation and writes minus signs as hyphens in normal text:
+    /// both become ordinary math characters (5.7 × 10⁻⁹, −a, exp(−1)).
     /// Calcpad hard-codes 10–11 pt for units; dropping sizes lets equations follow the paragraph.
     /// Calcpad writes Cambria Math on units and other plain text in equations, and no font on the
     /// rest, which Word then shows in Cambria Math whatever the document's math font: with another
-    /// math font, every run gets that font. The plain style drops Calcpad's blue variable colour.
+    /// math font, every run gets that font. Normal text without a font ("if", "else:") would be drawn
+    /// in the paragraph's font, so it always gets the math font.
+    /// Names' subscripts are upright, as in Calcpad's own output and the Eurocodes (M_Ed, A_s,req), and
+    /// function names regular, as in Word math and TeX (Calcpad writes them bold).
+    /// The plain style drops Calcpad's blue variable colour.
     /// </summary>
     public static string ApplyStyle(string omml, RenderStyle style, string mathFont = MathFonts.Default)
     {
         // Scientific notation as Word math writes it: 5.7 × 10^(−9), on the line, with a real minus.
         var s = RaisedTimes().Replace(omml, TimesRun);
-        s = HyphenExponent().Replace(s, "$1" + MinusRun);
+        s = HyphenMinus().Replace(s, MinusRun);
+        s = BoldFunction().Replace(s, "$1");
+        s = Subscript().Replace(s, sub => PlainRun().Replace(sub.Value, UprightRun));
         s = FontSize().Replace(s, string.Empty);
-        if (mathFont != MathFonts.Default)
-            s = WithMathFont(s.Replace("\"Cambria Math\"", "\"" + SecurityElement.Escape(mathFont) + "\"", StringComparison.Ordinal), mathFont);
+        s = mathFont == MathFonts.Default
+            ? WithMathFont(s, mathFont, normalTextOnly: true)
+            : WithMathFont(s.Replace("\"Cambria Math\"", "\"" + SecurityElement.Escape(mathFont) + "\"", StringComparison.Ordinal), mathFont);
         if (style == RenderStyle.PlainMath)
             s = Colour().Replace(s, string.Empty);
 
         return EmptyRunProperties().Replace(s, string.Empty);
     }
 
-    /// <summary>Gives each math run without a font the chosen one (w:rFonts comes first in w:rPr, after a w:rStyle).</summary>
-    private static string WithMathFont(string omml, string mathFont)
+    /// <summary>
+    /// Gives each math run without a font the chosen one (w:rFonts comes first in w:rPr, after a w:rStyle).
+    /// With Cambria Math, Word's default, only normal text needs it: math runs are drawn in the math font anyway.
+    /// </summary>
+    private static string WithMathFont(string omml, string mathFont, bool normalTextOnly = false)
     {
         var font = SecurityElement.Escape(mathFont);
         var rFonts = $"<w:rFonts w:ascii=\"{font}\" w:hAnsi=\"{font}\"/>";
         return MathRun().Replace(omml, m =>
         {
             var run = m.Value;
-            if (run.Contains("<w:rFonts", StringComparison.Ordinal))
+            if (run.Contains("<w:rFonts", StringComparison.Ordinal) || normalTextOnly && !NormalText().IsMatch(run))
                 return run;
 
             var props = run.IndexOf("<w:rPr>", StringComparison.Ordinal);
