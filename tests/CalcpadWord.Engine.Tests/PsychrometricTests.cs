@@ -3,7 +3,7 @@ using System.Globalization;
 namespace CalcpadWord.Engine.Tests;
 
 /// <summary>
-/// The Dokimos psychrometric chart's script (templates/dokimos/Template source/psychrometric,
+/// The psychrometric chart's script (templates/Template source/psychrometric,
 /// linked as Fixtures/Psychrometric.cpd), calculated as the add-in does in Word.
 /// </summary>
 public class PsychrometricTests

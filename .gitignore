@@ -1,8 +1,12 @@
 # Build output
 bin/
 obj/
-# The installer and end-to-end test output (root only: template folders have out/ folders with inputs)
+# The installer and end-to-end test output, and the template builds'
 /out/
+/templates/Template source/*/out/
+
+# Dokimos: its templates, logo and document system stay on the user's PCs (generic ones are in templates/)
+/templates/dokimos/
 *.user
 .vs/
 __pycache__/

@@ -3,7 +3,7 @@ using System.Globalization;
 namespace CalcpadWord.Engine.Tests;
 
 /// <summary>
-/// The Dokimos soil stresses and settlement script (templates/dokimos/Template source/soil, linked
+/// The soil stresses and settlement script (templates/Template source/soil, linked
 /// as Fixtures/Soil.cpd), after Calcpad's example "Soil stress and deformations".
 /// </summary>
 public class SoilTests

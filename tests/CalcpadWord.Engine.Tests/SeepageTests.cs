@@ -3,7 +3,7 @@ using System.Globalization;
 namespace CalcpadWord.Engine.Tests;
 
 /// <summary>
-/// The Dokimos seepage script (templates/dokimos/Template source/seepage, linked as
+/// The seepage script (templates/Template source/seepage, linked as
 /// Fixtures/Seepage.cpd): steady confined seepage under a sheet pile wall, by finite differences.
 /// It is checked against the exact solution, against the node method of Knappett's spreadsheet
 /// Seepage_CSM8 (Craig's Soil Mechanics, 8th edition), solved independently here, and against

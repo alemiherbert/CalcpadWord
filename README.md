@@ -22,6 +22,7 @@ $Plot{f(x) @ x = -1 : 6}
 - [Install](docs/Install.md)
 - [Writing calculations](docs/Writing.md): expressions, switches, blocks, pasted scripts
 - [Input fields](docs/Input-fields.md): reusable templates
+- [Templates](docs/Templates.md): ready-made calculations
 - [Ribbon and shortcuts](docs/Ribbon.md)
 - [Calculating](docs/Calculating.md): automatic and manual, background, errors
 - [Tips and limits](docs/Tips.md)

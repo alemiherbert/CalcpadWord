@@ -1,7 +1,7 @@
 namespace CalcpadWord.Engine.Tests;
 
 /// <summary>
-/// The Dokimos RC beam template's script (templates/dokimos/Template source/beam, linked as
+/// The RC beam template's script (templates/Template source/beam, linked as
 /// Fixtures/RcBeamEc2.cpd), calculated as the add-in does in Word.
 /// </summary>
 public class BeamTemplateTests

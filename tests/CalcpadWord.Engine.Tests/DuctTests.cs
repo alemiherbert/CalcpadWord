@@ -3,7 +3,7 @@ using System.Globalization;
 namespace CalcpadWord.Engine.Tests;
 
 /// <summary>
-/// The Dokimos duct sizing script (templates/dokimos/Template source/duct, linked as
+/// The duct sizing script (templates/Template source/duct, linked as
 /// Fixtures/Duct.cpd), calculated as the add-in does in Word.
 /// </summary>
 public class DuctTests

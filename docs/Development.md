@@ -45,7 +45,7 @@ tools\Build-Loader.ps1                       # only after changing the loader
 | `tests/CalcpadWord.Engine.Tests` | Unit tests |
 | `tools/` | Build, register, end-to-end test |
 | `calcpad/` | Calcpad source, unmodified submodule ([Codeberg](https://codeberg.org/Proektsoft/Calcpad), MIT) |
-| `templates/dokimos/` | Dokimos calculation templates and their build scripts |
+| `templates/` | Calculation templates; their build and test scripts in `Template source/` |
 | `scratchpad/` | The first PC's working folder, for reference |
 | `PLAN.md` | Decisions, findings, roadmap |
 | `CLAUDE.md` | Context for Claude Code |

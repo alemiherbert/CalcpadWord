@@ -4,14 +4,14 @@
 
 **This repository holds:**
 - **the Calcpad for Word add-in:** `src/`, `tests/`, `tools/`, `installer/`;
-- **the Dokimos calculation templates:** `templates/dokimos/`;
-- **the Dokimos corporate document system:** `templates/dokimos/Document System/`, on the first PC only and kept off GitHub until the user decides (2026-11-20): never `git add` it. Its README holds the user's decisions and its state;
+- **the calculation templates:** generic ones in `templates/` (on GitHub), built by `templates/Template source/`;
+- **the Dokimos templates:** `templates/dokimos/`, gitignored and on the user's PCs only (the user, 2026-11-25: "the templates shouldn't have dokimos stuff on them"): the Dokimos `.dotx` files, the logo and base sources (`Base source/`), and the corporate document system (`Document System/`, first PC only, off GitHub until the user decides, 2026-11-20). Copy the folder between PCs by hand; its README has the base's history;
 - **Calcpad's source:** `calcpad/`, a git submodule from Codeberg, pinned and never modified;
 - **the first PC's working folder:** `scratchpad/`, for reference only.
 
 **Where it lives:** on GitHub, [github.com/alemiherbert/CalcpadWord](https://github.com/alemiherbert/CalcpadWord) (`origin`, branch `main`), reached over SSH: `git@github.com:alemiherbert/CalcpadWord.git`. The local folder is named `CalcpadWord`, after the repository (it was `Plugin` until 2026-11-20). Pull before starting work on a PC, since both PCs push to it.
 
-**Read first:** `README.md` and its wiki in `docs/` (usage; building and layout in `docs/Development.md`; the user, 2026-11-25: "make a mini wiki… no excessive verboseness"), then `PLAN.md` (decisions, findings, roadmap, the open issue). For the templates, read `templates/dokimos/Template source/README.md`.
+**Read first:** `README.md` and its wiki in `docs/` (usage; building and layout in `docs/Development.md`; the user, 2026-11-25: "make a mini wiki… no excessive verboseness"), then `PLAN.md` (decisions, findings, roadmap, the open issue). For the templates, read `templates/Template source/README.md` and `templates/dokimos/README.md`.
 
 This file also carries what Claude Code remembered on the first PC (its memory folder doesn't move with the project).
 
@@ -25,7 +25,7 @@ out\installer\CalcpadWord-Setup-<version>.exe /quiet   # install it (per user) t
 tools\Register.ps1                               # or: register the development build directly
 tools\Test-InWord.ps1                            # end-to-end test in a hidden Word (ask the user to keep Word closed)
 tools\Build-Loader.ps1                           # only after changing src\CalcpadWord.Loader (downloads Zig once)
-templates\dokimos\Template source\beam\Check-WithTedds.ps1 -OutDir <dir> [-Recommended]   # Tedds' own beam calc, for cross-checks
+templates\Template source\beam\Check-WithTedds.ps1 -OutDir <dir> [-Recommended]   # Tedds' own beam calc, for cross-checks
 gh release create v<version> out\installer\CalcpadWord-Setup-<version>.exe --title "Calcpad for Word <version>" --notes-file <notes>   # publish a build (after commit, tag and push)
 gh release view v<version> --json assets --jq ".assets[].name"   # then check that Setup is attached: 0.1.2's upload once failed unnoticed
 ```
@@ -45,9 +45,9 @@ The version is set in `src\Directory.Build.props`. **Public numbering starts at 
 - **Templates:**
   - Every new template is a new version, `<Name> vN.dotx`. Don't overwrite a version once it's finished; while one is being made, rebuild it in place.
   - The user's hand-adjusted document is the base. Change its XML with a script and keep their positions exactly; don't regenerate it. The base is "Calculation title.docx", from which v2 and v3 were made.
-  - New versions go to `templates/dokimos/`. Also copy them to the user's own Dokimos folder, if they have one outside the repository (on the first PC: `Desktop\Alemi Herbert\Dokimos`).
-  - **Only the latest version of each template is kept** (the user, 2026-11-21: "delete the old versions of templates"). When a new version is finished, delete the one it replaces: in `templates/dokimos/`, its build output and page pictures, its old base document, and its copy in the Dokimos folder. Git history keeps them. Keep the current base document (`Template source\user\v4.docx`) and the user's `Calculation title.docx` in the Dokimos folder.
-- **Dokimos template design (the user's decisions):**
+  - **Two of each, with no Dokimos on GitHub** (the user, 2026-11-25): a Make script builds the Dokimos version and its generic twin (`make_generic.py`: no logo, no "Dokimos" anywhere in the file). The Dokimos one goes to `templates/dokimos/` and the user's own Dokimos folder (first PC: `Desktop\Alemi Herbert\Dokimos`); the generic one to `templates/`.
+  - **Only the latest version of each template is kept** (the user, 2026-11-21: "delete the old versions of templates"). When a new version is finished, delete the one it replaces in `templates/`, `templates/dokimos/` and the Dokimos folder. Git history keeps the generic ones. Keep the current base document (`templates/dokimos/Base source/user/v4.docx`) and the user's `Calculation title.docx` in the Dokimos folder.
+- **Template design (the user's decisions; the generic twins keep all but the logo):**
   - A4, 0.6 in margins.
   - Libre Franklin, SemiBold for headings. They rejected Cambria, Bahnschrift and Tahoma.
   - The dokimos.net logo, with no company name, URL or tagline anywhere else.
@@ -88,7 +88,8 @@ The version is set in `src\Directory.Build.props`. **Public numbering starts at 
   - **input fields** (form fields that set variables: reusable templates);
   - **one-file Setup:** the add-in, Calcpad's engine, a private .NET runtime started by the native loader DLL, and the fonts. It needs no .NET and no administrator rights.
 - **Templates:**
-  - `Dokimos Design Calculation v4.dotx` is the general template: v3 without guidance lines (2026-11-20). The calculation templates below are built on it; earlier versions are kept.
+  - **Each one below exists twice** (2026-11-25): `Dokimos <Name> vN.dotx` in `templates/dokimos/` (local) and its generic twin `<Name> vN.dotx` in `templates/` (GitHub), the same file without the logo (an empty top-left cell in the sheet header) or the name. All six twins passed their Test scripts.
+  - `Dokimos Design Calculation v4.dotx` is the general template: v3 without guidance lines (2026-11-20). The calculation templates below are built on it.
   - `Dokimos Psychrometric Chart v3.dotx`: moist air from two known properties (ASHRAE Fundamentals ch. 1) with a chart, built from `psychrometric\Psychrometric chart.cpd` and checked against ASHRAE's tables (`PsychrometricTests`). v1 was built on the first PC by an earlier script (2026-11-18) and is kept.
   - `Dokimos Duct Sizing v2.dotx`: replaces McQuay's DuctSizer (`D:\ductsizer\ductsizer\DuctSizer.exe`, runs on this PC). Round and rectangular ducts by friction rate, velocity or diameter (ASHRAE Fundamentals ch. 21), built from `duct\Duct sizing.cpd` and checked against DuctSizer (`DuctTests`). DuctSizer uses a roughness of about 0.21 mm; the template's default is ASHRAE's 0.09 mm.
   - `Dokimos Soil Stresses and Settlement v2.dotx`: Boussinesq stresses and settlement under a rectangular load varying across its width (after Calcpad's soil example), built from `soil\Soil stresses and settlement.cpd` and checked in `SoilTests`. About 7 s to calculate.
@@ -96,7 +97,7 @@ The version is set in `src\Directory.Build.props`. **Public numbering starts at 
   - Templates don't say where their calculation came from (the user, 2026-11-20).
   - Calculation templates share `Template source\TemplateBuild.ps1` (hidden Word, sections, drop-downs, save).
   - `Dokimos RC Beam Design (EC2) v4.dotx` is the current beam calculation, modelled on Tedds and Calcpad's examples. It covers cover, fire, bending, limits, spacing, shear, crack control and deflection (by ratio and by calculation), with a sketch and a summary. It is cross-checked against Tedds. v4 (2026-11-22) puts each substituted calculation on its own line. It needs add-in 0.1.1 or later.
-  - All are built and tested by the scripts in `templates/dokimos/Template source/`.
+  - All are built and tested by the scripts in `templates/Template source/`.
 - **First PC:** the original PC, with Office Professional Plus 2019 (Word 16.0.10417), not Microsoft 365. Add-in 0.1.3 is installed from Setup (2026-11-25). The Tedds Engineering Library isn't installed or licensed here. Git reaches GitHub over SSH with `~\.ssh\id_ed25519` (2026-11-20).
 - **Second PC (2026-11-18):** the project arrived as a zip. Python and git are also in WSL; use Windows git for this repo. Word is Microsoft 365 x64. Add-in 0.8.0 is installed here.
 - **Open:**
