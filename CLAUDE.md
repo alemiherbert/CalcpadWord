@@ -11,7 +11,7 @@
 
 **Where it lives:** on GitHub, [github.com/alemiherbert/CalcpadWord](https://github.com/alemiherbert/CalcpadWord) (`origin`, branch `main`), reached over SSH: `git@github.com:alemiherbert/CalcpadWord.git`. The local folder is named `CalcpadWord`, after the repository (it was `Plugin` until 2026-11-20). Pull before starting work on a PC, since both PCs push to it.
 
-**Read first:** `README.md` (usage, building, layout), then `PLAN.md` (decisions, findings, roadmap, the open issue). For the templates, read `templates/dokimos/Template source/README.md`.
+**Read first:** `README.md` and its wiki in `docs/` (usage; building and layout in `docs/Development.md`; the user, 2026-11-25: "make a mini wiki… no excessive verboseness"), then `PLAN.md` (decisions, findings, roadmap, the open issue). For the templates, read `templates/dokimos/Template source/README.md`.
 
 This file also carries what Claude Code remembered on the first PC (its memory folder doesn't move with the project).
 
@@ -81,6 +81,7 @@ The version is set in `src\Directory.Build.props`. **Public numbering starts at 
 - **Released 0.1.1** (tag `v0.1.1`, Setup attached, 2026-11-21): the SVG drawing fix for Word 2019, out-of-date results greyed later and in grey, the buttons renamed (Calculate, Convert to Calcpad), Calculate automatically on by default with Excel-style manual mode, Lock and Unlock (two small buttons; templates ship with their calculation locked, inputs open), and the templates without guidance lines.
 - **Released 0.1.2** (tag `v0.1.2`, 2026-11-22; its Setup upload had failed, and a Setup built from the tag was attached on 2026-11-25): E notation in input fields (`1e-5`), for the new seepage template; with the seepage template and beam v4 (one substituted calculation per line).
 - **Released 0.1.3** (tag `v0.1.3`, Setup attached and checked, 2026-11-25; the user: "release 0.1.3 and push"): a **Symbols** group (a 2 × 10 grid like Word's equation Symbols gallery, with ▲ ▼ and ▾; pictures drawn by the add-in, grey and thin as Word's), **Calculate** as a split button with Calculate automatically under its arrow, two-key operators (`>=`, `==`, `&&`…) turned into Calcpad's symbols, and a **Complex numbers** setting. Then (2026-11-24) the equation look: real minus signs, upright subscripts, regular function names, one font (`RenderVersion` 4: blocks redraw once). The end-to-end test passed on this code (140 checks, Steps 19 and 19b, 2026-11-24, from a 0.1.2-numbered Setup); 0.1.3 changes only the version number, so it wasn't rerun (a Word was open).
+- **Unreleased, for the next version (2026-11-25):** Setup keeps an old version's folder whole while a Word uses it (it renames the folder first, and Windows refuses that while a file in it is open). It used to delete the files Word hadn't loaded yet, such as SkiaSharp, so plots in that open Word failed with "Unexpected error" until Word was restarted. Tested with a hidden Word open during Setup. The README was split into a short home page and `docs/`.
 - **Done in the internal 0.8.0, which is installed on the first PC:**
   - inline and block evaluation, script conversion and background calculation;
   - a math font chooser, Cancel, and greying of out-of-date results;

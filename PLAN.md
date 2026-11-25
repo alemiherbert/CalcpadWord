@@ -1,6 +1,6 @@
 # Calcpad for Word: design notes and roadmap
 
-Usage and build instructions are in [README.md](README.md). This file records the decisions, the findings behind them, and what's next.
+Usage and build instructions are in [README.md](README.md) and its wiki, [docs/](docs/). This file records the decisions, the findings behind them, and what's next.
 
 ## Decisions (2026-11-17)
 

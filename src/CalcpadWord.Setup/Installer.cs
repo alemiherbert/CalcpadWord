@@ -209,15 +209,40 @@ internal static class Installer
         if (!Directory.Exists(Root))
             return 0;
 
+        foreach (var dir in Directory.GetDirectories(Root, $"{RemovingPrefix}*"))
+            TryDelete(dir); // left by an earlier install
+
         var inUse = 0;
         foreach (var dir in Directory.GetDirectories(Root, "app-*"))
         {
             if (keep is not null && string.Equals(dir, keep, StringComparison.OrdinalIgnoreCase))
                 continue;
-            if (!TryDelete(dir))
+            if (!TryRemoveVersion(dir))
                 ++inUse;
         }
         return inUse;
+    }
+
+    private const string RemovingPrefix = "removing-";
+
+    /// <summary>
+    /// Deletes a version's folder only if no Word is using it. Deleting it file by file would take
+    /// the files a running Word hasn't loaded yet (SkiaSharp, loaded at the first plot) and break
+    /// its add-in, so the folder is renamed first: Windows refuses that while a file in it is open.
+    /// </summary>
+    private static bool TryRemoveVersion(string dir)
+    {
+        var removing = Path.Combine(Root, RemovingPrefix + Guid.NewGuid().ToString("N"));
+        try
+        {
+            Directory.Move(dir, removing);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return false; // a running Word has the add-in's files open
+        }
+        TryDelete(removing); // anything left goes on the next install or uninstall
+        return true;
     }
 
     private static bool TryDelete(string dir)
